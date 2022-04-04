@@ -1,0 +1,5 @@
+.stack-work/
+*~
+.build/
+node_modules/
+._build/
