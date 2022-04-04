@@ -2,10 +2,8 @@
   "name": "App",
   "main": "electron.js",
   "dependencies": {
-    "-": "^0.0.1",
-    "electron": "^1.6.1",
+    "electron": "^18.0.1",
     "freeport": "^1.0.5",
-    "npm-check-updates": "^12.5.7",
     "wait-on": "^2.0.2"
   }
 }
