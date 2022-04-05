@@ -26,7 +26,7 @@ dependencies:
     - hiding (Prelude)
 - name: relude
   mixin:
-    - (Relude as Prelude, Relude.Unsafe)
+    - (Relude as Prelude, Relude.Unsafe, Relude.Extra.Map, Relude.Container.Reexport)
 - lens
 - generic-lens
 - threepenny-gui
