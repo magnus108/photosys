@@ -25,22 +25,38 @@ setup :: Window -> UI ()
 setup window = void $ mdo
     return window # set title "PhotoApp"
 
-    entryName   <- UI.entry $ name <$> bItem
-    entryCode   <- UI.entry $ code <$> bItem
+    -- GUI elements
+    createBtn   <- UI.button #+ [string "Create"]
+    deleteBtn   <- UI.button #+ [string "Delete"]
+    listBox <- UI.listBox bItems bSelection bDisplayItem
     filterEntry <- UI.entry bFilterString
 
-    createBtn   <- UI.button #+ [string "Create"]
+    entryName   <- UI.entry $ name <$> bItem
+    entryCode   <- UI.entry $ code <$> bItem
+
     let eCreate = UI.click createBtn
 
-    let items = grid [[string "Name:", element entryName #. "input", string "Code:", element entryCode #. "input"]]
-    listBox <- UI.listBox bItems bSelection bDisplayItem
+    let items = grid
+            [ [ string "Name:"
+              , element entryName #. "input"
+              , string "Code:"
+              , element entryCode #. "input"
+              ]
+            ]
 
     getBody window
         #+ [ UI.div
              #. "container"
              #+ [ grid
                       [ [row [element filterEntry #. "input"]]
-                      , [element listBox, items]
+                      , [ UI.div
+                        #. "select is-multiple"
+                        #+ [ element listBox # set (attr "size") "8" # set
+                                 (attr "multiple")
+                                 ""
+                           ]
+                        , items
+                        ]
                       , [row [element createBtn #. "button"]]
                       ]
                 ]
