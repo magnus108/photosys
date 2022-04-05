@@ -25,13 +25,14 @@ setup :: Window -> UI ()
 setup window = void $ mdo
     return window # set title "PhotoApp"
 
-    entry       <- UI.entry $ name <$> bItem
+    entryName   <- UI.entry $ name <$> bItem
+    entryCode   <- UI.entry $ code <$> bItem
     filterEntry <- UI.entry bFilterString
 
     createBtn   <- UI.button #+ [string "Create"]
     let eCreate = UI.click createBtn
 
-    let items = grid [[string "Name:", element entry #. "input"]]
+    let items = grid [[string "Name:", element entryName #. "input", string "Code:", element entryCode #. "input"]]
     listBox <- UI.listBox bItems bSelection bDisplayItem
 
     getBody window

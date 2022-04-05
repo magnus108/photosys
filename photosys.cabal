@@ -27,6 +27,8 @@ library
   exposed-modules:
       Item
       Lib
+      Loan
+      User
   other-modules:
       Paths_photosys
   hs-source-dirs:
