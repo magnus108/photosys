@@ -1,4 +1,4 @@
-module Item () where
+module Item where
 
 import Data.Aeson
 

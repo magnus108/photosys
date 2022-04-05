@@ -1,6 +1,5 @@
 ## To Do
 
-- Main?(how to run)
 - static folder in build
 - nodejspackages
 
@@ -9,3 +8,6 @@
 
 ## Done
 
+- Main?(how to run)
+- No work listbox
+    > I think i got it now. behaviour lives outside

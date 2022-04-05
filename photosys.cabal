@@ -49,7 +49,7 @@ library
     , threepenny-gui
   mixins:
       base hiding (Prelude)
-    , relude (Relude as Prelude)
+    , relude (Relude as Prelude, Relude.Unsafe)
   default-language: Haskell2010
 
 executable photosys-exe
@@ -78,7 +78,7 @@ executable photosys-exe
     , threepenny-gui
   mixins:
       base hiding (Prelude)
-    , relude (Relude as Prelude)
+    , relude (Relude as Prelude, Relude.Unsafe)
   default-language: Haskell2010
 
 test-suite photosys-test
@@ -108,5 +108,5 @@ test-suite photosys-test
     , threepenny-gui
   mixins:
       base hiding (Prelude)
-    , relude (Relude as Prelude)
+    , relude (Relude as Prelude, Relude.Unsafe)
   default-language: Haskell2010
