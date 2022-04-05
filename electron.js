@@ -9,7 +9,7 @@ const timeout = 10000;
 // Relative path to the Threepenny binary.
 const relBin = './.build/photosys-exe'
 // Additional arguments to pass to the Threepenny binary.
-const binArgs = [__dirname];
+const binArgs = [];
 
 // Assign a random port to run on.
 freeport((err, port) => {

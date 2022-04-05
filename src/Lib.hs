@@ -7,15 +7,13 @@ where
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
 
-import           System.FilePath
-
 import           Item
 
-someFunc :: Int -> String -> IO ()
-someFunc port root = do
+someFunc :: Int -> IO ()
+someFunc port = do
     startGUI defaultConfig { jsWindowReloadOnDisconnect = False
                            , jsPort                     = Just port
-                           , jsStatic = Just (root </> "static")
+                           , jsStatic                   = Just "static"
                            , jsCustomHTML               = Just "index.html"
                            }
         $ setup

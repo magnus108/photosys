@@ -7,5 +7,5 @@ import System.Environment (getArgs)
 
 main :: IO ()
 main = do
-    [port, root] <- getArgs
-    someFunc (read port) root
+    [port] <- getArgs
+    someFunc (read port)
