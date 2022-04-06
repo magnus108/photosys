@@ -14,6 +14,7 @@ import qualified Relude.Unsafe                 as Unsafe
 import qualified Data.ByteString.Lazy as BS
 
 import Database
+import qualified Checkbox 
 
 
 setup :: Window -> UI ()
@@ -30,7 +31,7 @@ setup window = void $ mdo
     listBox <- UI.listBox bListBoxItems bSelection bDisplayDataItem
     filterEntry                       <- UI.entry bFilterString
 
-    ((elemName, elemCode), tDataItem) <- dataItem bSelectionDataItem
+    ((elemName, elemCode, elemAdmin), tDataItem) <- dataItem bSelectionDataItem
 
 
     -- GUI layout
@@ -39,6 +40,8 @@ setup window = void $ mdo
               , element elemName #. "input"
               , string "Code:"
               , element elemCode #. "input"
+              , string "Admin:"
+              , element elemAdmin #. "checkbox"
               ]
             ]
 
@@ -150,12 +153,13 @@ emptyDataItem :: DataItem
 emptyDataItem = User "" "" False
 
 dataItem
-    :: Behavior (Maybe DataItem) -> UI ((Element, Element), Tidings DataItem)
+    :: Behavior (Maybe DataItem) -> UI ((Element, Element, Element), Tidings DataItem)
 dataItem bItem = do
     entry1 <- UI.entry $ name . fromMaybe emptyDataItem <$> bItem
     entry2 <- UI.entry $ code . fromMaybe emptyDataItem <$> bItem
+    entry3  <- Checkbox.entry $ admin . fromMaybe emptyDataItem <$> bItem
 
     return
-        ( (getElement entry1, getElement entry2)
-        , User <$> UI.userText entry1 <*> UI.userText entry2 <*> (pure False) -- HER
+        ( (getElement entry1, getElement entry2, getElement entry3 )
+        , User <$> UI.userText entry1 <*> UI.userText entry2 <*> Checkbox.userCheck entry3
         )
