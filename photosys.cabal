@@ -25,10 +25,12 @@ source-repository head
 
 library
   exposed-modules:
+      Database
       Item
       Lib
       Loan
       User
+      UserGui
   other-modules:
       Paths_photosys
   hs-source-dirs:

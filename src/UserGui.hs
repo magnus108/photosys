@@ -1,34 +1,19 @@
 {-# LANGUAGE RecursiveDo #-}
-module Lib
-    ( someFunc
-    )
-where
+module UserGui where
 
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
-import           Item
+import           User
 
 import qualified Relude.Unsafe                 as Unsafe
 import Database
 
 
-import qualified UserGui
-
-someFunc :: Int -> IO ()
-someFunc port = do
-    startGUI defaultConfig { jsWindowReloadOnDisconnect = False
-                           , jsPort                     = Just port
-                           , jsStatic                   = Just "static"
-                           , jsCustomHTML               = Just "index.html"
-                           }
-        $ setup
-
-
 setup :: Window -> UI ()
 setup window = void $ mdo
-    return window # set title "PhotoApp"
+    return window # set title "PhotoApp - User"
 
     -- GUI elements
     createBtn                         <- UI.button #+ [string "Create"]
@@ -92,7 +77,7 @@ setup window = void $ mdo
     -- bDatabase :: Behavior (Database DataItem)
     let update' mkey x = flip update x <$> mkey
     bDatabase <- accumB emptydb $ concatenate <$> unions
-        [ create (Item "" "") <$ eCreate
+        [ create (User "" "") <$ eCreate
         , filterJust $ update' <$> bSelection <@> eDataItemIn
         , delete <$> filterJust (bSelection <@ eDelete)
         ]
@@ -138,9 +123,6 @@ setup window = void $ mdo
     element elemName # sink UI.enabled bDisplayItem
     element elemCode # sink UI.enabled bDisplayItem
 
-
-    UserGui.setup window
-
     onChanges bDatabase $ \items -> do
         liftIO $ putStrLn (show items)
 
@@ -150,16 +132,13 @@ setup window = void $ mdo
     Data items that are stored in the data base
 ------------------------------------------------------------------------------}
 
-type DataItem = Item
-
+type DataItem = User
 
 showDataItem :: DataItem -> String
 showDataItem item = name item ++ ", " ++ (code item)
 
-
 emptyDataItem :: DataItem
-emptyDataItem = Item "" ""
-
+emptyDataItem = User "" ""
 
 dataItem
     :: Behavior (Maybe DataItem) -> UI ((Element, Element), Tidings DataItem)
@@ -169,5 +148,5 @@ dataItem bItem = do
 
     return
         ( (getElement entry1, getElement entry2)
-        , Item <$> UI.userText entry1 <*> UI.userText entry2
+        , User <$> UI.userText entry1 <*> UI.userText entry2
         )
