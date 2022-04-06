@@ -4,6 +4,8 @@ module Lib
     )
 where
 
+import Data.Aeson
+
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
@@ -15,6 +17,8 @@ import Database
 
 
 import qualified UserGui
+import qualified Data.ByteString.Lazy as BS
+
 
 someFunc :: Int -> IO ()
 someFunc port = do
@@ -28,6 +32,10 @@ someFunc port = do
 
 setup :: Window -> UI ()
 setup window = void $ mdo
+    let datastore = "data/item.json"
+    database <- liftIO $ Unsafe.fromJust . decode <$> BS.readFile datastore :: UI (Database Item)
+
+
     return window # set title "PhotoApp"
 
     -- GUI elements
@@ -91,7 +99,7 @@ setup window = void $ mdo
     -- database
     -- bDatabase :: Behavior (Database DataItem)
     let update' mkey x = flip update x <$> mkey
-    bDatabase <- accumB emptydb $ concatenate <$> unions
+    bDatabase <- accumB database $ concatenate <$> unions
         [ create (Item "" "") <$ eCreate
         , filterJust $ update' <$> bSelection <@> eDataItemIn
         , delete <$> filterJust (bSelection <@ eDelete)
@@ -142,7 +150,7 @@ setup window = void $ mdo
     UserGui.setup window
 
     onChanges bDatabase $ \items -> do
-        liftIO $ putStrLn (show items)
+        liftIO $ BS.writeFile datastore (encode items)
 
 
 

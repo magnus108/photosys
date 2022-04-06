@@ -33,6 +33,7 @@ dependencies:
 - comonad
 - aeson
 - filepath
+- bytestring
 
 default-extensions:
 - LambdaCase
