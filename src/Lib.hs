@@ -75,6 +75,7 @@ setup window = void $ mdo
     let
         isInfixOf               :: (Eq a) => [a] -> [a] -> Bool
         isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
+
     let tFilter = isInfixOf <$> UI.userText filterEntry
         bFilter = facts tFilter
         eFilter = rumors tFilter
@@ -89,7 +90,7 @@ setup window = void $ mdo
     -- bDatabase :: Behavior (Database DataItem)
     let update' mkey x = flip update x <$> mkey
     bDatabase <- accumB emptydb $ concatenate <$> unions
-        [ create (Item "CAM" "0123dd12") <$ eCreate
+        [ create (Item "" "") <$ eCreate
         , filterJust $ update' <$> bSelection <@> eDataItemIn
         , delete <$> filterJust (bSelection <@ eDelete)
         ]
@@ -112,7 +113,10 @@ setup window = void $ mdo
         bShowDataItem :: Behavior (DatabaseKey -> String)
         bShowDataItem    = (maybe "" showDataItem .) <$> bLookup
 
-        bDisplayDataItem = (UI.string .) <$> bShowDataItem
+        bShowDataItem2 :: Behavior (DatabaseKey -> String)
+        bShowDataItem2    = (maybe "" name .) <$> bLookup
+
+        bDisplayDataItem = (UI.string .) <$> bShowDataItem2
 
         bListBoxItems :: Behavior [DatabaseKey]
         bListBoxItems =
@@ -158,6 +162,7 @@ lookup key (Database _ db) = Map.lookup key db
 ------------------------------------------------------------------------------}
 
 type DataItem = Item
+
 showDataItem :: DataItem -> String
 showDataItem item = name item ++ ", " ++ (code item)
 
