@@ -1,6 +1,8 @@
 {-# LANGUAGE RecursiveDo #-}
 module UserGui where
 
+import Data.Aeson
+
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
@@ -8,11 +10,18 @@ import           Graphics.UI.Threepenny.Core
 import           User
 
 import qualified Relude.Unsafe                 as Unsafe
+
+import qualified Data.ByteString.Lazy as BS
+
 import Database
 
 
 setup :: Window -> UI ()
 setup window = void $ mdo
+    let datastore = "data/user.json"
+    database <- liftIO $ Unsafe.fromJust . decode <$> BS.readFile datastore :: UI (Database User)
+
+
     return window # set title "PhotoApp - User"
 
     -- GUI elements
@@ -76,8 +85,8 @@ setup window = void $ mdo
     -- database
     -- bDatabase :: Behavior (Database DataItem)
     let update' mkey x = flip update x <$> mkey
-    bDatabase <- accumB emptydb $ concatenate <$> unions
-        [ create (User "" "") <$ eCreate
+    bDatabase <- accumB database $ concatenate <$> unions
+        [ create (User "" "" False) <$ eCreate
         , filterJust $ update' <$> bSelection <@> eDataItemIn
         , delete <$> filterJust (bSelection <@ eDelete)
         ]
@@ -124,7 +133,7 @@ setup window = void $ mdo
     element elemCode # sink UI.enabled bDisplayItem
 
     onChanges bDatabase $ \items -> do
-        liftIO $ putStrLn (show items)
+        liftIO $ BS.writeFile datastore (encode items)
 
 
 
@@ -138,7 +147,7 @@ showDataItem :: DataItem -> String
 showDataItem item = name item ++ ", " ++ (code item)
 
 emptyDataItem :: DataItem
-emptyDataItem = User "" ""
+emptyDataItem = User "" "" False
 
 dataItem
     :: Behavior (Maybe DataItem) -> UI ((Element, Element), Tidings DataItem)
@@ -148,5 +157,5 @@ dataItem bItem = do
 
     return
         ( (getElement entry1, getElement entry2)
-        , User <$> UI.userText entry1 <*> UI.userText entry2
+        , User <$> UI.userText entry1 <*> UI.userText entry2 <*> (pure False) -- HER
         )
