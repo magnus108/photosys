@@ -1,48 +1,43 @@
 {-# LANGUAGE RecursiveDo #-}
-module UserGui where
+module LoanGui where
 
-import           Data.Aeson
+import Data.Aeson
+
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
-import           User
+import           Loan
 
 import qualified Relude.Unsafe                 as Unsafe
 
-import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BS
 
-import           Database
-import qualified Checkbox
+import Database
 
 
 setup :: Window -> UI ()
 setup window = void $ mdo
-    let datastore = "data/user.json"
-    database <-
-        liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastore :: UI
-            (Database User)
+    let datastore = "data/loan.json"
+    database <- liftIO $ Unsafe.fromJust . decode <$> BS.readFile datastore :: UI (Database Loan)
 
 
-    return window # set title "PhotoApp - User"
+    return window # set title "PhotoApp - Loan"
 
     -- GUI elements
-    createBtn   <- UI.button #+ [string "Create"]
-    deleteBtn   <- UI.button #+ [string "Delete"]
-    listBox     <- UI.listBox bListBoxItems bSelection bDisplayDataItem
-    filterEntry <- UI.entry bFilterString
+    createBtn                         <- UI.button #+ [string "Create"]
+    deleteBtn                         <- UI.button #+ [string "Delete"]
+    listBox <- UI.listBox bListBoxItems bSelection bDisplayDataItem
+    filterEntry                       <- UI.entry bFilterString
 
-    ((elemName, elemCode, elemAdmin), tDataItem) <- dataItem bSelectionDataItem
-
+    ((elemName, elemItem), tDataItem) <- dataItem bSelectionDataItem
 
     -- GUI layout
     let uiDataItems = grid
             [ [ string "Name:"
               , element elemName #. "input"
-              , string "Code:"
-              , element elemCode #. "input"
-              , string "Admin:"
-              , element elemAdmin #. "checkbox"
+              , string "Item:"
+              , element elemItem #. "input"
               ]
             ]
 
@@ -72,7 +67,8 @@ setup window = void $ mdo
     -- Events and behaviors
     bFilterString <- stepper "" . rumors $ UI.userText filterEntry
 
-    let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
+    let
+        isInfixOf               :: (Eq a) => [a] -> [a] -> Bool
         isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
 
     let tFilter = isInfixOf <$> UI.userText filterEntry
@@ -88,7 +84,7 @@ setup window = void $ mdo
     -- database
     -- bDatabase :: Behavior (Database DataItem)
     bDatabase <- accumB database $ concatenate <$> unions
-        [ create (User "" "" False) <$ eCreate
+        [ create (Loan "" "") <$ eCreate
         , filterJust $ update' <$> bSelection <@> eDataItemIn
         , delete <$> filterJust (bSelection <@ eDelete)
         ]
@@ -109,12 +105,9 @@ setup window = void $ mdo
         bLookup = flip lookup <$> bDatabase
 
         bShowDataItem :: Behavior (DatabaseKey -> String)
-        bShowDataItem = (maybe "" showDataItem .) <$> bLookup
+        bShowDataItem    = (maybe "" showDataItem .) <$> bLookup
 
-        bShowDataItem2 :: Behavior (DatabaseKey -> String)
-        bShowDataItem2   = (maybe "" name .) <$> bLookup
-
-        bDisplayDataItem = (UI.string .) <$> bShowDataItem2
+        bDisplayDataItem = (UI.string .) <$> bShowDataItem
 
         bListBoxItems :: Behavior [DatabaseKey]
         bListBoxItems =
@@ -132,11 +125,10 @@ setup window = void $ mdo
 
     element deleteBtn # sink UI.enabled bDisplayItem
     element elemName # sink UI.enabled bDisplayItem
-    element elemCode # sink UI.enabled bDisplayItem
-    element elemAdmin # sink UI.enabled bDisplayItem
+    element elemItem # sink UI.enabled bDisplayItem
 
     onChanges bDatabase $ \items -> do
-        liftIO $ BS.writeFile datastore $ toStrict $ encode items
+        liftIO $ BS.writeFile datastore (encode items)
 
 
 
@@ -144,26 +136,21 @@ setup window = void $ mdo
     Data items that are stored in the data base
 ------------------------------------------------------------------------------}
 
-type DataItem = User
+type DataItem = Loan
 
 showDataItem :: DataItem -> String
-showDataItem item = name item ++ ", " ++ (code item)
+showDataItem i = item i ++ ", " ++ (user i)
 
 emptyDataItem :: DataItem
-emptyDataItem = User "" "" False
+emptyDataItem = Loan "" ""
 
 dataItem
-    :: Behavior (Maybe DataItem)
-    -> UI ((Element, Element, Element), Tidings DataItem)
+    :: Behavior (Maybe DataItem) -> UI ((Element, Element), Tidings DataItem)
 dataItem bItem = do
-    entry1 <- UI.entry $ name . fromMaybe emptyDataItem <$> bItem
-    entry2 <- UI.entry $ code . fromMaybe emptyDataItem <$> bItem
-    entry3 <- Checkbox.entry $ admin . fromMaybe emptyDataItem <$> bItem
+    entry1 <- UI.entry $ item . fromMaybe emptyDataItem <$> bItem
+    entry2 <- UI.entry $ user . fromMaybe emptyDataItem <$> bItem
 
     return
-        ( (getElement entry1, getElement entry2, getElement entry3)
-        , User
-        <$> UI.userText entry1
-        <*> UI.userText entry2
-        <*> Checkbox.userCheck entry3
+        ( (getElement entry1, getElement entry2 )
+        , Loan <$> UI.userText entry1 <*> UI.userText entry2
         )

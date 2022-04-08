@@ -28,8 +28,12 @@ library
       Checkbox
       Database
       Item
+      ItemGui
       Lib
       Loan
+      LoanGui
+      Login
+      LoginGui
       User
       UserGui
   other-modules:
