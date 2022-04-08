@@ -10,6 +10,7 @@ import           Graphics.UI.Threepenny.Core
 import           User
 import           Login                          ( Login(..) )
 import qualified Login
+import Token
 
 import qualified Relude.Unsafe                 as Unsafe
 
@@ -37,6 +38,14 @@ setup window = void $ mdo
         .   decode
         .   fromStrict
         <$> BS.readFile datastoreLogin :: UI (Database Login)
+
+    let datastoreToken = "data/token.json"
+    databaseToken <-
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile datastoreToken :: UI (Database Token)
 
     return window # set title "PhotoApp - Login"
 
@@ -87,10 +96,14 @@ setup window = void $ mdo
 
     bLoginSelection <- stepper (Just 0) UI.never
 
-    bIn <- stepper Nothing $ Unsafe.head <$> unions
-        [ Nothing <$ eLogout
-        , bUser' <@ eLogin
+
+    bDatabaseToken <- accumB databaseToken $ concatenate <$> unions
+        [ filterJust $ update' <$> bTokenSelection <@> (Token <$ filterJust (bUser' <@ eLogin))
+        , filterJust $ update' <$> bTokenSelection <@> (NoToken <$ eLogout)
         ]
+
+    bTokenSelection <- stepper (Just 0) UI.never
+
 
     let bLookupLogin :: Behavior (DatabaseKey -> Maybe Login)
         bLookupLogin = flip lookup <$> bDatabaseLogin
@@ -126,19 +139,26 @@ setup window = void $ mdo
         bLogin = (\e -> Login (User.name e) (User.code e)) <$> bUser
 
 
+    let bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
+        bLookupToken = flip lookup <$> bDatabaseToken
+
+        bSelectionToken :: Behavior (Maybe Token)
+        bSelectionToken = (=<<) <$> bLookupToken <*> bTokenSelection
+
 
     onChanges bDatabaseLogin $ \items -> do
         liftIO $ putStrLn (show items)
         liftIO $ BS.writeFile datastoreLogin $ toStrict $ encode items
 
-    onChanges bIn $ \items -> do
+    onChanges bDatabaseToken $ \items -> do
         liftIO $ putStrLn (show items)
+        liftIO $ BS.writeFile datastoreToken $ toStrict $ encode items
 
     element elemName # sink value (Login.name . fromMaybe emptyDataItem <$> bSelectionDataItem)
     element elemCode # sink value (Login.code . fromMaybe emptyDataItem <$> bSelectionDataItem)
 
     let bDisplayItem :: Behavior Bool
-        bDisplayItem = isJust <$> bIn
+        bDisplayItem = maybe False isToken <$> bSelectionToken
 
     element loginBtn # sink UI.enabled (not <$> bDisplayItem)
     element logoutBtn # sink UI.enabled bDisplayItem
