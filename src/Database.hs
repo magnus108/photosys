@@ -23,6 +23,7 @@ create x (Database newkey db) = Database (newkey + 1) $ Map.insert newkey x db
 update key x (Database newkey db) = Database newkey $ Map.insert key x db
 delete key (Database newkey db) = Database newkey $ Map.delete key db
 lookup key (Database _ db) = Map.lookup key db
+findIndex :: (a -> Bool) -> Database a -> Maybe Int
 findIndex f (Database _ db) = fst <$> (find (\p -> f (snd p)) (Map.toPairs db))
 
 update' mkey x = flip update x <$> mkey

@@ -96,11 +96,17 @@ setup window = void $ mdo
         bFind :: Behavior ((User -> Bool) -> Maybe DatabaseKey)
         bFind = flip findIndex <$> bDatabaseUser
 
-        bFindDataItem :: Behavior (DataItem -> Maybe DatabaseKey)
-        bFindDataItem = (\f u -> f (\x -> (User.name x == Login.name u) && (User.code x == Login.code u))) <$> bFind -- fix Ugly
+        compareLogin :: Login -> User -> Bool
+        compareLogin y x = (User.name x == Login.name y) && (User.code x == Login.code y)
+
+        liftOp :: Monad m => (a -> b -> c) -> m a -> b -> m c
+        liftOp f a b = a >>= \a' -> return (f a' b)
+
+        loginIsUser :: Behavior (User -> Bool)
+        loginIsUser =  (fromMaybe False .) . (liftOp compareLogin) <$> bSelectionDataItem
 
         bUserKey :: Behavior (Maybe DatabaseKey)
-        bUserKey = (=<<) <$> bFindDataItem <*> bSelectionDataItem
+        bUserKey = bFind <*> loginIsUser
 
         bUser' :: Behavior (Maybe User)
         bUser' = (=<<) <$> bLookupUser <*> bUserKey
@@ -120,7 +126,7 @@ setup window = void $ mdo
         liftIO $ BS.writeFile datastoreLogin $ toStrict $ encode items
 
     element logoutBtn -- sink enabled
-    element loginBtn # sink UI.enabled
+    element loginBtn -- sink enabled
 
 
 
