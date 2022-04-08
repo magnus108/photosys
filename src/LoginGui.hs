@@ -87,6 +87,11 @@ setup window = void $ mdo
 
     bLoginSelection <- stepper (Just 0) UI.never
 
+    bIn <- stepper Nothing $ Unsafe.head <$> unions
+        [ Nothing <$ eLogout
+        , bUser' <@ eLogin
+        ]
+
     let bLookupLogin :: Behavior (DatabaseKey -> Maybe Login)
         bLookupLogin = flip lookup <$> bDatabaseLogin
 
@@ -108,6 +113,9 @@ setup window = void $ mdo
         bUserKey :: Behavior (Maybe DatabaseKey)
         bUserKey = bFind <*> loginIsUser
 
+        bLookupUser :: Behavior (DatabaseKey -> Maybe User)
+        bLookupUser = flip lookup <$> bDatabaseUser
+
         bUser' :: Behavior (Maybe User)
         bUser' = (=<<) <$> bLookupUser <*> bUserKey
 
@@ -117,16 +125,23 @@ setup window = void $ mdo
         bLogin :: Behavior Login
         bLogin = (\e -> Login (User.name e) (User.code e)) <$> bUser
 
-        bLookupUser :: Behavior (DatabaseKey -> Maybe User)
-        bLookupUser = flip lookup <$> bDatabaseUser
 
 
     onChanges bDatabaseLogin $ \items -> do
         liftIO $ putStrLn (show items)
         liftIO $ BS.writeFile datastoreLogin $ toStrict $ encode items
 
-    element logoutBtn -- sink enabled
-    element loginBtn -- sink enabled
+    onChanges bIn $ \items -> do
+        liftIO $ putStrLn (show items)
+
+    element elemName # sink value (Login.name . fromMaybe emptyDataItem <$> bSelectionDataItem)
+    element elemCode # sink value (Login.code . fromMaybe emptyDataItem <$> bSelectionDataItem)
+
+    let bDisplayItem :: Behavior Bool
+        bDisplayItem = isJust <$> bIn
+
+    element loginBtn # sink UI.enabled (not <$> bDisplayItem)
+    element logoutBtn # sink UI.enabled bDisplayItem
 
 
 
