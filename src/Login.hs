@@ -2,7 +2,7 @@ module Login where
 
 import           Data.Aeson
 
-data Login = Login { token :: String }
+data Login = Login { name :: String, code :: String}
     deriving stock (Eq, Ord, Show)
     deriving stock (Generic)
 

@@ -8,11 +8,12 @@ import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
 import           User
-import           Login
+import           Login                          ( Login(..) )
+import qualified Login
 
 import qualified Relude.Unsafe                 as Unsafe
 
-import qualified Data.ByteString as BS
+import qualified Data.ByteString               as BS
 
 import           Database
 import qualified Checkbox
@@ -21,10 +22,21 @@ import qualified Checkbox
 
 setup :: Window -> UI ()
 setup window = void $ mdo
-    let datastore = "data/user.json"
+    let datastoreUser  = "data/user.json"
     databaseUser <-
-        liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastore :: UI
-            (Database User)
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile datastoreUser :: UI (Database User)
+
+    let datastoreLogin = "data/login.json"
+    databaseLogin <-
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile datastoreLogin :: UI (Database Login)
 
     return window # set title "PhotoApp - Login"
 
@@ -32,7 +44,7 @@ setup window = void $ mdo
     loginBtn                          <- UI.button #+ [string "Login"]
     logoutBtn                         <- UI.button #+ [string "Logout"]
 
-    ((elemName, elemCode), tDataItem) <- dataItem bLogin
+    ((elemName, elemCode), tDataItem) <- dataItem bSelectionDataItem
 
 
     -- GUI layout
@@ -64,55 +76,63 @@ setup window = void $ mdo
         eLogout     = UI.click logoutBtn
 
 
-    bDatabaseUser <- accumB databaseUser $ concatenate <$> unions []
+    bDatabaseUser  <- accumB databaseUser $ concatenate <$> unions []
 
-    bLogin <- stepper Nothing $ Unsafe.head <$> unions
-        [ Just <$> eDataItemIn
-        , Nothing <$ eLogout
+
+    bDatabaseLogin <- accumB databaseLogin $ concatenate <$> unions
+        [ filterJust $ update' <$> bLoginSelection <*> bLogin <@ eLogin
+        , filterJust $ update' <$> bLoginSelection <@> eDataItemIn
+        , filterJust $ update' <$> bLoginSelection <@> (emptyDataItem <$ eLogout)
         ]
 
+    bLoginSelection <- stepper (Just 0) UI.never
 
-    bSelection    <- stepper Nothing $ Unsafe.head <$> unions
-        [ Nothing <$ eLogout
-        , (\f u -> f (\x -> trace (name x) (name x) == traceShow (name_ u) (name_ u) && (code x) == (code_ u))) <$> bFind <*> (fromMaybe emptyDataItem <$> bLogin) <@ eLogin
-        ]
+    let bLookupLogin :: Behavior (DatabaseKey -> Maybe Login)
+        bLookupLogin = flip lookup <$> bDatabaseLogin
 
-    let bLookup :: Behavior (DatabaseKey -> Maybe User)
-        bLookup = flip lookup <$> bDatabaseUser
+        bSelectionDataItem :: Behavior (Maybe Login)
+        bSelectionDataItem = (=<<) <$> bLookupLogin <*> bLoginSelection
 
         bFind :: Behavior ((User -> Bool) -> Maybe DatabaseKey)
         bFind = flip findIndex <$> bDatabaseUser
 
-        bSelectionDataItem :: Behavior (Maybe User)
-        bSelectionDataItem = (=<<) <$> bLookup <*> bSelection
+        bFindDataItem :: Behavior (DataItem -> Maybe DatabaseKey)
+        bFindDataItem = (\f u -> f (\x -> (User.name x == Login.name u) && (User.code x == Login.code u))) <$> bFind -- fix Ugly
 
+        bUserKey :: Behavior (Maybe DatabaseKey)
+        bUserKey = (=<<) <$> bFindDataItem <*> bSelectionDataItem
+
+        bUser' :: Behavior (Maybe User)
+        bUser' = (=<<) <$> bLookupUser <*> bUserKey
+
+        bUser :: Behavior User
+        bUser = fromMaybe emptyUser <$> bUser'
+
+        bLogin :: Behavior Login
+        bLogin = (\e -> Login (User.name e) (User.code e)) <$> bUser
+
+        bLookupUser :: Behavior (DatabaseKey -> Maybe User)
+        bLookupUser = flip lookup <$> bDatabaseUser
+
+
+    onChanges bDatabaseLogin $ \items -> do
+        liftIO $ putStrLn (show items)
+        liftIO $ BS.writeFile datastoreLogin $ toStrict $ encode items
 
     element logoutBtn -- sink enabled
-    element loginBtn -- sink enabled
+    element loginBtn # sink UI.enabled
 
-    onChanges bSelection $ \items -> do
-        liftIO $ putStrLn (show items)
-
-    onChanges bLogin $ \items -> do
-        liftIO $ putStrLn ("blogin")
-        liftIO $ putStrLn (show items)
-
-    onChanges (facts tDataItem) $ \items -> do
-        liftIO $ putStrLn ("facts")
-        liftIO $ putStrLn (show items)
 
 
 {-----------------------------------------------------------------------------
     Data items that are stored in the data base
 ------------------------------------------------------------------------------}
 
-data LoginForm = LoginForm { name_ :: String, code_ :: String }
-    deriving Show
 
-type DataItem = LoginForm
+type DataItem = Login
 
 emptyDataItem :: DataItem
-emptyDataItem = LoginForm "" ""
+emptyDataItem = Login "" ""
 
 emptyUser :: User
 emptyUser = User "" "" False
@@ -121,10 +141,10 @@ emptyUser = User "" "" False
 dataItem
     :: Behavior (Maybe DataItem) -> UI ((Element, Element), Tidings DataItem)
 dataItem bItem = do
-    entry1 <- UI.entry $ name_ . fromMaybe emptyDataItem <$> bItem
-    entry2 <- UI.entry $ code_ . fromMaybe emptyDataItem <$> bItem
+    entry1 <- UI.entry $ Login.name . fromMaybe emptyDataItem <$> bItem
+    entry2 <- UI.entry $ Login.code . fromMaybe emptyDataItem <$> bItem
 
     return
         ( (getElement entry1, getElement entry2)
-        , LoginForm <$> UI.userText entry1 <*> UI.userText entry2
+        , Login <$> UI.userText entry1 <*> UI.userText entry2
         )
