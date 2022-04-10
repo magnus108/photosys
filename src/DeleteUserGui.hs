@@ -16,12 +16,8 @@ import           Database
 import qualified Checkbox
 
 
-setup :: Window -> UI Element
-setup window = mdo
-    let datastore = "data/user.json"
-    database <-
-        liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastore :: UI
-            (Database User)
+setup :: Window -> Behavior (Database DataItem) -> UI (Element, Event (), Behavior (Maybe DatabaseKey))
+setup window bDatabase = mdo
 
 
     -- GUI elements
@@ -61,9 +57,6 @@ setup window = mdo
         eDelete    = UI.click deleteBtn
 
 
-    bDatabase <- accumB database $ concatenate <$> unions
-        [delete <$> filterJust (bSelection <@ eDelete)]
-
     bSelection <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelection
         , Nothing <$ eDelete
@@ -100,10 +93,8 @@ setup window = mdo
 
     element deleteBtn # sink UI.enabled bDisplayItem
 
-    onChanges bDatabase $ \items -> do
-        liftIO $ BS.writeFile datastore $ toStrict $ encode items
 
-    return elem
+    return (elem, eDelete, bSelection)
 
 {-----------------------------------------------------------------------------
     Data items that are stored in the data base

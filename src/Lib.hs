@@ -16,6 +16,7 @@ import qualified Relude.Unsafe                 as Unsafe
 import           Database
 
 
+import User (User(..))
 import qualified UserGui
 import qualified DeleteUserGui
 import qualified LoanGui
@@ -86,15 +87,35 @@ showDataItem t = Tab.name t
 emptyDataItem = Tab ""
 
 dataItem :: Behavior (Maybe DataItem) -> Element -> UI Element
-dataItem bItem tabs = do
+dataItem bItem tabs = mdo
     window  <- askWindow
+
+
+    -------------------------------------------------------------------------------------
+    let datastoreUser = "data/user.json"
+    databaseUser <-
+        liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreUser :: UI
+            (Database User)
+
+    (userGui, eCreate, bSelectionCreate, eDataItemIn) <- UserGui.setup window bDatabaseUser
+    (deleteUserGui, eDelete, bSelectionDelete) <- DeleteUserGui.setup window bDatabaseUser
+
+    bDatabaseUser <- accumB databaseUser $ concatenate <$> unions
+        [ create (User "" "" False) <$ eCreate
+        , filterJust $ update' <$> bSelectionCreate <@> eDataItemIn
+        , delete <$> filterJust (bSelectionDelete <@ eDelete)
+        ]
+
+
+    onChanges bDatabaseUser $ \items -> do
+        liftIO $ BS.writeFile datastoreUser $ toStrict $ encode items
+    -------------------------------------------------------------------------------------
+
 
     itemGui <- ItemGui.setup window
     deleteItemGui <- DeleteItemGui.setup window
     handInGui <- HandInGui.setup window
     loanGui <- LoanGui.setup window
-    userGui <- UserGui.setup window
-    deleteUserGui <- DeleteUserGui.setup window
 
 
     (loginGui, (loginBtn, logoutBtn), bLogin) <- LoginGui.setup window
