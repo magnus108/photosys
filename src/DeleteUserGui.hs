@@ -112,4 +112,4 @@ setup window = mdo
 type DataItem = User
 
 showDataItem :: DataItem -> String
-showDataItem item = name item ++ ", " ++ (code item)
+showDataItem item = name item

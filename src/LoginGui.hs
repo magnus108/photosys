@@ -53,7 +53,7 @@ setup window = mdo
     loginBtn                          <- UI.button #+ [string "Login"] #. "button"
     logoutBtn                         <- UI.button #+ [string "Logout"] #. "button"
 
-    ((elemName, elemCode), tDataItem) <- dataItem bSelectionDataItem
+    ((elemName, elemPassword), tDataItem) <- dataItem bSelectionDataItem
 
 
     -- GUI layout
@@ -61,7 +61,7 @@ setup window = mdo
             [ [ string "Username:"
               , element elemName #. "input"
               , string "Password:"
-              , element elemCode #. "input"
+              , element elemPassword #. "input" # set UI.type_ "password"
               ]
             ]
 
@@ -103,7 +103,7 @@ setup window = mdo
         bFind = flip findIndex <$> bDatabaseUser
 
         compareLogin :: Login -> User -> Bool
-        compareLogin y x = (User.name x == Login.name y) && (User.code x == Login.code y)
+        compareLogin y x = (User.name x == Login.name y) && (User.password x == Login.password y)
 
         liftOp :: Monad m => (a -> b -> c) -> m a -> b -> m c
         liftOp f a b = a >>= \a' -> return (f a' b)
@@ -124,7 +124,7 @@ setup window = mdo
         bUser = fromMaybe emptyUser <$> bUser'
 
         bLogin :: Behavior Login
-        bLogin = (\e -> Login (User.name e) (User.code e)) <$> bUser
+        bLogin = (\e -> Login (User.name e) (User.password e)) <$> bUser
 
 
     let bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
@@ -143,7 +143,7 @@ setup window = mdo
         liftIO $ BS.writeFile datastoreToken $ toStrict $ encode items
 
     element elemName # sink value (Login.name . fromMaybe emptyDataItem <$> bSelectionDataItem)
-    element elemCode # sink value (Login.code . fromMaybe emptyDataItem <$> bSelectionDataItem)
+    element elemPassword # sink value (Login.password . fromMaybe emptyDataItem <$> bSelectionDataItem)
 
     let bDisplayItem :: Behavior Bool
         bDisplayItem = maybe False isToken <$> bSelectionToken
@@ -173,7 +173,7 @@ dataItem
     :: Behavior (Maybe DataItem) -> UI ((Element, Element), Tidings DataItem)
 dataItem bItem = do
     entry1 <- UI.entry $ Login.name . fromMaybe emptyDataItem <$> bItem
-    entry2 <- UI.entry $ Login.code . fromMaybe emptyDataItem <$> bItem
+    entry2 <- UI.entry $ Login.password . fromMaybe emptyDataItem <$> bItem
 
     return
         ( (getElement entry1, getElement entry2)

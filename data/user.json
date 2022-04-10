@@ -1,1 +1,1 @@
-{"nextKey":3,"db":{"0":{"name":"Magnus","code":"MM","admin":true},"1":{"name":"Christian","code":"CM","admin":false},"2":{"name":"a","code":"a","admin":false}}}
+{"nextKey":3,"db":{"0":{"name":"Magnus","password":"MM","admin":true},"1":{"name":"Christian","password":"CM","admin":false},"2":{"name":"a","password":"a","admin":false}}}

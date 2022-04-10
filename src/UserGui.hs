@@ -24,22 +24,20 @@ setup window = mdo
             (Database User)
 
 
-    return window # set title "PhotoApp - User"
-
     -- GUI elements
     createBtn   <- UI.button #+ [string "Create"]
     listBox     <- UI.listBox bListBoxItems bSelection bDisplayDataItem
     filterEntry <- UI.entry bFilterString
 
-    ((elemName, elemCode, elemAdmin), tDataItem) <- dataItem bSelectionDataItem
+    ((elemName, elemPassword, elemAdmin), tDataItem) <- dataItem bSelectionDataItem
 
 
     -- GUI layout
     let uiDataItems = grid
             [ [ string "Name:"
               , element elemName #. "input"
-              , string "Code:"
-              , element elemCode #. "input"
+              , string "Password:"
+              , element elemPassword #. "input" # set UI.type_ "password"
               , string "Admin:"
               , element elemAdmin #. "checkbox"
               ]
@@ -124,7 +122,7 @@ setup window = mdo
         bDisplayItem = isJust <$> bSelection
 
     element elemName # sink UI.enabled bDisplayItem
-    element elemCode # sink UI.enabled bDisplayItem
+    element elemPassword # sink UI.enabled bDisplayItem
     element elemAdmin # sink UI.enabled bDisplayItem
 
     onChanges bDatabase $ \items -> do
@@ -141,7 +139,7 @@ setup window = mdo
 type DataItem = User
 
 showDataItem :: DataItem -> String
-showDataItem item = name item ++ ", " ++ (code item)
+showDataItem item = name item
 
 emptyDataItem :: DataItem
 emptyDataItem = User "" "" False
@@ -151,7 +149,7 @@ dataItem
     -> UI ((Element, Element, Element), Tidings DataItem)
 dataItem bItem = do
     entry1 <- UI.entry $ name . fromMaybe emptyDataItem <$> bItem
-    entry2 <- UI.entry $ code . fromMaybe emptyDataItem <$> bItem
+    entry2 <- UI.entry $ password . fromMaybe emptyDataItem <$> bItem
     entry3 <- Checkbox.entry $ admin . fromMaybe emptyDataItem <$> bItem
 
     return
