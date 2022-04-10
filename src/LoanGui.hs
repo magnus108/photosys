@@ -16,8 +16,8 @@ import qualified Data.ByteString.Lazy as BS
 import Database
 
 
-setup :: Window -> UI ()
-setup window = void $ mdo
+setup :: Window -> UI Element
+setup window = mdo
     let datastore = "data/loan.json"
     database <- liftIO $ Unsafe.fromJust . decode <$> BS.readFile datastore :: UI (Database Loan)
 
@@ -41,8 +41,7 @@ setup window = void $ mdo
               ]
             ]
 
-    getBody window
-        #+ [ UI.div
+    elem <- UI.div
              #. "container"
              #+ [ grid
                       [ [row [element filterEntry #. "input"]]
@@ -61,7 +60,6 @@ setup window = void $ mdo
                         ]
                       ]
                 ]
-           ]
 
 
     -- Events and behaviors
@@ -131,6 +129,7 @@ setup window = void $ mdo
         liftIO $ BS.writeFile datastore (encode items)
 
 
+    return elem
 
 {-----------------------------------------------------------------------------
     Data items that are stored in the data base

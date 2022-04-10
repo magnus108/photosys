@@ -21,8 +21,8 @@ import qualified Checkbox
 
 
 
-setup :: Window -> UI ()
-setup window = void $ mdo
+setup :: Window -> UI (Element, (Element, Element), Behavior Bool)
+setup window = mdo
     let datastoreUser  = "data/user.json"
     databaseUser <-
         liftIO
@@ -50,8 +50,8 @@ setup window = void $ mdo
     return window # set title "PhotoApp - Login"
 
     -- GUI elements
-    loginBtn                          <- UI.button #+ [string "Login"]
-    logoutBtn                         <- UI.button #+ [string "Logout"]
+    loginBtn                          <- UI.button #+ [string "Login"] #. "button"
+    logoutBtn                         <- UI.button #+ [string "Logout"] #. "button"
 
     ((elemName, elemCode), tDataItem) <- dataItem bSelectionDataItem
 
@@ -65,19 +65,7 @@ setup window = void $ mdo
               ]
             ]
 
-    getBody window
-        #+ [ UI.div
-             #. "container"
-             #+ [ grid
-                      [ [uiDataItems]
-                      , [ row
-                              [ element loginBtn #. "button"
-                              , element logoutBtn #. "button"
-                              ]
-                        ]
-                      ]
-                ]
-           ]
+    elem <- uiDataItems
 
 
     let eDataItemIn = rumors $ tDataItem
@@ -162,6 +150,8 @@ setup window = void $ mdo
 
     element loginBtn # sink UI.enabled (not <$> bDisplayItem)
     element logoutBtn # sink UI.enabled bDisplayItem
+
+    return (elem, (loginBtn, logoutBtn), bDisplayItem)
 
 
 

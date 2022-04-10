@@ -41,7 +41,6 @@ someFunc port = do
 setup :: Window -> UI ()
 setup window = void $ mdo
     --LoginGui.setup window
-    --ItemGui.setup window
     --UserGui.setup window
     --LoanGui.setup window
 
@@ -53,9 +52,10 @@ setup window = void $ mdo
 
     listBox <- UI.listBox bListBoxItems bSelection bDisplayDataItem
 
-    tab     <- dataItem bSelectionDataItem
+    menu    <- element listBox
+    tab     <- dataItem bSelectionDataItem menu
 
-    getBody window #+ [grid [[element listBox], [element tab]]]
+    getBody window #+ [element tab]
 
 
     let eSelection = rumors $ UI.userSelection listBox
@@ -89,8 +89,33 @@ showDataItem t = Tab.name t
 
 emptyDataItem = Tab ""
 
-dataItem :: Behavior (Maybe DataItem) -> UI Element
-dataItem bItem = do
-    entry <- UI.entry $ Tab.name . fromMaybe emptyDataItem <$> bItem
+dataItem :: Behavior (Maybe DataItem) -> Element -> UI Element
+dataItem bItem tabs = do
+    window  <- askWindow
 
-    element entry
+    itemGui <- ItemGui.setup window
+    loanGui <- LoanGui.setup window
+    (loginGui, (loginBtn, logoutBtn), bLogin) <- LoginGui.setup window
+    empty   <- string "fejl"
+
+
+    login   <-
+        UI.div
+        #. "container"
+        #+ [ grid
+                 [ [element loginGui]
+                 , [row [element loginBtn, element logoutBtn]]
+                 ]
+           ]
+
+    let display y x = if y
+            then case Tab.name x of
+                "Loan"    -> [tabs, logoutBtn, itemGui]
+                "Hand in" -> [tabs, logoutBtn, loanGui]
+            else [login]
+
+    let bGui = display <$> bLogin
+
+    content <- UI.div # sink children (maybe [empty] <$> bGui <*> bItem)
+
+    element content
