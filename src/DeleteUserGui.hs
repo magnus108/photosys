@@ -7,6 +7,8 @@ import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
 import           User
+import           Loan
+import qualified Loan
 
 import qualified Relude.Unsafe                 as Unsafe
 
@@ -20,8 +22,9 @@ setup
     :: Window
     -> Behavior (Database DataItem)
     -> Behavior (Maybe User)
+    -> Behavior (Database Loan)
     -> UI (Element, Event (), Behavior (Maybe DatabaseKey))
-setup window bDatabase bUser = mdo
+setup window bDatabase bUser bDatabaseLoan = mdo
 
     -- GUI elements
     deleteBtn   <- UI.button #+ [string "Delete"]
@@ -115,6 +118,15 @@ setup window bDatabase bUser = mdo
 
         bIsUser :: Behavior Bool
         bIsUser = (/=) <$> bSelectionDataItem <*> bUser
+
+ --       elemBy :: (a -> a -> Bool) -> a -> [a] -> Bool
+--        elemBy == x = any (== x)
+
+        bLoans = fmap Loan.user <$> elems <$> bDatabaseLoan
+        -- bUsersWithLoan = fmap <$> bLookup <*> bLoans
+        
+        --hasLoans :: Behavior Bool
+        --hasLoans = elemBy (==) <$> bSelectionDataItem <*> _
 
     element deleteBtn # sink UI.enabled ((&&) <$> bDisplayItem <*> bIsUser)
 

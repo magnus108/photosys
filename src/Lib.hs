@@ -98,7 +98,7 @@ dataItem bItem tabs = mdo
             (Database User)
 
     (userGui, eCreate, bSelectionCreate, eDataItemIn) <- UserGui.setup window bDatabaseUser
-    (deleteUserGui, eDelete, bSelectionDelete) <- DeleteUserGui.setup window bDatabaseUser bUser
+    (deleteUserGui, eDelete, bSelectionDelete) <- DeleteUserGui.setup window bDatabaseUser bUser bDatabaseLoan  -- BTOKEN SKAL INDEHOLDE EN USERJO!
 
     bDatabaseUser <- accumB databaseUser $ concatenate <$> unions
         [ create (User "" "" False) <$ eCreate
@@ -115,20 +115,12 @@ dataItem bItem tabs = mdo
     itemGui <- ItemGui.setup window
     deleteItemGui <- DeleteItemGui.setup window
     handInGui <- HandInGui.setup window
-    loanGui <- LoanGui.setup window
+    (loanGui, bDatabaseLoan) <- LoanGui.setup window
 
 
     (loginGui, (loginBtn, logoutBtn), bLogin, bUser) <- LoginGui.setup window
     empty   <- string "fejl"
 
-    login   <-
-        UI.div
-        #. "container"
-        #+ [ grid
-                 [ [element loginGui]
-                 , [row [element loginBtn, element logoutBtn]]
-                 ]
-           ]
 
     let display y x = if y
             then case Tab.name x of
@@ -138,7 +130,7 @@ dataItem bItem tabs = mdo
                 "Loan" -> [tabs, logoutBtn, loanGui]
                 "Create User"    -> [tabs, logoutBtn, userGui]
                 "Delete User"    -> [tabs, logoutBtn, deleteUserGui]
-            else [login]
+            else [loginGui]
 
     let bGui = display <$> bLogin
 

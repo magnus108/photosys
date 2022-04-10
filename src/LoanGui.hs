@@ -16,7 +16,7 @@ import qualified Data.ByteString as BS
 import Database
 
 
-setup :: Window -> UI Element
+setup :: Window -> UI (Element, Behavior (Database Loan))
 setup window = mdo
     let datastore = "data/loan.json"
     database <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastore :: UI (Database Loan)
@@ -120,7 +120,7 @@ setup window = mdo
         liftIO $ BS.writeFile datastore $ toStrict $ encode items
 
 
-    return elem
+    return (elem, bDatabase)
 
 {-----------------------------------------------------------------------------
     Data items that are stored in the data base

@@ -10,7 +10,7 @@ import           Graphics.UI.Threepenny.Core
 import           User
 import           Login                          ( Login(..) )
 import qualified Login
-import Token
+import           Token
 
 import qualified Relude.Unsafe                 as Unsafe
 
@@ -21,9 +21,11 @@ import qualified Checkbox
 
 
 
-setup :: Window -> UI (Element, (Element, Element), Behavior Bool, Behavior (Maybe User))
+setup
+    :: Window
+    -> UI (Element, (Element, Element), Behavior Bool, Behavior (Maybe User))
 setup window = mdo
-    let datastoreUser  = "data/user.json"
+    let datastoreUser = "data/user.json"
     databaseUser <-
         liftIO
         $   Unsafe.fromJust
@@ -50,22 +52,38 @@ setup window = mdo
     return window # set title "PhotoApp - Login"
 
     -- GUI elements
-    loginBtn                          <- UI.button #+ [string "Login"] #. "button"
-    logoutBtn                         <- UI.button #+ [string "Logout"] #. "button"
+    loginBtn <- UI.button #+ [string "Login"]
+    logoutBtn <- UI.button #+ [string "Logout"]
 
     ((elemName, elemPassword), tDataItem) <- dataItem bSelectionDataItem
 
+    username <-
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "Username"]
+           , UI.div #. "control" #+ [element elemName #. "input"]
+           ]
 
-    -- GUI layout
-    let uiDataItems = grid
-            [ [ string "Username:"
-              , element elemName #. "input"
-              , string "Password:"
-              , element elemPassword #. "input" # set UI.type_ "password"
-              ]
-            ]
+    password <-
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "Username"]
+           , UI.div
+           #. "control"
+           #+ [element elemPassword #. "input" # set UI.type_ "password"]
+           ]
 
-    elem <- uiDataItems
+    buttons <-
+        UI.div
+        #. "field is-grouped"
+        #+ [UI.div #. "control" #+ [element loginBtn #. "button"]
+           ,UI.div #. "control" #+ [element logoutBtn #. "button"]
+           ]
+
+    elem <-
+        UI.div
+        #. "container"
+        #+ [element username, element password, element buttons]
 
 
     let eDataItemIn = rumors $ tDataItem
@@ -79,14 +97,20 @@ setup window = mdo
     bDatabaseLogin <- accumB databaseLogin $ concatenate <$> unions
         [ filterJust $ update' <$> bLoginSelection <*> bLogin <@ eLogin
         , filterJust $ update' <$> bLoginSelection <@> eDataItemIn
-        , filterJust $ update' <$> bLoginSelection <@> (emptyDataItem <$ eLogout)
+        , filterJust
+        $   update'
+        <$> bLoginSelection
+        <@> (emptyDataItem <$ eLogout)
         ]
 
     bLoginSelection <- stepper (Just 0) UI.never
 
 
-    bDatabaseToken <- accumB databaseToken $ concatenate <$> unions
-        [ filterJust $ update' <$> bTokenSelection <@> (Token <$ filterJust (bUser' <@ eLogin))
+    bDatabaseToken  <- accumB databaseToken $ concatenate <$> unions
+        [ filterJust
+        $   update'
+        <$> bTokenSelection
+        <@> (Token <$ filterJust (bUser' <@ eLogin))
         , filterJust $ update' <$> bTokenSelection <@> (NoToken <$ eLogout)
         ]
 
@@ -103,13 +127,16 @@ setup window = mdo
         bFind = flip findIndex <$> bDatabaseUser
 
         compareLogin :: Login -> User -> Bool
-        compareLogin y x = (User.name x == Login.name y) && (User.password x == Login.password y)
+        compareLogin y x =
+            (User.name x == Login.name y)
+                && (User.password x == Login.password y)
 
         liftOp :: Monad m => (a -> b -> c) -> m a -> b -> m c
         liftOp f a b = a >>= \a' -> return (f a' b)
 
         loginIsUser :: Behavior (User -> Bool)
-        loginIsUser =  (fromMaybe False .) . (liftOp compareLogin) <$> bSelectionDataItem
+        loginIsUser =
+            (fromMaybe False .) . (liftOp compareLogin) <$> bSelectionDataItem
 
         bUserKey :: Behavior (Maybe DatabaseKey)
         bUserKey = bFind <*> loginIsUser
@@ -142,8 +169,12 @@ setup window = mdo
         liftIO $ putStrLn (show items)
         liftIO $ BS.writeFile datastoreToken $ toStrict $ encode items
 
-    element elemName # sink value (Login.name . fromMaybe emptyDataItem <$> bSelectionDataItem)
-    element elemPassword # sink value (Login.password . fromMaybe emptyDataItem <$> bSelectionDataItem)
+    element elemName # sink
+        value
+        (Login.name . fromMaybe emptyDataItem <$> bSelectionDataItem)
+    element elemPassword # sink
+        value
+        (Login.password . fromMaybe emptyDataItem <$> bSelectionDataItem)
 
     let bDisplayItem :: Behavior Bool
         bDisplayItem = maybe False isToken <$> bSelectionToken
