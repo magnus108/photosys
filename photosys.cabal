@@ -34,6 +34,7 @@ library
       LoanGui
       Login
       LoginGui
+      Tab
       Token
       User
       UserGui
