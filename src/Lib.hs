@@ -61,7 +61,7 @@ setup window = void $ mdo
     let eSelection = rumors $ UI.userSelection listBox
 
     bDatabase  <- accumB database $ concatenate <$> unions []
-    bSelection <- stepper (Just 1) $ Unsafe.head <$> unions [eSelection]
+    bSelection <- stepper (Just 5) $ Unsafe.head <$> unions [eSelection]
 
     let bLookup :: Behavior (DatabaseKey -> Maybe DataItem)
         bLookup = flip lookup <$> bDatabase

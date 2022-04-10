@@ -16,9 +16,12 @@ import           Database
 import qualified Checkbox
 
 
-setup :: Window -> Behavior (Database DataItem) -> Behavior (Maybe User) -> UI (Element, Event (), Behavior (Maybe DatabaseKey))
+setup
+    :: Window
+    -> Behavior (Database DataItem)
+    -> Behavior (Maybe User)
+    -> UI (Element, Event (), Behavior (Maybe DatabaseKey))
 setup window bDatabase bUser = mdo
-
 
     -- GUI elements
     deleteBtn   <- UI.button #+ [string "Delete"]
@@ -26,21 +29,40 @@ setup window bDatabase bUser = mdo
     filterEntry <- UI.entry bFilterString
 
     -- GUI layout
+    search      <-
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "Søg"]
+           , UI.div
+           #. "control"
+           #+ [ element filterEntry #. "input" # set (attr "placeholder")
+                                                     "Fx Anders Andersen"
+              ]
+           ]
 
-    elem <- UI.div
-             #. "container"
-             #+ [ grid
-                      [ [string "Søg", row [element filterEntry #. "input"]]
-                      , [ UI.div
-                          #. "select is-multiple"
-                          #+ [ element listBox # set (attr "size") "8" # set
-                                   (attr "multiple")
-                                   ""
-                             ]
-                        ]
-                      , [row [element deleteBtn #. "button"]]
-                      ]
+    dropdown <-
+        UI.div
+        #. "field"
+        #+ [ UI.div
+             #. "control is-expanded"
+             #+ [ UI.div
+                  #. "select is-multiple is-fullwidth"
+                  #+ [ element listBox # set (attr "size") "8" # set
+                           (attr "multiple")
+                           ""
+                     ]
                 ]
+           ]
+
+    button <-
+        UI.div
+        #. "field"
+        #+ [UI.div #. "control" #+ [element deleteBtn #. "button"]]
+
+    elem <-
+        UI.div
+        #. "container"
+        #+ [element search, element dropdown, element button]
 
 
     -- Events and behaviors
