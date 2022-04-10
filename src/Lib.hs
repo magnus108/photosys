@@ -17,8 +17,11 @@ import           Database
 
 
 import qualified UserGui
+import qualified DeleteUserGui
 import qualified LoanGui
+import qualified HandInGui
 import qualified ItemGui
+import qualified DeleteItemGui
 import qualified LoginGui
 
 import           Tab                            ( Tab(..) )
@@ -40,10 +43,6 @@ someFunc port = do
 
 setup :: Window -> UI ()
 setup window = void $ mdo
-    --LoginGui.setup window
-    --UserGui.setup window
-    --LoanGui.setup window
-
 
     let datastore = "data/tab.json"
     database <-
@@ -61,7 +60,7 @@ setup window = void $ mdo
     let eSelection = rumors $ UI.userSelection listBox
 
     bDatabase  <- accumB database $ concatenate <$> unions []
-    bSelection <- stepper (Just 0) $ Unsafe.head <$> unions [eSelection]
+    bSelection <- stepper (Just 1) $ Unsafe.head <$> unions [eSelection]
 
     let bLookup :: Behavior (DatabaseKey -> Maybe DataItem)
         bLookup = flip lookup <$> bDatabase
@@ -77,9 +76,6 @@ setup window = void $ mdo
         bSelectionDataItem :: Behavior (Maybe DataItem)
         bSelectionDataItem = (=<<) <$> bLookup <*> bSelection
 
-    --let items = create (Tab ("Hand in")) $ create (Tab "Loan") emptydb
-    --liftIO $ BS.writeFile datastore $ encode items
-
     return ()
 
 
@@ -94,10 +90,15 @@ dataItem bItem tabs = do
     window  <- askWindow
 
     itemGui <- ItemGui.setup window
+    deleteItemGui <- DeleteItemGui.setup window
+    handInGui <- HandInGui.setup window
     loanGui <- LoanGui.setup window
+    userGui <- UserGui.setup window
+    deleteUserGui <- DeleteUserGui.setup window
+
+
     (loginGui, (loginBtn, logoutBtn), bLogin) <- LoginGui.setup window
     empty   <- string "fejl"
-
 
     login   <-
         UI.div
@@ -110,8 +111,12 @@ dataItem bItem tabs = do
 
     let display y x = if y
             then case Tab.name x of
-                "Loan"    -> [tabs, logoutBtn, itemGui]
-                "Hand in" -> [tabs, logoutBtn, loanGui]
+                "Create Item"    -> [tabs, logoutBtn, itemGui]
+                "Delete Item"    -> [tabs, logoutBtn, deleteItemGui]
+                "Hand in" -> [tabs, logoutBtn, handInGui]
+                "Loan" -> [tabs, logoutBtn, loanGui]
+                "Create User"    -> [tabs, logoutBtn, userGui]
+                "Delete User"    -> [tabs, logoutBtn, deleteUserGui]
             else [login]
 
     let bGui = display <$> bLogin

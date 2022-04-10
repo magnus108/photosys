@@ -1,1 +1,1 @@
-{"nextKey":2,"db":{"0":{"name":"Loan"},"1":{"name":"Hand in"}}}
+{"nextKey":6,"db":{"0":{"name":"Create Item"},"1":{"name":"Hand in"},"2":{"name":"Loan"},"3":{"name":"Delete Item"},"4":{"name":"Create User"},"5":{"name":"Delete User"}}}

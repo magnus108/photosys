@@ -13,5 +13,5 @@ instance FromJSON Token
 
 
 isToken :: Token -> Bool
-isToken Token = True
+isToken Token   = True
 isToken NoToken = False

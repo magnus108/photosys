@@ -1,5 +1,5 @@
 {-# LANGUAGE RecursiveDo #-}
-module UserGui where
+module DeleteUserGui where
 
 import           Data.Aeson
 import qualified Graphics.UI.Threepenny        as UI
@@ -10,7 +10,7 @@ import           User
 
 import qualified Relude.Unsafe                 as Unsafe
 
-import qualified Data.ByteString as BS
+import qualified Data.ByteString               as BS
 
 import           Database
 import qualified Checkbox
@@ -24,43 +24,25 @@ setup window = mdo
             (Database User)
 
 
-    return window # set title "PhotoApp - User"
-
     -- GUI elements
-    createBtn   <- UI.button #+ [string "Create"]
+    deleteBtn   <- UI.button #+ [string "Delete"]
     listBox     <- UI.listBox bListBoxItems bSelection bDisplayDataItem
     filterEntry <- UI.entry bFilterString
 
-    ((elemName, elemCode, elemAdmin), tDataItem) <- dataItem bSelectionDataItem
-
-
     -- GUI layout
-    let uiDataItems = grid
-            [ [ string "Name:"
-              , element elemName #. "input"
-              , string "Code:"
-              , element elemCode #. "input"
-              , string "Admin:"
-              , element elemAdmin #. "checkbox"
-              ]
-            ]
 
     elem <- UI.div
              #. "container"
              #+ [ grid
-                      [ [row [element filterEntry #. "input"]]
+                      [ [string "Søg", row [element filterEntry #. "input"]]
                       , [ UI.div
-                        #. "select is-multiple"
-                        #+ [ element listBox # set (attr "size") "8" # set
-                                 (attr "multiple")
-                                 ""
-                           ]
-                        , uiDataItems
+                          #. "select is-multiple"
+                          #+ [ element listBox # set (attr "size") "8" # set
+                                   (attr "multiple")
+                                   ""
+                             ]
                         ]
-                      , [ row
-                              [ element createBtn #. "button"
-                              ]
-                        ]
+                      , [row [element deleteBtn #. "button"]]
                       ]
                 ]
 
@@ -75,23 +57,16 @@ setup window = mdo
         bFilter = facts tFilter
         eFilter = rumors tFilter
 
-    let eSelection  = rumors $ UI.userSelection listBox
-        eDataItemIn = rumors $ tDataItem
-        eCreate     = UI.click createBtn
+    let eSelection = rumors $ UI.userSelection listBox
+        eDelete    = UI.click deleteBtn
 
 
-    -- database
-    -- bDatabase :: Behavior (Database DataItem)
     bDatabase <- accumB database $ concatenate <$> unions
-        [ create (User "" "" False) <$ eCreate
-        , filterJust $ update' <$> bSelection <@> eDataItemIn
-        ]
+        [delete <$> filterJust (bSelection <@ eDelete)]
 
-    -- selection
-    -- bSelection :: Behavior (Maybe DatabaseKey)
     bSelection <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelection
-        , Just . nextKey <$> bDatabase <@ eCreate
+        , Nothing <$ eDelete
         , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
         <$> bSelection
         <*> bShowDataItem
@@ -123,16 +98,12 @@ setup window = mdo
     let bDisplayItem :: Behavior Bool
         bDisplayItem = isJust <$> bSelection
 
-    element elemName # sink UI.enabled bDisplayItem
-    element elemCode # sink UI.enabled bDisplayItem
-    element elemAdmin # sink UI.enabled bDisplayItem
+    element deleteBtn # sink UI.enabled bDisplayItem
 
     onChanges bDatabase $ \items -> do
         liftIO $ BS.writeFile datastore $ toStrict $ encode items
 
     return elem
-
-
 
 {-----------------------------------------------------------------------------
     Data items that are stored in the data base
@@ -142,22 +113,3 @@ type DataItem = User
 
 showDataItem :: DataItem -> String
 showDataItem item = name item ++ ", " ++ (code item)
-
-emptyDataItem :: DataItem
-emptyDataItem = User "" "" False
-
-dataItem
-    :: Behavior (Maybe DataItem)
-    -> UI ((Element, Element, Element), Tidings DataItem)
-dataItem bItem = do
-    entry1 <- UI.entry $ name . fromMaybe emptyDataItem <$> bItem
-    entry2 <- UI.entry $ code . fromMaybe emptyDataItem <$> bItem
-    entry3 <- Checkbox.entry $ admin . fromMaybe emptyDataItem <$> bItem
-
-    return
-        ( (getElement entry1, getElement entry2, getElement entry3)
-        , User
-        <$> UI.userText entry1
-        <*> UI.userText entry2
-        <*> Checkbox.userCheck entry3
-        )

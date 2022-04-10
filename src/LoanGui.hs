@@ -11,7 +11,7 @@ import           Loan
 
 import qualified Relude.Unsafe                 as Unsafe
 
-import qualified Data.ByteString.Lazy as BS
+import qualified Data.ByteString as BS
 
 import Database
 
@@ -19,14 +19,10 @@ import Database
 setup :: Window -> UI Element
 setup window = mdo
     let datastore = "data/loan.json"
-    database <- liftIO $ Unsafe.fromJust . decode <$> BS.readFile datastore :: UI (Database Loan)
-
-
-    return window # set title "PhotoApp - Loan"
+    database <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastore :: UI (Database Loan)
 
     -- GUI elements
     createBtn                         <- UI.button #+ [string "Create"]
-    deleteBtn                         <- UI.button #+ [string "Delete"]
     listBox <- UI.listBox bListBoxItems bSelection bDisplayDataItem
     filterEntry                       <- UI.entry bFilterString
 
@@ -44,7 +40,7 @@ setup window = mdo
     elem <- UI.div
              #. "container"
              #+ [ grid
-                      [ [row [element filterEntry #. "input"]]
+                      [ [row [string "Søg", element filterEntry #. "input"]]
                       , [ UI.div
                         #. "select is-multiple"
                         #+ [ element listBox # set (attr "size") "8" # set
@@ -55,7 +51,6 @@ setup window = mdo
                         ]
                       , [ row
                               [ element createBtn #. "button"
-                              , element deleteBtn #. "button"
                               ]
                         ]
                       ]
@@ -76,7 +71,6 @@ setup window = mdo
     let eSelection  = rumors $ UI.userSelection listBox
         eDataItemIn = rumors $ tDataItem
         eCreate     = UI.click createBtn
-        eDelete     = UI.click deleteBtn
 
 
     -- database
@@ -84,14 +78,12 @@ setup window = mdo
     bDatabase <- accumB database $ concatenate <$> unions
         [ create (Loan "" "") <$ eCreate
         , filterJust $ update' <$> bSelection <@> eDataItemIn
-        , delete <$> filterJust (bSelection <@ eDelete)
         ]
 
     -- selection
     -- bSelection :: Behavior (Maybe DatabaseKey)
     bSelection <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelection
-        , Nothing <$ eDelete
         , Just . nextKey <$> bDatabase <@ eCreate
         , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
         <$> bSelection
@@ -121,12 +113,11 @@ setup window = mdo
     let bDisplayItem :: Behavior Bool
         bDisplayItem = isJust <$> bSelection
 
-    element deleteBtn # sink UI.enabled bDisplayItem
     element elemName # sink UI.enabled bDisplayItem
     element elemItem # sink UI.enabled bDisplayItem
 
     onChanges bDatabase $ \items -> do
-        liftIO $ BS.writeFile datastore (encode items)
+        liftIO $ BS.writeFile datastore $ toStrict $ encode items
 
 
     return elem

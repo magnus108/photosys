@@ -1,65 +1,51 @@
 {-# LANGUAGE RecursiveDo #-}
-module ItemGui where
+module HandInGui where
 
-import           Data.Aeson
+import Data.Aeson
 
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
-import           Item
+import           Loan
 
 import qualified Relude.Unsafe                 as Unsafe
 
 import qualified Data.ByteString as BS
 
-import           Database
+import Database
+
 
 setup :: Window -> UI Element
 setup window = mdo
-    let datastore = "data/item.json"
-    database <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastore :: UI (Database Item)
-
-
-    return window # set title "PhotoApp"
+    let datastore = "data/loan.json"
+    database <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastore :: UI (Database Loan)
 
     -- GUI elements
-    createBtn                         <- UI.button #+ [string "Create"]
-    deleteBtn                         <- UI.button #+ [string "Delete"]
+    deleteBtn                         <- UI.button #+ [string "Aflever"]
     listBox <- UI.listBox bListBoxItems bSelection bDisplayDataItem
     filterEntry                       <- UI.entry bFilterString
 
-    ((elemName, elemCode), tDataItem) <- dataItem bSelectionDataItem
-
 
     -- GUI layout
-    let uiDataItems = grid
-            [ [ string "Name:"
-              , element elemName #. "input"
-              , string "Code:"
-              , element elemCode #. "input"
-              ]
-            ]
-
     elem <- UI.div
              #. "container"
              #+ [ grid
-                      [ [row [element filterEntry #. "input"]]
+                      [ [row [string "Søg", element filterEntry #. "input"]]
                       , [ UI.div
                         #. "select is-multiple"
                         #+ [ element listBox # set (attr "size") "8" # set
                                  (attr "multiple")
                                  ""
                            ]
-                        , uiDataItems
                         ]
                       , [ row
-                              [ element createBtn #. "button"
-                              , element deleteBtn #. "button"
+                              [ element deleteBtn #. "button"
                               ]
                         ]
                       ]
                 ]
+
 
     -- Events and behaviors
     bFilterString <- stepper "" . rumors $ UI.userText filterEntry
@@ -73,21 +59,16 @@ setup window = mdo
         eFilter = rumors tFilter
 
     let eSelection  = rumors $ UI.userSelection listBox
-        eDataItemIn = rumors $ tDataItem
-        eCreate     = UI.click createBtn
         eDelete     = UI.click deleteBtn
 
 
     bDatabase <- accumB database $ concatenate <$> unions
-        [ create (Item "" "") <$ eCreate
-        , filterJust $ update' <$> bSelection <@> eDataItemIn
-        , delete <$> filterJust (bSelection <@ eDelete)
+        [ delete <$> filterJust (bSelection <@ eDelete)
         ]
 
     bSelection <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelection
         , Nothing <$ eDelete
-        , Just . nextKey <$> bDatabase <@ eCreate
         , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
         <$> bSelection
         <*> bShowDataItem
@@ -100,10 +81,7 @@ setup window = mdo
         bShowDataItem :: Behavior (DatabaseKey -> String)
         bShowDataItem    = (maybe "" showDataItem .) <$> bLookup
 
-        bShowDataItem2 :: Behavior (DatabaseKey -> String)
-        bShowDataItem2    = (maybe "" name .) <$> bLookup
-
-        bDisplayDataItem = (UI.string .) <$> bShowDataItem2
+        bDisplayDataItem = (UI.string .) <$> bShowDataItem
 
         bListBoxItems :: Behavior [DatabaseKey]
         bListBoxItems =
@@ -112,45 +90,23 @@ setup window = mdo
                 <*> bShowDataItem
                 <*> bDatabase
 
-        bSelectionDataItem :: Behavior (Maybe DataItem)
-        bSelectionDataItem = (=<<) <$> bLookup <*> bSelection
-
 
     let bDisplayItem :: Behavior Bool
         bDisplayItem = isJust <$> bSelection
 
     element deleteBtn # sink UI.enabled bDisplayItem
-    element elemName # sink UI.enabled bDisplayItem
-    element elemCode # sink UI.enabled bDisplayItem
 
     onChanges bDatabase $ \items -> do
         liftIO $ BS.writeFile datastore $ toStrict $ encode items
 
-    return elem
 
+    return elem
 
 {-----------------------------------------------------------------------------
     Data items that are stored in the data base
 ------------------------------------------------------------------------------}
 
-type DataItem = Item
-
+type DataItem = Loan
 
 showDataItem :: DataItem -> String
-showDataItem item = name item ++ ", " ++ (code item)
-
-
-emptyDataItem :: DataItem
-emptyDataItem = Item "" ""
-
-
-dataItem
-    :: Behavior (Maybe DataItem) -> UI ((Element, Element), Tidings DataItem)
-dataItem bItem = do
-    entry1 <- UI.entry $ name . fromMaybe emptyDataItem <$> bItem
-    entry2 <- UI.entry $ code . fromMaybe emptyDataItem <$> bItem
-
-    return
-        ( (getElement entry1, getElement entry2)
-        , Item <$> UI.userText entry1 <*> UI.userText entry2
-        )
+showDataItem i = item i ++ ", " ++ (user i)
