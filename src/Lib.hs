@@ -91,6 +91,8 @@ dataItem bItem tabs = mdo
     window  <- askWindow
 
 
+    (loanGui, bDatabaseLoan) <- LoanGui.setup window
+    (loginGui, (loginBtn, logoutBtn), bLogin, bUser) <- LoginGui.setup window
     -------------------------------------------------------------------------------------
     let datastoreUser = "data/user.json"
     databaseUser <-
@@ -98,7 +100,7 @@ dataItem bItem tabs = mdo
             (Database User)
 
     (userGui, eCreate, bSelectionCreate, eDataItemIn) <- UserGui.setup window bDatabaseUser
-    (deleteUserGui, eDelete, bSelectionDelete) <- DeleteUserGui.setup window bDatabaseUser bUser bDatabaseLoan  -- BTOKEN SKAL INDEHOLDE EN USERJO!
+    (deleteUserGui, eDelete, bSelectionDelete, bUsersWithLoan) <- DeleteUserGui.setup window bDatabaseUser bUser bDatabaseLoan  -- BTOKEN SKAL INDEHOLDE EN USERJO!
 
     bDatabaseUser <- accumB databaseUser $ concatenate <$> unions
         [ create (User "" "" False) <$ eCreate
@@ -106,6 +108,8 @@ dataItem bItem tabs = mdo
         , delete <$> filterJust (bSelectionDelete <@ eDelete)
         ]
 
+    onChanges bUsersWithLoan $ \items -> do
+        traceShowM items
 
     onChanges bDatabaseUser $ \items -> do
         liftIO $ BS.writeFile datastoreUser $ toStrict $ encode items
@@ -115,10 +119,8 @@ dataItem bItem tabs = mdo
     itemGui <- ItemGui.setup window
     deleteItemGui <- DeleteItemGui.setup window
     handInGui <- HandInGui.setup window
-    (loanGui, bDatabaseLoan) <- LoanGui.setup window
 
 
-    (loginGui, (loginBtn, logoutBtn), bLogin, bUser) <- LoginGui.setup window
     empty   <- string "fejl"
 
 

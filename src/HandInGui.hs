@@ -109,4 +109,4 @@ setup window = mdo
 type DataItem = Loan
 
 showDataItem :: DataItem -> String
-showDataItem i = item i ++ ", " ++ (user i)
+showDataItem i = item i ++ ", " ++ (show (user i))

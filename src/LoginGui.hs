@@ -67,7 +67,7 @@ setup window = mdo
     password <-
         UI.div
         #. "field"
-        #+ [ UI.label #. "label" #+ [string "Username"]
+        #+ [ UI.label #. "label" #+ [string "Password"]
            , UI.div
            #. "control"
            #+ [element elemPassword #. "input" # set UI.type_ "password"]
@@ -162,11 +162,9 @@ setup window = mdo
 
 
     onChanges bDatabaseLogin $ \items -> do
-        liftIO $ putStrLn (show items)
         liftIO $ BS.writeFile datastoreLogin $ toStrict $ encode items
 
     onChanges bDatabaseToken $ \items -> do
-        liftIO $ putStrLn (show items)
         liftIO $ BS.writeFile datastoreToken $ toStrict $ encode items
 
     element elemName # sink

@@ -69,19 +69,15 @@ setup window = mdo
         eFilter = rumors tFilter
 
     let eSelection  = rumors $ UI.userSelection listBox
-        eDataItemIn = rumors $ tDataItem
+        eDataItemIn = filterJust $ rumors $ tDataItem
         eCreate     = UI.click createBtn
 
 
-    -- database
-    -- bDatabase :: Behavior (Database DataItem)
     bDatabase <- accumB database $ concatenate <$> unions
-        [ create (Loan "" "") <$ eCreate
+        [ create (Loan "" 0) <$ eCreate --  BØR VÆRE NUVÆRNEDE BRUGER
         , filterJust $ update' <$> bSelection <@> eDataItemIn
         ]
 
-    -- selection
-    -- bSelection :: Behavior (Maybe DatabaseKey)
     bSelection <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelection
         , Just . nextKey <$> bDatabase <@ eCreate
@@ -129,18 +125,18 @@ setup window = mdo
 type DataItem = Loan
 
 showDataItem :: DataItem -> String
-showDataItem i = item i ++ ", " ++ (user i)
+showDataItem i = item i ++ ", " ++ (show (user i))
 
-emptyDataItem :: DataItem
-emptyDataItem = Loan "" ""
 
 dataItem
-    :: Behavior (Maybe DataItem) -> UI ((Element, Element), Tidings DataItem)
+    :: Behavior (Maybe DataItem) -> UI ((Element, Element), Tidings (Maybe DataItem))
 dataItem bItem = do
-    entry1 <- UI.entry $ item . fromMaybe emptyDataItem <$> bItem
-    entry2 <- UI.entry $ user . fromMaybe emptyDataItem <$> bItem
+    entry1 <- UI.entry $ maybe "" (show . item) <$> bItem
+    entry2 <- UI.entry $ maybe "" (show . user) <$> bItem
 
+    let maybeParse1 = Just <$> UI.userText entry2
+    let maybeParse2 = readMaybe <$> UI.userText entry2
     return
         ( (getElement entry1, getElement entry2 )
-        , Loan <$> UI.userText entry1 <*> UI.userText entry2
+        , liftA2 Loan <$> maybeParse1 <*> maybeParse2
         )

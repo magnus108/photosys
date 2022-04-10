@@ -5,6 +5,7 @@ import           Data.Aeson
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
+import qualified Data.List as List
 
 import           User
 import           Loan
@@ -23,7 +24,7 @@ setup
     -> Behavior (Database DataItem)
     -> Behavior (Maybe User)
     -> Behavior (Database Loan)
-    -> UI (Element, Event (), Behavior (Maybe DatabaseKey))
+    -> UI (Element, Event (), Behavior (Maybe DatabaseKey), Behavior Bool)
 setup window bDatabase bUser bDatabaseLoan = mdo
 
     -- GUI elements
@@ -117,21 +118,20 @@ setup window bDatabase bUser bDatabaseLoan = mdo
         bDisplayItem = isJust <$> bSelection
 
         bIsUser :: Behavior Bool
-        bIsUser = (/=) <$> bSelectionDataItem <*> bUser
-
- --       elemBy :: (a -> a -> Bool) -> a -> [a] -> Bool
---        elemBy == x = any (== x)
-
-        bLoans = fmap Loan.user <$> elems <$> bDatabaseLoan
-        -- bUsersWithLoan = fmap <$> bLookup <*> bLoans
-        
-        --hasLoans :: Behavior Bool
-        --hasLoans = elemBy (==) <$> bSelectionDataItem <*> _
-
-    element deleteBtn # sink UI.enabled ((&&) <$> bDisplayItem <*> bIsUser)
+        bIsUser        = (==) <$> bSelectionDataItem <*> bUser
 
 
-    return (elem, eDelete, bSelection)
+        bLoans         = fmap Loan.user <$> elems <$> bDatabaseLoan
+        bUsersWithLoan = fmap <$> bLookup <*> bLoans
+        bHasLoans      = List.elem <$> bSelectionDataItem <*> bUsersWithLoan
+
+
+    let enable = and <$> sequenceA [bDisplayItem, not <$> bIsUser, not <$> bHasLoans]
+
+    element deleteBtn # sink UI.enabled enable
+
+
+    return (elem, eDelete, bSelection, bIsUser)
 
 {-----------------------------------------------------------------------------
     Data items that are stored in the data base
