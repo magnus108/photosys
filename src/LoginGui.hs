@@ -21,7 +21,7 @@ import qualified Checkbox
 
 
 
-setup :: Window -> UI (Element, (Element, Element), Behavior Bool)
+setup :: Window -> UI (Element, (Element, Element), Behavior Bool, Behavior (Maybe User))
 setup window = mdo
     let datastoreUser  = "data/user.json"
     databaseUser <-
@@ -151,7 +151,7 @@ setup window = mdo
     element loginBtn # sink UI.enabled (not <$> bDisplayItem)
     element logoutBtn # sink UI.enabled bDisplayItem
 
-    return (elem, (loginBtn, logoutBtn), bDisplayItem)
+    return (elem, (loginBtn, logoutBtn), bDisplayItem, bUser')
 
 
 

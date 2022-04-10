@@ -16,8 +16,8 @@ import           Database
 import qualified Checkbox
 
 
-setup :: Window -> Behavior (Database DataItem) -> UI (Element, Event (), Behavior (Maybe DatabaseKey))
-setup window bDatabase = mdo
+setup :: Window -> Behavior (Database DataItem) -> Behavior (Maybe User) -> UI (Element, Event (), Behavior (Maybe DatabaseKey))
+setup window bDatabase bUser = mdo
 
 
     -- GUI elements
@@ -91,7 +91,10 @@ setup window bDatabase = mdo
     let bDisplayItem :: Behavior Bool
         bDisplayItem = isJust <$> bSelection
 
-    element deleteBtn # sink UI.enabled bDisplayItem
+        bIsUser :: Behavior Bool
+        bIsUser = (/=) <$> bSelectionDataItem <*> bUser
+
+    element deleteBtn # sink UI.enabled ((&&) <$> bDisplayItem <*> bIsUser)
 
 
     return (elem, eDelete, bSelection)

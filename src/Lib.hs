@@ -98,7 +98,7 @@ dataItem bItem tabs = mdo
             (Database User)
 
     (userGui, eCreate, bSelectionCreate, eDataItemIn) <- UserGui.setup window bDatabaseUser
-    (deleteUserGui, eDelete, bSelectionDelete) <- DeleteUserGui.setup window bDatabaseUser
+    (deleteUserGui, eDelete, bSelectionDelete) <- DeleteUserGui.setup window bDatabaseUser bUser
 
     bDatabaseUser <- accumB databaseUser $ concatenate <$> unions
         [ create (User "" "" False) <$ eCreate
@@ -118,7 +118,7 @@ dataItem bItem tabs = mdo
     loanGui <- LoanGui.setup window
 
 
-    (loginGui, (loginBtn, logoutBtn), bLogin) <- LoginGui.setup window
+    (loginGui, (loginBtn, logoutBtn), bLogin, bUser) <- LoginGui.setup window
     empty   <- string "fejl"
 
     login   <-
