@@ -119,7 +119,7 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
         liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreUser :: UI
             (Database User)
 
-    (userGui, eCreate, bSelectionCreate, eDataItemIn) <- UserGui.setup window bDatabaseUser
+    (userGui, eCreate, bSelectionCreate, eDataItemIn) <- UserGui.setup window bDatabaseUser bUser
     (deleteUserGui, eDelete, bSelectionDelete, bUsersWithLoan) <- DeleteUserGui.setup window bDatabaseUser bUser bDatabaseLoan  -- BTOKEN SKAL INDEHOLDE EN USERJO!
 
     bDatabaseUser <- accumB databaseUser $ concatenate <$> unions

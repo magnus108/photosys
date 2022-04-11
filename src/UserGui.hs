@@ -10,14 +10,23 @@ import           User
 
 import qualified Relude.Unsafe                 as Unsafe
 
-import qualified Data.ByteString as BS
+import qualified Data.ByteString               as BS
 
 import           Database
 import qualified Checkbox
 
 
-setup :: Window -> Behavior (Database DataItem) -> UI (Element, Event (), Behavior (Maybe DatabaseKey), Event DataItem)
-setup window bDatabase = mdo
+setup
+    :: Window
+    -> Behavior (Database DataItem)
+    -> Behavior (Maybe User)
+    -> UI
+           ( Element
+           , Event ()
+           , Behavior (Maybe DatabaseKey)
+           , Event DataItem
+           )
+setup window bDatabase bUser = mdo
 
 
     -- GUI elements
@@ -25,38 +34,77 @@ setup window bDatabase = mdo
     listBox     <- UI.listBox bListBoxItems bSelection bDisplayDataItem
     filterEntry <- UI.entry bFilterString
 
-    ((elemName, elemPassword, elemAdmin), tDataItem) <- dataItem bSelectionDataItem
+    ((elemName, elemPassword, elemAdmin), tDataItem) <- dataItem
+        bSelectionDataItem
 
 
     -- GUI layout
-    let uiDataItems = grid
-            [ [ string "Name:"
-              , element elemName #. "input"
-              , string "Password:"
-              , element elemPassword #. "input" # set UI.type_ "password"
-              , string "Admin:"
-              , element elemAdmin #. "checkbox"
+    search <-
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "Søg"]
+           , UI.div
+           #. "control"
+           #+ [ element filterEntry #. "input" # set (attr "placeholder")
+                                                     "Fx Anders Andersen"
               ]
-            ]
+           ]
 
-    elem <- UI.div
-             #. "container"
-             #+ [ grid
-                      [ [row [element filterEntry #. "input"]]
-                      , [ UI.div
-                        #. "select is-multiple"
-                        #+ [ element listBox # set (attr "size") "8" # set
-                                 (attr "multiple")
-                                 ""
-                           ]
-                        , uiDataItems
-                        ]
-                      , [ row
-                              [ element createBtn #. "button"
-                              ]
-                        ]
-                      ]
+    dropdown <-
+        UI.div
+        #. "field"
+        #+ [ UI.div
+             #. "control is-expanded"
+             #+ [ UI.div
+                  #. "select is-multiple is-fullwidth"
+                  #+ [ element listBox # set (attr "size") "8" # set
+                           (attr "multiple")
+                           ""
+                     ]
                 ]
+           ]
+
+    button <-
+        UI.div
+        #. "field"
+        #+ [UI.div #. "control" #+ [element createBtn #. "button"]]
+
+
+    uiDataName <-
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "Name"]
+           , UI.div #. "control" #+ [element elemName #. "input" # set (attr "placeholder") "Fx Anders Andersen"]
+           ]
+
+    uiDataPassword <-
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "Password"]
+           , UI.div #. "control" #+ [element elemPassword #. "input" # set UI.type_ "password"]
+           ]
+
+    uiDataAdmin <-
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "Admin"]
+           , UI.div #. "control" #+ [element elemAdmin #. "checkbox"]
+           ]
+
+
+    elem <-
+        UI.div
+        #. "section is-medium"
+        #+ [ UI.div
+             #. "container"
+             #+ [ element search
+                , element dropdown
+                , element uiDataName
+                , element uiDataPassword
+                , element uiDataAdmin
+                , element button
+                ]
+           ]
 
 
     -- Events and behaviors
@@ -111,10 +159,15 @@ setup window bDatabase = mdo
     let bDisplayItem :: Behavior Bool
         bDisplayItem = isJust <$> bSelection
 
-    element elemName # sink UI.enabled bDisplayItem
-    element elemPassword # sink UI.enabled bDisplayItem
-    element elemAdmin # sink UI.enabled bDisplayItem
+        bIsUser :: Behavior Bool
+        bIsUser = (==) <$> bSelectionDataItem <*> bUser
 
+        bEnabled :: Behavior Bool
+        bEnabled = and <$> sequenceA [bDisplayItem, not <$> bIsUser]
+
+    element elemName # sink UI.enabled bEnabled
+    element elemPassword # sink UI.enabled bEnabled
+    element elemAdmin # sink UI.enabled bEnabled
 
     return (elem, eCreate, bSelection, eDataItemIn)
 
