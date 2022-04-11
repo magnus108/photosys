@@ -15,6 +15,7 @@ import           Item
 import qualified Relude.Unsafe                 as Unsafe
 import           Database
 
+import qualified MenuBox
 
 import User (User(..))
 import qualified UserGui
@@ -50,7 +51,7 @@ setup window = void $ mdo
         liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastore :: UI
             (Database Tab)
 
-    listBox <- UI.listBox bListBoxItems bSelection bDisplayDataItem
+    listBox <- MenuBox.listBox bListBoxItems bSelection bDisplayDataItem
 
     menu    <- element listBox
     tab     <- dataItem bSelectionDataItem menu
@@ -58,7 +59,7 @@ setup window = void $ mdo
     getBody window #+ [element tab]
 
 
-    let eSelection = rumors $ UI.userSelection listBox
+    let eSelection = rumors $ MenuBox.userSelection listBox
 
     bDatabase  <- accumB database $ concatenate <$> unions []
     bSelection <- stepper (Just 5) $ Unsafe.head <$> unions [eSelection]
@@ -108,8 +109,6 @@ dataItem bItem tabs = mdo
         , delete <$> filterJust (bSelectionDelete <@ eDelete)
         ]
 
-    onChanges bUsersWithLoan $ \items -> do
-        traceShowM items
 
     onChanges bDatabaseUser $ \items -> do
         liftIO $ BS.writeFile datastoreUser $ toStrict $ encode items
