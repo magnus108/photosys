@@ -1,16 +1,20 @@
 {-# LANGUAGE RecordWildCards, ScopedTypeVariables #-}
 module MenuBox where
 
-import Control.Monad (void, when)
+import           Control.Monad                  ( void
+                                                , when
+                                                )
 
 import qualified Relude.Container.Reexport     as Reexport
 import qualified Relude.Extra.Map              as Map
-import qualified Graphics.UI.Threepenny.Attributes as UI
-import qualified Graphics.UI.Threepenny.Events     as UI
-import qualified Graphics.UI.Threepenny.Elements   as UI
-import qualified Graphics.UI.Threepenny.Core as UI
-import Graphics.UI.Threepenny.Core
-import Reactive.Threepenny
+import qualified Graphics.UI.Threepenny.Attributes
+                                               as UI
+import qualified Graphics.UI.Threepenny.Events as UI
+import qualified Graphics.UI.Threepenny.Elements
+                                               as UI
+import qualified Graphics.UI.Threepenny.Core   as UI
+import           Graphics.UI.Threepenny.Core
+import           Reactive.Threepenny
 
 
 data ListBox a = ListBox
@@ -18,26 +22,31 @@ data ListBox a = ListBox
     , _selectionLB :: Tidings (Maybe a)
     }
 
-instance Widget (ListBox a) where getElement = _elementLB
+instance Widget (ListBox a) where
+    getElement = _elementLB
 
 userSelection :: ListBox a -> Tidings (Maybe a)
 userSelection = _selectionLB
 
-listBox :: forall a. Ord a
+listBox
+    :: forall a
+     . Ord a
     => Behavior [a]
     -> Behavior (Maybe a)
     -> Behavior (a -> UI Element)
     -> UI (ListBox a)
 listBox bitems bsel bdisplay = do
-    list <- UI.div
+    list              <- UI.div #. "navbar-brand"
 
     (e :: Event a, h) <- liftIO $ newEvent
 
-    let bDisplayButton = (\f x -> do
-                                button <- UI.button #+ [f x]
-                                UI.on UI.click button $ \_ -> liftIO $ h x
-                                return button
-                         ) <$> bdisplay
+    let bDisplayButton =
+            (\f x -> do
+                    button <- UI.a #. "navbar-item" #+ [f x]
+                    UI.on UI.click button $ \_ -> liftIO $ h x
+                    return button
+                )
+                <$> bdisplay
 
     element list # sink items (map <$> bDisplayButton <*> bitems)
 
@@ -66,11 +75,23 @@ listBox bitems bsel bdisplay = do
             lookupIndex <$> bindices2 <@> UI.selectionChange list
         _elementLB   = list
         -}
-    let
-        _selectionLB = tidings bsel (Just <$> e)
-        _elementLB   = list
 
-    return ListBox {..}
+    elem <-
+        UI.mkElement "nav"
+        #. "navbar is-primary"
+        #+ [ UI.div
+             #. "container"
+             #+ [ element list
+                , UI.div
+                #. "navbar-menu"
+                #+ [UI.div #. "navbar-start", UI.div #. "navbar-end"]
+                ]
+           ]
+
+    let _selectionLB = tidings bsel (Just <$> e)
+        _elementLB   = elem
+
+    return ListBox { .. }
 
 items = mkWriteAttr $ \i x -> void $ do
     return x # set children [] #+ i
