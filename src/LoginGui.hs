@@ -122,6 +122,11 @@ setup window = mdo
 
     bTokenSelection <- stepper (Just 0) UI.never
 
+    -- hack
+    bHack <- stepper Nothing $ Unsafe.head <$> unions
+        [ (bUser' <@ eLogin)
+        , (Nothing <$ eLogout)
+        ]
 
     let bLookupLogin :: Behavior (DatabaseKey -> Maybe Login)
         bLookupLogin = flip lookup <$> bDatabaseLogin
@@ -140,9 +145,10 @@ setup window = mdo
         liftOp :: Monad m => (a -> b -> c) -> m a -> b -> m c
         liftOp f a b = a >>= \a' -> return (f a' b)
 
+
         loginIsUser :: Behavior (User -> Bool)
         loginIsUser =
-            (fromMaybe False .) . (liftOp compareLogin) <$> bSelectionDataItem
+            (fromMaybe False .) . (liftOp compareLogin) <$> bSelectionDataItem --- DEN HER ER PROBLEMET
 
         bUserKey :: Behavior (Maybe DatabaseKey)
         bUserKey = bFind <*> loginIsUser
@@ -154,7 +160,7 @@ setup window = mdo
         bUser' = (=<<) <$> bLookupUser <*> bUserKey
 
         bUser :: Behavior User
-        bUser = fromMaybe emptyUser <$> bUser'
+        bUser = fromMaybe emptyUser <$> bHack
 
         bUserName :: Behavior String
         bUserName = User.name <$> bUser
@@ -189,7 +195,7 @@ setup window = mdo
     element loginBtn # sink UI.enabled (not <$> bDisplayItem)
     element logoutBtn # sink UI.enabled bDisplayItem
 
-    return (elem, currentUser, (loginBtn, logoutBtn), bDisplayItem, bUser')
+    return (elem, currentUser, (loginBtn, logoutBtn), bDisplayItem, bHack)
 
 
 

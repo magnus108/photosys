@@ -3,6 +3,8 @@
 - static folder in build
 - nodejspackages
 - Enter/formsubmit
+- popup ved create
+- adminretteigheder
 
 ## Doing
 

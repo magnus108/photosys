@@ -19,6 +19,7 @@ instance FromJSON a => FromJSON (Database a)
 emptydb = Database 0 mempty
 keys = Map.keys . db
 elems = Map.elems . db
+toPairs = Map.toPairs . db
 
 create x (Database newkey db) = Database (newkey + 1) $ Map.insert newkey x db
 update key x (Database newkey db) = Database newkey $ Map.insert key x db

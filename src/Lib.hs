@@ -57,7 +57,7 @@ setup window = void $ mdo
             (Database Tab)
 
 
-    listBox <- MenuBox.listBox currentUser bListBoxItems bSelection bDisplayDataItem
+    listBox <- MenuBox.listBox currentUser bTabPairsFilter bSelection bDisplayDataItem
 
     menu <-
         UI.mkElement "nav"
@@ -71,7 +71,7 @@ setup window = void $ mdo
                 ]
            ]
 
-    tab     <- dataItem bSelectionDataItem menu loginGui (loginBtn,logoutBtn) bLogin bUser
+    tab     <- dataItem bSelectionDataItemFilter menu loginGui (loginBtn,logoutBtn) bLogin bUser
 
 
 
@@ -95,8 +95,26 @@ setup window = void $ mdo
         bListBoxItems :: Behavior [DatabaseKey]
         bListBoxItems = keys <$> bDatabase
 
+
         bSelectionDataItem :: Behavior (Maybe DataItem)
         bSelectionDataItem = (=<<) <$> bLookup <*> bSelection
+
+
+    let isAdmin = maybe False User.admin <$> bUser
+
+        bTabPairs :: Behavior [(DatabaseKey, DataItem)]
+        bTabPairs = toPairs <$> bDatabase
+
+        bTabPairsFilter :: Behavior [DatabaseKey]
+        bTabPairsFilter = fmap fst <$> ((\admin xs -> filter (\x -> admin == Tab.admin (snd x)) xs) <$> isAdmin <*> bTabPairs)
+
+        bTabItemsFilter :: Behavior [Maybe DataItem]
+        bTabItemsFilter = fmap <$> bLookup <*> bTabPairsFilter
+
+        bSelectionDataItemFilter :: Behavior (Maybe DataItem)
+        bSelectionDataItemFilter = (\x xs -> if elem x xs then x else Nothing) <$> bSelectionDataItem <*> bTabItemsFilter
+
+
 
     return ()
 
@@ -139,8 +157,6 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
     handInGui <- HandInGui.setup window
 
 
-    empty   <- string "fejl"
-
 
     let display y x = if y
             then case Tab.name x of
@@ -156,6 +172,6 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
 
     let bGui = display <$> bLogin
 
-    content <- UI.div # sink children (maybe [empty] <$> bGui <*> bItem)
+    content <- UI.div # sink children (maybe [loginGui] <$> bGui <*> bItem)
 
     element content
