@@ -74,7 +74,7 @@ setup window = mdo
 
 
     bDatabase <- accumB database $ concatenate <$> unions
-        [ create (Loan "" 0) <$ eCreate --  BØR VÆRE NUVÆRNEDE BRUGER
+        [ create (Loan 0 0) <$ eCreate --  BØR VÆRE NUVÆRNEDE BRUGER. MEN HVAD MED HVILKEN GENSTAND??
         , filterJust $ update' <$> bSelection <@> eDataItemIn
         ]
 
@@ -125,7 +125,7 @@ setup window = mdo
 type DataItem = Loan
 
 showDataItem :: DataItem -> String
-showDataItem i = item i ++ ", " ++ (show (user i))
+showDataItem i = show (item i) ++ ", " ++ (show (user i))
 
 
 dataItem
@@ -134,7 +134,7 @@ dataItem bItem = do
     entry1 <- UI.entry $ maybe "" (show . item) <$> bItem
     entry2 <- UI.entry $ maybe "" (show . user) <$> bItem
 
-    let maybeParse1 = Just <$> UI.userText entry2
+    let maybeParse1 = readMaybe <$> UI.userText entry2
     let maybeParse2 = readMaybe <$> UI.userText entry2
     return
         ( (getElement entry1, getElement entry2 )

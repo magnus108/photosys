@@ -7,27 +7,29 @@ import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
+import qualified Data.List                     as List
+
 import           Item
+import           Loan
+import qualified Loan
 
 import qualified Relude.Unsafe                 as Unsafe
 
-import qualified Data.ByteString as BS
+import qualified Data.ByteString               as BS
 
 import           Database
 
-setup :: Window ->
-    Behavior (Database DataItem)
-    -> UI
-           ( Element
-           , Event ()
-           , Behavior (Maybe DatabaseKey)
-           )
-setup window bDatabase = mdo
+setup
+    :: Window
+    -> Behavior (Database DataItem)
+    -> Behavior (Database Loan)
+    -> UI (Element, Event (), Behavior (Maybe DatabaseKey))
+setup window bDatabase bDatabaseLoan = mdo
 
     -- GUI elements
-    deleteBtn                         <- UI.button #+ [string "Delete"]
-    listBox <- UI.listBox bListBoxItems bSelection bDisplayDataItem
-    filterEntry                       <- UI.entry bFilterString
+    deleteBtn   <- UI.button #+ [string "Delete"]
+    listBox     <- UI.listBox bListBoxItems bSelection bDisplayDataItem
+    filterEntry <- UI.entry bFilterString
 
 
     search      <-
@@ -118,8 +120,15 @@ setup window bDatabase = mdo
     let bDisplayItem :: Behavior Bool
         bDisplayItem = isJust <$> bSelection
 
-    element deleteBtn # sink UI.enabled bDisplayItem
+        bLoans         = fmap Loan.item <$> elems <$> bDatabaseLoan
+        bItemsWithLoan = fmap <$> bLookup <*> bLoans
+        bHasLoans      = List.elem <$> bSelectionDataItem <*> bItemsWithLoan
 
+
+    let enable =
+            and <$> sequenceA [bDisplayItem, not <$> bHasLoans]
+
+    element deleteBtn # sink UI.enabled enable
 
     return (elem, eDelete, bSelection)
 

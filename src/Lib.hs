@@ -155,7 +155,7 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
     databaseItem <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreItem :: UI (Database Item)
 
     (itemGui, eCreateItem, bSelectionCreateItem, eDataItemInItem)<- ItemGui.setup window bDatabaseItem
-    (deleteItemGui, eDeleteItem, bSelectionDeleteItem) <- DeleteItemGui.setup window bDatabaseItem
+    (deleteItemGui, eDeleteItem, bSelectionDeleteItem) <- DeleteItemGui.setup window bDatabaseItem bDatabaseLoan
 
 
     bDatabaseItem <- accumB databaseItem $ concatenate <$> unions
