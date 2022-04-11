@@ -5,7 +5,7 @@ import           Data.Aeson
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
-import qualified Data.List as List
+import qualified Data.List                     as List
 
 import           User
 import           Loan
@@ -24,7 +24,12 @@ setup
     -> Behavior (Database DataItem)
     -> Behavior (Maybe User)
     -> Behavior (Database Loan)
-    -> UI (Element, Event (), Behavior (Maybe DatabaseKey), Behavior Bool)
+    -> UI
+           ( Element
+           , Event ()
+           , Behavior (Maybe DatabaseKey)
+           , Behavior Bool
+           )
 setup window bDatabase bUser bDatabaseLoan = mdo
 
     -- GUI elements
@@ -65,8 +70,11 @@ setup window bDatabase bUser bDatabaseLoan = mdo
 
     elem <-
         UI.div
-        #. "container"
-        #+ [element search, element dropdown, element button]
+        #. "section is-medium"
+        #+ [ UI.div
+             #. "container"
+             #+ [element search, element dropdown, element button]
+           ]
 
 
     -- Events and behaviors
@@ -126,7 +134,8 @@ setup window bDatabase bUser bDatabaseLoan = mdo
         bHasLoans      = List.elem <$> bSelectionDataItem <*> bUsersWithLoan
 
 
-    let enable = and <$> sequenceA [bDisplayItem, not <$> bIsUser, not <$> bHasLoans]
+    let enable =
+            and <$> sequenceA [bDisplayItem, not <$> bIsUser, not <$> bHasLoans]
 
     element deleteBtn # sink UI.enabled enable
 

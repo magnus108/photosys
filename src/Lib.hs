@@ -46,15 +46,35 @@ someFunc port = do
 setup :: Window -> UI ()
 setup window = void $ mdo
 
+    --dangerMove
+    (loginGui, (loginBtn, logoutBtn), bLogin, bUser) <- LoginGui.setup window
+
+
+
     let datastore = "data/tab.json"
     database <-
         liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastore :: UI
             (Database Tab)
 
+
     listBox <- MenuBox.listBox bListBoxItems bSelection bDisplayDataItem
 
-    menu    <- element listBox
-    tab     <- dataItem bSelectionDataItem menu
+    menu <-
+        UI.mkElement "nav"
+        #. "navbar is-primary is-spaced"
+        #+ [ UI.div
+             #. "container"
+             #+ [ element listBox
+                , UI.div
+                #. "navbar-menu"
+                #+ [UI.div #. "navbar-start", UI.div #. "navbar-end" #+ [UI.div #. "navbar-item" #+ [element logoutBtn]]]
+                ]
+           ]
+
+    tab     <- dataItem bSelectionDataItem menu loginGui (loginBtn,logoutBtn) bLogin bUser
+
+
+
 
     getBody window #+ [element tab]
 
@@ -87,13 +107,12 @@ showDataItem t = Tab.name t
 
 emptyDataItem = Tab ""
 
-dataItem :: Behavior (Maybe DataItem) -> Element -> UI Element
-dataItem bItem tabs = mdo
+dataItem :: Behavior (Maybe DataItem) -> Element -> Element -> (Element, Element) -> Behavior Bool -> Behavior (Maybe User) -> UI Element
+dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
     window  <- askWindow
 
 
     (loanGui, bDatabaseLoan) <- LoanGui.setup window
-    (loginGui, (loginBtn, logoutBtn), bLogin, bUser) <- LoginGui.setup window
     -------------------------------------------------------------------------------------
     let datastoreUser = "data/user.json"
     databaseUser <-
@@ -125,13 +144,26 @@ dataItem bItem tabs = mdo
 
     let display y x = if y
             then case Tab.name x of
-                "Create Item"    -> [tabs, logoutBtn, itemGui]
-                "Delete Item"    -> [tabs, logoutBtn, deleteItemGui]
-                "Hand in" -> [tabs, logoutBtn, handInGui]
-                "Loan" -> [tabs, logoutBtn, loanGui]
-                "Create User"    -> [tabs, logoutBtn, userGui]
-                "Delete User"    -> [tabs, logoutBtn, deleteUserGui]
-            else [loginGui]
+                "Create Item"    -> [tabs, itemGui]
+                "Delete Item"    -> [tabs, deleteItemGui]
+                "Hand in" -> [tabs, handInGui]
+                "Loan" -> [tabs, loanGui]
+                "Create User"    -> [tabs, userGui]
+                "Delete User"    -> [tabs, deleteUserGui]
+            else [menu, loginGui]
+
+    menu <- ---fakemenu
+        UI.mkElement "nav"
+        #. "navbar is-primary is-spaced"
+        #+ [ UI.div
+             #. "container"
+             #+ [ UI.div #. "navbar-brand"
+                , UI.div
+                #. "navbar-menu"
+                #+ [UI.div #. "navbar-start", UI.div #. "navbar-end"]
+                ]
+           ]
+
 
     let bGui = display <$> bLogin
 

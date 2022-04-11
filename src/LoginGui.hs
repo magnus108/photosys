@@ -52,12 +52,12 @@ setup window = mdo
     return window # set title "PhotoApp - Login"
 
     -- GUI elements
-    loginBtn <- UI.button #+ [string "Login"]
-    logoutBtn <- UI.button #+ [string "Logout"]
+    loginBtn                              <- UI.button #+ [string "Login"]
+    logoutBtn                             <- UI.button #+ [string "Logout"]
 
     ((elemName, elemPassword), tDataItem) <- dataItem bSelectionDataItem
 
-    username <-
+    username                              <-
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Username"]
@@ -76,14 +76,17 @@ setup window = mdo
     buttons <-
         UI.div
         #. "field is-grouped"
-        #+ [UI.div #. "control" #+ [element loginBtn #. "button"]
-           ,UI.div #. "control" #+ [element logoutBtn #. "button"]
+        #+ [ UI.div #. "control" #+ [element loginBtn #. "button"]
+           , UI.div #. "control" #+ [element logoutBtn #. "button"]
            ]
 
     elem <-
         UI.div
-        #. "container"
-        #+ [element username, element password, element buttons]
+        #. "section is-medium"
+        #+ [ UI.div
+             #. "container"
+             #+ [element username, element password, element buttons]
+           ]
 
 
     let eDataItemIn = rumors $ tDataItem

@@ -76,20 +76,9 @@ listBox bitems bsel bdisplay = do
         _elementLB   = list
         -}
 
-    elem <-
-        UI.mkElement "nav"
-        #. "navbar is-primary"
-        #+ [ UI.div
-             #. "container"
-             #+ [ element list
-                , UI.div
-                #. "navbar-menu"
-                #+ [UI.div #. "navbar-start", UI.div #. "navbar-end"]
-                ]
-           ]
 
     let _selectionLB = tidings bsel (Just <$> e)
-        _elementLB   = elem
+        _elementLB   = list
 
     return ListBox { .. }
 
