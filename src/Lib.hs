@@ -137,13 +137,13 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
         liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreUser :: UI
             (Database User)
 
-    (userGui, eCreate, bSelectionCreate, eDataItemIn) <- UserGui.setup window bDatabaseUser bUser
-    (deleteUserGui, eDelete, bSelectionDelete, bUsersWithLoan) <- DeleteUserGui.setup window bDatabaseUser bUser bDatabaseLoan  -- BTOKEN SKAL INDEHOLDE EN USERJO!
+    (userGui, eCreateUser, bSelectionCreate, eDataItemInUser) <- UserGui.setup window bDatabaseUser bUser
+    (deleteUserGui, eDeleteUser, bSelectionDeleteUser) <- DeleteUserGui.setup window bDatabaseUser bUser bDatabaseLoan  -- BTOKEN SKAL INDEHOLDE EN USERJO!
 
     bDatabaseUser <- accumB databaseUser $ concatenate <$> unions
-        [ create (User "" "" False) <$ eCreate
-        , filterJust $ update' <$> bSelectionCreate <@> eDataItemIn
-        , delete <$> filterJust (bSelectionDelete <@ eDelete)
+        [ create (User "" "" False) <$ eCreateUser
+        , filterJust $ update' <$> bSelectionCreate <@> eDataItemInUser
+        , delete <$> filterJust (bSelectionDeleteUser <@ eDeleteUser)
         ]
 
 
@@ -155,12 +155,13 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
     databaseItem <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreItem :: UI (Database Item)
 
     (itemGui, eCreateItem, bSelectionCreateItem, eDataItemInItem)<- ItemGui.setup window bDatabaseItem
+    (deleteItemGui, eDeleteItem, bSelectionDeleteItem) <- DeleteItemGui.setup window bDatabaseItem
 
 
     bDatabaseItem <- accumB databaseItem $ concatenate <$> unions
         [ create (Item "" "") <$ eCreateItem
         , filterJust $ update' <$> bSelectionCreateItem <@> eDataItemInItem
-    --    , delete <$> filterJust (bSelection <@ eDelete)
+        , delete <$> filterJust (bSelectionDeleteItem <@ eDeleteItem)
         ]
 
     onChanges bDatabaseItem $ \items -> do
@@ -169,9 +170,6 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
     ---------------------------------------------------------------------------
 
 
-
-
-    deleteItemGui <- DeleteItemGui.setup window
     handInGui <- HandInGui.setup window
 
 

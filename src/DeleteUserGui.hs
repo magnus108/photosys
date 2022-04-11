@@ -28,7 +28,6 @@ setup
            ( Element
            , Event ()
            , Behavior (Maybe DatabaseKey)
-           , Behavior Bool
            )
 setup window bDatabase bUser bDatabaseLoan = mdo
 
@@ -140,7 +139,7 @@ setup window bDatabase bUser bDatabaseLoan = mdo
     element deleteBtn # sink UI.enabled enable
 
 
-    return (elem, eDelete, bSelection, bIsUser)
+    return (elem, eDelete, bSelection)
 
 {-----------------------------------------------------------------------------
     Data items that are stored in the data base
