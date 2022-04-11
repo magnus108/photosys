@@ -47,7 +47,7 @@ setup :: Window -> UI ()
 setup window = void $ mdo
 
     --dangerMove
-    (loginGui, (loginBtn, logoutBtn), bLogin, bUser) <- LoginGui.setup window
+    (loginGui, currentUser, (loginBtn, logoutBtn), bLogin, bUser) <- LoginGui.setup window
 
 
 
@@ -57,7 +57,7 @@ setup window = void $ mdo
             (Database Tab)
 
 
-    listBox <- MenuBox.listBox bListBoxItems bSelection bDisplayDataItem
+    listBox <- MenuBox.listBox currentUser bListBoxItems bSelection bDisplayDataItem
 
     menu <-
         UI.mkElement "nav"
@@ -150,19 +150,8 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
                 "Loan" -> [tabs, loanGui]
                 "Create User"    -> [tabs, userGui]
                 "Delete User"    -> [tabs, deleteUserGui]
-            else [menu, loginGui]
+            else [loginGui]
 
-    menu <- ---fakemenu
-        UI.mkElement "nav"
-        #. "navbar is-primary is-spaced"
-        #+ [ UI.div
-             #. "container"
-             #+ [ UI.div #. "navbar-brand"
-                , UI.div
-                #. "navbar-menu"
-                #+ [UI.div #. "navbar-start", UI.div #. "navbar-end"]
-                ]
-           ]
 
 
     let bGui = display <$> bLogin

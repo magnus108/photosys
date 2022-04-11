@@ -23,7 +23,7 @@ import qualified Checkbox
 
 setup
     :: Window
-    -> UI (Element, (Element, Element), Behavior Bool, Behavior (Maybe User))
+    -> UI (Element, Element, (Element, Element), Behavior Bool, Behavior (Maybe User))
 setup window = mdo
     let datastoreUser = "data/user.json"
     databaseUser <-
@@ -52,8 +52,12 @@ setup window = mdo
     return window # set title "PhotoApp - Login"
 
     -- GUI elements
-    loginBtn                              <- UI.button #+ [string "Login"]
-    logoutBtn                             <- UI.button #+ [string "Logout"]
+    loginBtn    <- UI.button #+ [string "Login"]
+    logoutBtn   <- UI.button #. "button" #+ [string "Logout"]
+    currentUser <-
+        UI.div
+        #. "navbar-item"
+        #+ [UI.span #. "tag is-danger is-large" # sink text bUserName]
 
     ((elemName, elemPassword), tDataItem) <- dataItem bSelectionDataItem
 
@@ -77,7 +81,6 @@ setup window = mdo
         UI.div
         #. "field is-grouped"
         #+ [ UI.div #. "control" #+ [element loginBtn #. "button"]
-           , UI.div #. "control" #+ [element logoutBtn #. "button"]
            ]
 
     elem <-
@@ -153,6 +156,9 @@ setup window = mdo
         bUser :: Behavior User
         bUser = fromMaybe emptyUser <$> bUser'
 
+        bUserName :: Behavior String
+        bUserName = User.name <$> bUser
+
         bLogin :: Behavior Login
         bLogin = (\e -> Login (User.name e) (User.password e)) <$> bUser
 
@@ -183,7 +189,7 @@ setup window = mdo
     element loginBtn # sink UI.enabled (not <$> bDisplayItem)
     element logoutBtn # sink UI.enabled bDisplayItem
 
-    return (elem, (loginBtn, logoutBtn), bDisplayItem, bUser')
+    return (elem, currentUser, (loginBtn, logoutBtn), bDisplayItem, bUser')
 
 
 

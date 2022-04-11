@@ -31,11 +31,12 @@ userSelection = _selectionLB
 listBox
     :: forall a
      . Ord a
-    => Behavior [a]
+    => Element -- DOnt do this
+    -> Behavior [a]
     -> Behavior (Maybe a)
     -> Behavior (a -> UI Element)
     -> UI (ListBox a)
-listBox bitems bsel bdisplay = do
+listBox item bitems bsel bdisplay = do
     list              <- UI.div #. "navbar-brand"
 
     (e :: Event a, h) <- liftIO $ newEvent
@@ -48,7 +49,7 @@ listBox bitems bsel bdisplay = do
                 )
                 <$> bdisplay
 
-    element list # sink items (map <$> bDisplayButton <*> bitems)
+    element list # sink (items item) (map <$> bDisplayButton <*> bitems)
 
     -- animate output selection
         {-
@@ -82,5 +83,5 @@ listBox bitems bsel bdisplay = do
 
     return ListBox { .. }
 
-items = mkWriteAttr $ \i x -> void $ do
-    return x # set children [] #+ i
+items item = mkWriteAttr $ \i x -> void $ do
+    return x # set children [] #+ ((element item) : i)
