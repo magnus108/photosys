@@ -17,6 +17,7 @@ import           Database
 
 import qualified MenuBox
 
+import Loan (Loan(..))
 import User (User(..))
 import qualified UserGui
 import qualified DeleteUserGui
@@ -129,8 +130,25 @@ dataItem :: Behavior (Maybe DataItem) -> Element -> Element -> (Element, Element
 dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
     window  <- askWindow
 
+    ----------------------------------------------------------------------------------
+    let datastoreLoan = "data/loan.json"
+    databaseLoan <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreLoan :: UI (Database Loan)
 
-    (loanGui, bDatabaseLoan) <- LoanGui.setup window
+
+    (loanGui, eCreateLoan, bSelectionLoan, eDataItemInLoan) <- LoanGui.setup window bDatabaseLoan
+    (handInGui, eDeleteLoan, bSelectionDeleteLoan) <- HandInGui.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
+
+    bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
+        [ create (Loan 0 0) <$ eCreateLoan --  BØR VÆRE NUVÆRNEDE BRUGER. MEN HVAD MED HVILKEN GENSTAND??
+        , filterJust $ update' <$> bSelectionLoan <@> eDataItemInLoan
+        , delete <$> filterJust (bSelectionDeleteLoan <@ eDeleteLoan)
+        ]
+
+
+    onChanges bDatabaseLoan $ \items -> do
+        liftIO $ BS.writeFile datastoreLoan $ toStrict $ encode items
+
+
     -------------------------------------------------------------------------------------
     let datastoreUser = "data/user.json"
     databaseUser <-
@@ -170,7 +188,6 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
     ---------------------------------------------------------------------------
 
 
-    handInGui <- HandInGui.setup window
 
 
 

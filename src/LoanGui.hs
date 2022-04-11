@@ -16,10 +16,14 @@ import qualified Data.ByteString as BS
 import Database
 
 
-setup :: Window -> UI (Element, Behavior (Database Loan))
-setup window = mdo
-    let datastore = "data/loan.json"
-    database <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastore :: UI (Database Loan)
+setup :: Window -> Behavior (Database Loan) -> UI
+           ( Element
+           , Event ()
+           , Behavior (Maybe DatabaseKey)
+           , Event DataItem
+           )
+
+setup window bDatabase = mdo
 
     -- GUI elements
     createBtn                         <- UI.button #+ [string "Create"]
@@ -73,10 +77,6 @@ setup window = mdo
         eCreate     = UI.click createBtn
 
 
-    bDatabase <- accumB database $ concatenate <$> unions
-        [ create (Loan 0 0) <$ eCreate --  BØR VÆRE NUVÆRNEDE BRUGER. MEN HVAD MED HVILKEN GENSTAND??
-        , filterJust $ update' <$> bSelection <@> eDataItemIn
-        ]
 
     bSelection <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelection
@@ -112,11 +112,8 @@ setup window = mdo
     element elemName # sink UI.enabled bDisplayItem
     element elemItem # sink UI.enabled bDisplayItem
 
-    onChanges bDatabase $ \items -> do
-        liftIO $ BS.writeFile datastore $ toStrict $ encode items
 
-
-    return (elem, bDatabase)
+    return (elem, eCreate, bSelection, eDataItemIn)
 
 {-----------------------------------------------------------------------------
     Data items that are stored in the data base
