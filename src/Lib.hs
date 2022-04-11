@@ -135,7 +135,7 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
     databaseLoan <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreLoan :: UI (Database Loan)
 
 
-    (loanGui, eCreateLoan, bSelectionLoan, eDataItemInLoan) <- LoanGui.setup window bDatabaseLoan
+    (loanGui, eCreateLoan, bSelectionLoan, eDataItemInLoan) <- LoanGui.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
     (handInGui, eDeleteLoan, bSelectionDeleteLoan) <- HandInGui.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
 
     bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
