@@ -11,21 +11,23 @@ import           Item
 
 import qualified Relude.Unsafe                 as Unsafe
 
-import qualified Data.ByteString as BS
+import qualified Data.ByteString               as BS
 
 import           Database
 
-setup :: Window -> UI Element
-setup window = mdo
-    let datastore = "data/item.json"
-    database <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastore :: UI (Database Item)
-
-
-    return window # set title "PhotoApp"
+setup
+    :: Window
+    -> Behavior (Database DataItem)
+    -> UI
+           ( Element
+           , Event ()
+           , Behavior (Maybe DatabaseKey)
+           , Event DataItem
+           )
+setup window bDatabase = mdo
 
     -- GUI elements
     createBtn                         <- UI.button #+ [string "Create"]
-    deleteBtn                         <- UI.button #+ [string "Delete"]
     listBox <- UI.listBox bListBoxItems bSelection bDisplayDataItem
     filterEntry                       <- UI.entry bFilterString
 
@@ -33,39 +35,74 @@ setup window = mdo
 
 
     -- GUI layout
-    let uiDataItems = grid
-            [ [ string "Name:"
-              , element elemName #. "input"
-              , string "Code:"
-              , element elemCode #. "input"
+    search                            <-
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "Søg"]
+           , UI.div
+           #. "control"
+           #+ [ element filterEntry #. "input" # set (attr "placeholder")
+                                                     "Fx Kamera"
               ]
-            ]
+           ]
 
-    elem <- UI.div
-             #. "container"
-             #+ [ grid
-                      [ [row [element filterEntry #. "input"]]
-                      , [ UI.div
-                        #. "select is-multiple"
-                        #+ [ element listBox # set (attr "size") "8" # set
-                                 (attr "multiple")
-                                 ""
-                           ]
-                        , uiDataItems
-                        ]
-                      , [ row
-                              [ element createBtn #. "button"
-                              , element deleteBtn #. "button"
-                              ]
-                        ]
-                      ]
+    dropdown <-
+        UI.div
+        #. "field"
+        #+ [ UI.div
+             #. "control is-expanded"
+             #+ [ UI.div
+                  #. "select is-multiple is-fullwidth"
+                  #+ [ element listBox # set (attr "size") "8" # set
+                           (attr "multiple")
+                           ""
+                     ]
                 ]
+           ]
+
+    button <-
+        UI.div
+        #. "field"
+        #+ [UI.div #. "control" #+ [element createBtn #. "button"]]
+
+
+    uiDataName <-
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "Name"]
+           , UI.div
+           #. "control"
+           #+ [ element elemName #. "input" # set (attr "placeholder")
+                                                  "Fx Kamera 1"
+              ]
+           ]
+
+    uiDataPassword <-
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "Code"]
+           , UI.div #. "control" #+ [element elemCode #. "input"]
+           ]
+
+
+    elem <-
+        UI.div
+        #. "section is-medium"
+        #+ [ UI.div
+             #. "container"
+             #+ [ element search
+                , element dropdown
+                , element uiDataName
+                , element uiDataPassword
+                , element button
+                ]
+           ]
+
 
     -- Events and behaviors
     bFilterString <- stepper "" . rumors $ UI.userText filterEntry
 
-    let
-        isInfixOf               :: (Eq a) => [a] -> [a] -> Bool
+    let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
         isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
 
     let tFilter = isInfixOf <$> UI.userText filterEntry
@@ -75,18 +112,11 @@ setup window = mdo
     let eSelection  = rumors $ UI.userSelection listBox
         eDataItemIn = rumors $ tDataItem
         eCreate     = UI.click createBtn
-        eDelete     = UI.click deleteBtn
 
 
-    bDatabase <- accumB database $ concatenate <$> unions
-        [ create (Item "" "") <$ eCreate
-        , filterJust $ update' <$> bSelection <@> eDataItemIn
-        , delete <$> filterJust (bSelection <@ eDelete)
-        ]
 
     bSelection <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelection
-        , Nothing <$ eDelete
         , Just . nextKey <$> bDatabase <@ eCreate
         , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
         <$> bSelection
@@ -98,10 +128,10 @@ setup window = mdo
         bLookup = flip lookup <$> bDatabase
 
         bShowDataItem :: Behavior (DatabaseKey -> String)
-        bShowDataItem    = (maybe "" showDataItem .) <$> bLookup
+        bShowDataItem = (maybe "" showDataItem .) <$> bLookup
 
         bShowDataItem2 :: Behavior (DatabaseKey -> String)
-        bShowDataItem2    = (maybe "" name .) <$> bLookup
+        bShowDataItem2   = (maybe "" name .) <$> bLookup
 
         bDisplayDataItem = (UI.string .) <$> bShowDataItem2
 
@@ -119,14 +149,10 @@ setup window = mdo
     let bDisplayItem :: Behavior Bool
         bDisplayItem = isJust <$> bSelection
 
-    element deleteBtn # sink UI.enabled bDisplayItem
     element elemName # sink UI.enabled bDisplayItem
     element elemCode # sink UI.enabled bDisplayItem
 
-    onChanges bDatabase $ \items -> do
-        liftIO $ BS.writeFile datastore $ toStrict $ encode items
-
-    return elem
+    return (elem, eCreate, bSelection, eDataItemIn)
 
 
 {-----------------------------------------------------------------------------

@@ -4,7 +4,7 @@
 - nodejspackages
 - Enter/formsubmit
 - popup ved create
-- adminretteigheder
+- unikkenøgler
 
 ## Doing
 
@@ -14,3 +14,4 @@
 - Main?(how to run)
 - No work listbox
     > I think i got it now. behaviour lives outside
+- adminretteigheder

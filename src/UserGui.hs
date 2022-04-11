@@ -123,8 +123,6 @@ setup window bDatabase bUser = mdo
 
 
 
-    -- selection
-    -- bSelection :: Behavior (Maybe DatabaseKey)
     bSelection <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelection
         , Just . nextKey <$> bDatabase <@ eCreate

@@ -151,8 +151,26 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
         liftIO $ BS.writeFile datastoreUser $ toStrict $ encode items
     -------------------------------------------------------------------------------------
 
+    let datastoreItem = "data/item.json"
+    databaseItem <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreItem :: UI (Database Item)
 
-    itemGui <- ItemGui.setup window
+    (itemGui, eCreateItem, bSelectionCreateItem, eDataItemInItem)<- ItemGui.setup window bDatabaseItem
+
+
+    bDatabaseItem <- accumB databaseItem $ concatenate <$> unions
+        [ create (Item "" "") <$ eCreateItem
+        , filterJust $ update' <$> bSelectionCreateItem <@> eDataItemInItem
+    --    , delete <$> filterJust (bSelection <@ eDelete)
+        ]
+
+    onChanges bDatabaseItem $ \items -> do
+        liftIO $ BS.writeFile datastoreItem $ toStrict $ encode items
+
+    ---------------------------------------------------------------------------
+
+
+
+
     deleteItemGui <- DeleteItemGui.setup window
     handInGui <- HandInGui.setup window
 
