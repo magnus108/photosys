@@ -30,3 +30,6 @@ findIndex f (Database _ db) = fst <$> find (f . snd) (Map.toPairs db)
 
 
 update' mkey x = flip update x <$> mkey
+
+updateMaybe key Nothing db = db
+updateMaybe key (Just x) db = update key x db

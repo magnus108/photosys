@@ -17,6 +17,8 @@ import           Database
 
 import qualified MenuBox
 
+import qualified Loan.Create as Loan2
+
 import Loan (Loan(..))
 import User (User(..))
 import qualified UserGui
@@ -135,6 +137,9 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
     databaseLoan <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreLoan :: UI (Database Loan)
 
 
+    (loanGui2, eLoan) <- Loan2.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
+
+
     (loanGui, eCreateLoan, bSelectionLoan, eDataItemInLoan) <- LoanGui.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
     (handInGui, eDeleteLoan, bSelectionDeleteLoan) <- HandInGui.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
 
@@ -142,6 +147,7 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
         [ create (Loan 0 0) <$ eCreateLoan --  BØR VÆRE NUVÆRNEDE BRUGER. MEN HVAD MED HVILKEN GENSTAND??
         , filterJust $ update' <$> bSelectionLoan <@> eDataItemInLoan
         , delete <$> filterJust (bSelectionDeleteLoan <@ eDeleteLoan)
+        , create <$> eLoan
         ]
 
 
@@ -196,7 +202,7 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
                 "Create Item"    -> [tabs, itemGui]
                 "Delete Item"    -> [tabs, deleteItemGui]
                 "Hand in" -> [tabs, handInGui]
-                "Loan" -> [tabs, loanGui]
+                "Loan" -> [tabs, loanGui2]
                 "Create User"    -> [tabs, userGui]
                 "Delete User"    -> [tabs, deleteUserGui]
             else [loginGui]

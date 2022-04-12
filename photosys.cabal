@@ -34,6 +34,7 @@ library
       ItemGui
       Lib
       Loan
+      Loan.Create
       LoanGui
       Login
       LoginGui
@@ -58,6 +59,7 @@ library
     , base >=4.7 && <5
     , bytestring
     , comonad
+    , control-bool
     , filepath
     , generic-lens
     , lens
@@ -87,6 +89,7 @@ executable photosys-exe
     , base >=4.7 && <5
     , bytestring
     , comonad
+    , control-bool
     , filepath
     , generic-lens
     , lens
@@ -118,6 +121,7 @@ test-suite photosys-test
     , base >=4.7 && <5
     , bytestring
     , comonad
+    , control-bool
     , filepath
     , generic-lens
     , lens
