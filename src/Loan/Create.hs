@@ -18,6 +18,7 @@ import qualified Relude.Unsafe                 as Unsafe
 
 import           Database
 
+import qualified Data.List                     as List
 import           Control.Bool
 
 
@@ -167,6 +168,25 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
     let bLookupUser :: Behavior (DatabaseKey -> Maybe User)
         bLookupUser = flip lookup <$> bDatabaseUser
 
+        bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
+        bLookupLoan = flip lookup <$> bDatabaseLoan
+
+        bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
+        bLoanItem = (fmap Loan.item .) <$> bLookupLoan
+
+        bLoanKeys :: Behavior [DatabaseKey]
+        bLoanKeys = keys <$> bDatabaseLoan
+
+        bLoanItems :: Behavior [Maybe Int]
+        bLoanItems = fmap <$> bLoanItem <*> bLoanKeys
+
+        bLoanItemsFilter :: Behavior (Int -> Bool)
+        bLoanItemsFilter = flip List.notElem . catMaybes <$> bLoanItems
+
+        bFilterItemLoan :: Behavior [DatabaseKey]
+        bFilterItemLoan =
+            (\p -> filter p . keys) <$> bLoanItemsFilter <*> bDatabaseItem
+
         bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
         bLookupItem = flip lookup <$> bDatabaseItem
 
@@ -197,10 +217,10 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
         bListBoxItems :: Behavior [DatabaseKey]
         bListBoxItems =
-            (\p show -> filter (p . show) . keys)
+            (\p show -> filter (p . show))
                 <$> bFilterItem
                 <*> bShowItem
-                <*> bDatabaseItem
+                <*> bFilterItemLoan
 
     let hasUserSelected :: Behavior Bool
         hasUserSelected = isJust <$> bSelectionUser
