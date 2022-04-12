@@ -160,6 +160,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         <$> bSelectionItem
         <*> bShowItem
         <@> eFilterItem
+        , Nothing <$ eCreate
         ]
 
 
@@ -171,19 +172,6 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
         bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
         bLoanItem = (fmap Loan.item .) <$> bLookupLoan
-
-        bLoanKeys :: Behavior [DatabaseKey]
-        bLoanKeys = keys <$> bDatabaseLoan
-
-        bLoanItems :: Behavior [Maybe Int]
-        bLoanItems = fmap <$> bLoanItem <*> bLoanKeys
-
-        bLoanItemsFilter :: Behavior (Int -> Bool)
-        bLoanItemsFilter = flip List.notElem . catMaybes <$> bLoanItems
-
-        bFilterItemLoan :: Behavior [DatabaseKey]
-        bFilterItemLoan =
-            (\p -> filter p . keys) <$> bLoanItemsFilter <*> bDatabaseItem
 
         bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
         bLookupItem = flip lookup <$> bDatabaseItem
@@ -213,24 +201,33 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
                 <*> bShowUser
                 <*> bDatabaseUser
 
+
+        bItemsWithLoan :: Behavior [DatabaseKey]
+        bItemsWithLoan =
+            (\f -> catMaybes . fmap f . keys) <$> bLoanItem <*> bDatabaseLoan
+
         bListBoxItems :: Behavior [DatabaseKey]
         bListBoxItems =
-            (\p show -> filter (p . show))
+            (\p q show -> filter (flip List.notElem q) . filter (p . show) . keys)
                 <$> bFilterItem
+                <*> bItemsWithLoan
                 <*> bShowItem
-                <*> bFilterItemLoan
+                <*> bDatabaseItem
 
-    let hasUserSelected :: Behavior Bool
+    let bCreateLoan :: Behavior (Maybe Loan)
+        bCreateLoan = liftA2 Loan.Loan <$> bSelectionItem <*> bSelectionUser
+
+        hasUserSelected :: Behavior Bool
         hasUserSelected = isJust <$> bSelectionUser
 
         hasItemSelected :: Behavior Bool
         hasItemSelected = isJust <$> bSelectionItem
+
 
     element createBtn # sink UI.enabled (hasUserSelected <&&> hasItemSelected)
     element modal # sink
         (attr "class")
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 
-    let bCreate = liftA2 Loan.Loan <$> bSelectionItem <*> bSelectionUser
 
-    return (elem, filterJust $ bCreate <@ eCreate)
+    return (elem, filterJust $ bCreateLoan <@ eCreate)

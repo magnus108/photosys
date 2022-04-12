@@ -155,7 +155,6 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         <$> bSelectionUser
         <*> bShowUser
         <@> eFilterUser
-        , Nothing <$ eDelete
         ]
 
 
