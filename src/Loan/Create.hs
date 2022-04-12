@@ -1,8 +1,6 @@
 {-# LANGUAGE RecursiveDo #-}
 module Loan.Create where
 
-import           Data.Aeson
-
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )

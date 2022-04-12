@@ -155,20 +155,9 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         <$> bSelectionUser
         <*> bShowUser
         <@> eFilterUser
+        , Nothing <$ eDelete
         ]
-    
-    let bHelpMe :: Behavior
-                (Maybe DatabaseKey -> Maybe DatabaseKey -> Maybe DatabaseKey)
-        bHelpMe = do
-            users <- bLoanUsers
-            items <- bLoanItems
-            pure $ \itemKey userKey ->
-                if (List.elem itemKey items) && (List.elem userKey users)
-                    then itemKey
-                    else Nothing
 
-        coco :: Event (Maybe DatabaseKey)
-        coco = bHelpMe <*> bSelectionItem <@> eSelectionUser
 
     bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionItem
@@ -176,9 +165,8 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         <$> bSelectionItem
         <*> bShowItem
         <@> eFilterItem
-        , coco
+        , Nothing <$ eDelete
         ]
-
 
 
     let bLookupUser :: Behavior (DatabaseKey -> Maybe User)
@@ -192,39 +180,6 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
         bLoanUser :: Behavior (DatabaseKey -> Maybe Int)
         bLoanUser = (fmap Loan.user .) <$> bLookupLoan
-
-        bLoanKeys :: Behavior [DatabaseKey]
-        bLoanKeys = keys <$> bDatabaseLoan
-
-        bLoanItems :: Behavior [Maybe Int]
-        bLoanItems = fmap <$> bLoanItem <*> bLoanKeys
-
-        bLoanUsers :: Behavior [Maybe Int]
-        bLoanUsers = fmap <$> bLoanUser <*> bLoanKeys
-
-
-        bLoanItemsFilter :: Behavior (Int -> Bool)
-        bLoanItemsFilter = flip List.elem . catMaybes <$> bLoanItems
-
-
-        bLoanUserFilter :: Behavior (DatabaseKey -> Bool)
-        bLoanUserFilter = do
-            lookup       <- bLookupLoan
-            selectedUser <- bSelectionUser
-            pure
-                $ \k ->
-                      (selectedUser == Nothing)
-                          || (fmap Loan.user (lookup k) == selectedUser)
-
-
-
-        bFilterItemLoan :: Behavior [DatabaseKey]
-        bFilterItemLoan =
-            (\p q -> filter q . filter p . keys)
-                <$> bLoanItemsFilter
-                <*> bLoanUserFilter
-                <*> bDatabaseItem
-
 
         bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
         bLookupItem = flip lookup <$> bDatabaseItem
@@ -249,38 +204,85 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
         bListBoxUsers :: Behavior [DatabaseKey]
         bListBoxUsers =
-            (\p show -> filter (p . show) . keys)
+            (\p q r show ->
+                    filter (flip List.elem r)
+                        . filter (flip List.elem q)
+                        . filter (p . show)
+                        . keys
+                )
                 <$> bFilterUser
+                <*> bUsersWithLoan
+                <*> bSelectionUsers
                 <*> bShowUser
                 <*> bDatabaseUser
 
+
+        bUsersWithLoan :: Behavior [DatabaseKey]
+        bUsersWithLoan =
+            (\f -> catMaybes . fmap f . keys) <$> bLoanUser <*> bDatabaseLoan
+
+        bSelectionUsers :: Behavior [DatabaseKey]
+        bSelectionUsers =
+            (\i lookupItem lookupUser ->
+                    catMaybes
+                        . fmap lookupUser
+                        . filter ((\x -> i == Nothing || i == x) . lookupItem)
+                        . keys
+                )
+                <$> bSelectionItem
+                <*> bLoanItem
+                <*> bLoanUser
+                <*> bDatabaseLoan
+
         bListBoxItems :: Behavior [DatabaseKey]
         bListBoxItems =
-            (\p show -> filter (p . show))
+            (\p q r show ->
+                    filter (flip List.elem r)
+                        . filter (flip List.elem q)
+                        . filter (p . show)
+                        . keys
+                )
                 <$> bFilterItem
+                <*> bItemsWithLoan
+                <*> bSelectionItems
                 <*> bShowItem
-                <*> bFilterItemLoan
+                <*> bDatabaseItem
 
-    let hasUserSelected :: Behavior Bool
-        hasUserSelected = isJust <$> bSelectionUser
 
-        hasItemSelected :: Behavior Bool
-        hasItemSelected = isJust <$> bSelectionItem
+        bItemsWithLoan :: Behavior [DatabaseKey]
+        bItemsWithLoan =
+            (\f -> catMaybes . fmap f . keys) <$> bLoanItem <*> bDatabaseLoan
 
-    element deleteBtn # sink UI.enabled (hasUserSelected <&&> hasItemSelected)
+        bSelectionItems :: Behavior [DatabaseKey]
+        bSelectionItems =
+            (\i lookupUser lookupItem ->
+                    catMaybes
+                        . fmap lookupItem
+                        . filter ((\x -> i == Nothing || i == x) . lookupUser)
+                        . keys
+                )
+                <$> bSelectionUser
+                <*> bLoanUser
+                <*> bLoanItem
+                <*> bDatabaseLoan
+
+
+    let bDeleteLoan :: Behavior (Maybe Loan)
+        bDeleteLoan = liftA2 Loan.Loan <$> bSelectionItem <*> bSelectionUser
+
+        bSelectedLoan :: Behavior (Maybe DatabaseKey)
+        bSelectedLoan =
+            (\i lookup -> find ((i ==) . lookup) . keys)
+                <$> bDeleteLoan
+                <*> bLookupLoan
+                <*> bDatabaseLoan
+
+        hasSelectedLoan :: Behavior Bool
+        hasSelectedLoan = isJust <$> bSelectedLoan
+
+    element deleteBtn # sink UI.enabled (hasSelectedLoan)
     element modal # sink
         (attr "class")
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
-
-    let bDelete = liftA2 Loan.Loan <$> bSelectionItem <*> bSelectionUser
-
-    let bLoans :: Behavior [(DatabaseKey, Loan)]
-        bLoans = toPairs <$> bDatabaseLoan
-
-    let bSelectedLoan :: Behavior (Maybe DatabaseKey)
-        bSelectedLoan = do
-            loans <- bLoans
-            loan <- bDelete
-            pure $ fst <$> find (\(k,v) -> Just v == loan) loans
 
     return (elem, filterJust $ bSelectedLoan <@ eDelete)
