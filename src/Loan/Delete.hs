@@ -1,5 +1,4 @@
 {-# LANGUAGE RecursiveDo #-}
-{-# LANGUAGE ApplicativeDo #-}
 module Loan.Delete where
 
 import           Data.Aeson

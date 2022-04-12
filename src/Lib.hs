@@ -18,6 +18,7 @@ import           Database
 import qualified MenuBox
 
 import qualified Item.Create as ItemCreate
+import qualified Item.Delete as ItemDelete
 
 import qualified Loan.Create as LoanCreate
 import qualified Loan.Delete as LoanDelete
@@ -173,13 +174,12 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
     databaseItem <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreItem :: UI (Database Item)
 
     (itemGui, eCreateItem, bSelectionCreateItem, eDataItemInItem)<- ItemGui.setup window bDatabaseItem
-    (deleteItemGui, eDeleteItem, bSelectionDeleteItem) <- DeleteItemGui.setup window bDatabaseItem bDatabaseLoan
-
+    (itemDelete, eItemDelete) <- ItemDelete.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
 
     bDatabaseItem <- accumB databaseItem $ concatenate <$> unions
         [ create (Item "" "") <$ eCreateItem
         , filterJust $ update' <$> bSelectionCreateItem <@> eDataItemInItem
-        , delete <$> filterJust (bSelectionDeleteItem <@ eDeleteItem)
+        , delete <$> eItemDelete
         ]
 
     onChanges bDatabaseItem $ \items -> do
@@ -193,10 +193,10 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
 
     let display y x = if y
             then case Tab.name x of
-                "Create Item"    -> [tabs, itemGui]
-                "Delete Item"    -> [tabs, deleteItemGui]
                 "Aflever" -> [tabs, loanDelete]
                 "Lån" -> [tabs, loanCreate]
+                "Opret vare"    -> [tabs, itemGui]
+                "Slet vare"    -> [tabs, itemDelete]
                 "Create User"    -> [tabs, userGui]
                 "Delete User"    -> [tabs, deleteUserGui]
             else [loginGui]

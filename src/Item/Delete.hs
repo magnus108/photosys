@@ -1,5 +1,7 @@
 {-# LANGUAGE RecursiveDo #-}
-module Item.Create where
+module Item.Delete where
+
+import           Data.Aeson
 
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
@@ -20,24 +22,22 @@ import qualified Data.List                     as List
 import           Control.Bool
 
 
-    {- 
 setup
     :: Window
     -> Behavior (Database Loan)
     -> Behavior (Database User)
     -> Behavior (Database Item)
-    -> UI (Element, Event Item)
+    -> UI (Element, Event DatabaseKey)
 setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
     -- GUI elements
     filterItem  <- UI.entry bFilterEntryItem
     listBoxItem <- UI.listBox bListBoxItems bSelectionItem bDisplayItemName
 
-    ((elemName, elemCode), tDataItem) <- dataItem bSelectionDataItem
-    createBtn   <- UI.button #+ [string "Opret"]
+    deleteBtn   <- UI.button #+ [string "Slet"]
 
     -- GUI layout
-    searchItem <-
+    searchItem  <-
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Søg"]
@@ -62,38 +62,21 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
                 ]
            ]
 
-    dataName <-
+
+    deleteBtn' <-
         UI.div
         #. "field"
-        #+ [ UI.label #. "label" #+ [string "Name"]
-           , UI.div
-           #. "control"
-           #+ [ element elemName #. "input" # set (attr "placeholder")
-                                                  "Fx Kamera 1"
-              ]
-           ]
-
-    dataCode <-
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Code"]
-           , UI.div #. "control" #+ [element elemCode #. "input"]
-           ]
-
-
-    createBtn' <-
-        UI.div
-        #. "field"
-        #+ [UI.div #. "control" #+ [element createBtn #. "button"]]
+        #+ [UI.div #. "control" #+ [element deleteBtn #. "button"]]
 
 
     closeBtn <- UI.button #. "modal-close is-large"
+
     modal    <-
         UI.div
             #+ [ UI.div #. "modal-background"
                , UI.div
                #. "modal-content"
-               #+ [UI.div #. "box" #+ [string "Lån godkendt"]]
+               #+ [UI.div #. "box" #+ [string "Sletning godkendt"]]
                , element closeBtn
                ]
 
@@ -104,9 +87,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
              #. "container"
              #+ [ element searchItem
                 , element dropdownItem
-                , element dataName
-                , element dataCode
-                , element createBtn'
+                , element deleteBtn'
                 , element modal
                 ]
            ]
@@ -124,77 +105,64 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         eFilterItem = rumors tFilterItem
 
     let eSelectionItem = rumors $ UI.userSelection listBoxItem
-        eCreate        = UI.click createBtn
+        eDelete        = UI.click deleteBtn
         eClose         = UI.click closeBtn
 
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
-        [True <$ eCreate, False <$ eClose]
-
+        [True <$ eDelete, False <$ eClose]
 
     bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionItem
+        , Nothing <$ eDelete
         , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
         <$> bSelectionItem
-        <*> bShowItem
+        <*> bShowDataItem
         <@> eFilterItem
-        , Nothing <$ eCreate
         ]
 
 
-    let bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
+    let bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
+        bLookupLoan = flip lookup <$> bDatabaseLoan
+
+        bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
         bLookupItem = flip lookup <$> bDatabaseItem
 
-        bSelectedItem :: Behavior (Maybe Item)
-        bSelectedItem = (=<<) <$> bLookupItem <*> bSelectionItem
-
-        bShowUser :: Behavior (DatabaseKey -> String)
-        bShowUser = (maybe "" User.name .) <$> bLookupUser
-
-        bShowItem :: Behavior (DatabaseKey -> String)
-        bShowItem = (maybe "" Item.name .) <$> bLookupItem
-
-        bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
-        bDisplayUserName = (UI.string .) <$> bShowUser
+        bShowDataItem :: Behavior (DatabaseKey -> String)
+        bShowDataItem = (maybe "" Item.name .) <$> bLookupItem
 
         bDisplayItemName :: Behavior (DatabaseKey -> UI Element)
-        bDisplayItemName = (UI.string .) <$> bShowItem
+        bDisplayItemName = (UI.string .) <$> bShowDataItem
 
-        bListBoxUsers :: Behavior [DatabaseKey]
-        bListBoxUsers =
-            (\p show -> filter (p . show) . keys)
-                <$> bFilterUser
-                <*> bShowUser
-                <*> bDatabaseUser
+        bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
+        bLoanItem = (fmap Loan.item .) <$> bLookupLoan
+
+        bListBoxItems :: Behavior [DatabaseKey]
+        bListBoxItems = (\p q show -> filter (flip List.notElem q) . filter (p . show)  . keys)
+                <$> bFilterItem
+                <*> bItemsWithLoan
+                <*> bShowDataItem
+                <*> bDatabaseItem
+
+        bSelectionDataItem :: Behavior (Maybe Item)
+        bSelectionDataItem = (=<<) <$> bLookupItem <*> bSelectionItem
 
 
         bItemsWithLoan :: Behavior [DatabaseKey]
         bItemsWithLoan =
             (\f -> catMaybes . fmap f . keys) <$> bLoanItem <*> bDatabaseLoan
 
-        bListBoxItems :: Behavior [DatabaseKey]
-        bListBoxItems =
-            (\p q show -> filter (flip List.notElem q) . filter (p . show) . keys)
-                <$> bFilterItem
-                <*> bItemsWithLoan
-                <*> bShowItem
-                <*> bDatabaseItem
 
-    let bCreateLoan :: Behavior (Maybe Loan)
-        bCreateLoan = liftA2 Loan.Loan <$> bSelectionItem <*> bSelectionUser
-
-        hasUserSelected :: Behavior Bool
-        hasUserSelected = isJust <$> bSelectionUser
-
-        hasItemSelected :: Behavior Bool
-        hasItemSelected = isJust <$> bSelectionItem
+    let bHasSelectedItem :: Behavior Bool
+        bHasSelectedItem = (\x xs -> case x of
+                                       Nothing -> False
+                                       Just y -> List.elem y xs
+                           ) <$> bSelectionItem <*> bListBoxItems
 
 
-    element createBtn # sink UI.enabled (hasUserSelected <&&> hasItemSelected)
+    element deleteBtn # sink UI.enabled bHasSelectedItem
     element modal # sink
         (attr "class")
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 
-
-    return (elem, filterJust $ bCreateLoan <@ eCreate)
-    -}
+    return (elem, filterJust $ bSelectionItem <@ eDelete)
