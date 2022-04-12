@@ -29,14 +29,13 @@ library
       Database
       DeleteItemGui
       DeleteUserGui
-      HandInGui
       Item
+      Item.Create
       ItemGui
       Lib
       Loan
       Loan.Create
       Loan.Delete
-      LoanGui
       Login
       LoginGui
       MenuBox

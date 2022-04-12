@@ -17,15 +17,15 @@ import           Database
 
 import qualified MenuBox
 
-import qualified Loan.Create as Loan2
+import qualified Item.Create as ItemCreate
+
+import qualified Loan.Create as LoanCreate
 import qualified Loan.Delete as LoanDelete
 
 import Loan (Loan(..))
 import User (User(..))
 import qualified UserGui
 import qualified DeleteUserGui
-import qualified LoanGui
-import qualified HandInGui
 import qualified ItemGui
 import qualified DeleteItemGui
 import qualified LoginGui
@@ -135,7 +135,7 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
     databaseLoan <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreLoan :: UI (Database Loan)
 
 
-    (loanGui2, eLoanCreate) <- Loan2.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
+    (loanCreate, eLoanCreate) <- LoanCreate.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
     (loanDelete, eLoanDelete) <- LoanDelete.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
 
 
@@ -196,7 +196,7 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
                 "Create Item"    -> [tabs, itemGui]
                 "Delete Item"    -> [tabs, deleteItemGui]
                 "Aflever" -> [tabs, loanDelete]
-                "Lån" -> [tabs, loanGui2]
+                "Lån" -> [tabs, loanCreate]
                 "Create User"    -> [tabs, userGui]
                 "Delete User"    -> [tabs, deleteUserGui]
             else [loginGui]
