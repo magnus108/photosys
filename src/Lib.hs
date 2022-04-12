@@ -18,6 +18,7 @@ import           Database
 import qualified MenuBox
 
 import qualified Loan.Create as Loan2
+import qualified Loan.Delete as LoanDelete
 
 import Loan (Loan(..))
 import User (User(..))
@@ -91,7 +92,7 @@ setup window = void $ mdo
         bLookup = flip lookup <$> bDatabase
 
         bShowDataItem :: Behavior (DatabaseKey -> String)
-        bShowDataItem    = (maybe "" showDataItem .) <$> bLookup
+        bShowDataItem    = (maybe "" Tab.name .) <$> bLookup
 
         bDisplayDataItem = (UI.string .) <$> bShowDataItem
 
@@ -124,9 +125,6 @@ setup window = void $ mdo
 
 type DataItem = Tab
 
-showDataItem t = Tab.name t
-
-emptyDataItem = Tab ""
 
 dataItem :: Behavior (Maybe DataItem) -> Element -> Element -> (Element, Element) -> Behavior Bool -> Behavior (Maybe User) -> UI Element
 dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
@@ -137,17 +135,13 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
     databaseLoan <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreLoan :: UI (Database Loan)
 
 
-    (loanGui2, eLoan) <- Loan2.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
+    (loanGui2, eLoanCreate) <- Loan2.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
+    (loanDelete, eLoanDelete) <- LoanDelete.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
 
-
-    (loanGui, eCreateLoan, bSelectionLoan, eDataItemInLoan) <- LoanGui.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
-    (handInGui, eDeleteLoan, bSelectionDeleteLoan) <- HandInGui.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
 
     bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
-        [ create (Loan 0 0) <$ eCreateLoan --  BØR VÆRE NUVÆRNEDE BRUGER. MEN HVAD MED HVILKEN GENSTAND??
-        , filterJust $ update' <$> bSelectionLoan <@> eDataItemInLoan
-        , delete <$> filterJust (bSelectionDeleteLoan <@ eDeleteLoan)
-        , create <$> eLoan
+        [ create <$> eLoanCreate
+        , delete <$> eLoanDelete
         ]
 
 
@@ -201,8 +195,8 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
             then case Tab.name x of
                 "Create Item"    -> [tabs, itemGui]
                 "Delete Item"    -> [tabs, deleteItemGui]
-                "Hand in" -> [tabs, handInGui]
-                "Loan" -> [tabs, loanGui2]
+                "Aflever" -> [tabs, loanDelete]
+                "Lån" -> [tabs, loanGui2]
                 "Create User"    -> [tabs, userGui]
                 "Delete User"    -> [tabs, deleteUserGui]
             else [loginGui]

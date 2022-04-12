@@ -35,6 +35,7 @@ library
       Lib
       Loan
       Loan.Create
+      Loan.Delete
       LoanGui
       Login
       LoginGui

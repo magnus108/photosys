@@ -1,1 +1,1 @@
-{"nextKey":6,"db":{"0":{"name":"Loan","admin":true},"1":{"name":"Hand in","admin":true},"2":{"name":"Create Item","admin":true},"3":{"name":"Delete Item","admin":true},"4":{"name":"Create User","admin":true},"5":{"name":"Delete User","admin":true}}}
+{"nextKey":6,"db":{"0":{"name":"Lån","admin":true},"1":{"name":"Aflever","admin":true},"2":{"name":"Create Item","admin":true},"3":{"name":"Delete Item","admin":true},"4":{"name":"Create User","admin":true},"5":{"name":"Delete User","admin":true}}}
