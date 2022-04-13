@@ -29,39 +29,12 @@ setup
 setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
     -- GUI elements
-    filterItem                        <- UI.entry bFilterEntryItem
-    listBoxItem <- UI.listBox bListBoxItems bSelectionItem bDisplayItemName
 
-    ((elemName, elemCode), tDataItem) <- dataItem bSelectedItem
-    createBtn                         <- UI.button #+ [string "Opret"]
+    createBtn <- UI.button #+ [string "Opret"]
+    ((elemName, elemCode), tItem) <- dataItem bItem
 
     -- GUI layout
-    searchItem                        <-
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-           , UI.div
-           #. "control"
-           #+ [ element filterItem #. "input" # set (attr "placeholder")
-                                                    "Fx Kamera"
-              ]
-           ]
-
-    dropdownItem <-
-        UI.div
-        #. "field"
-        #+ [ UI.div
-             #. "control is-expanded"
-             #+ [ UI.div
-                  #. "select is-multiple is-fullwidth"
-                  #+ [ element listBoxItem # set (attr "size") "5" # set
-                           (attr "multiple")
-                           ""
-                     ]
-                ]
-           ]
-
-    dataName <-
+    dataName  <-
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Name"]
@@ -76,7 +49,11 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Code"]
-           , UI.div #. "control" #+ [element elemCode #. "input"]
+           , UI.div
+           #. "control"
+           #+ [ element elemCode #. "input" # set (attr "placeholder")
+                                                  "Fx ABCDE"
+              ]
            ]
 
 
@@ -101,9 +78,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         #. "section is-medium"
         #+ [ UI.div
              #. "container"
-             #+ [ element searchItem
-                , element dropdownItem
-                , element dataName
+             #+ [ element dataName
                 , element dataCode
                 , element createBtn'
                 , element modal
@@ -112,76 +87,36 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
 
     -- Events and behaviors
-    bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
-
-
-    let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
-        isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
-
-    let tFilterItem = isInfixOf <$> UI.userText filterItem
-        bFilterItem = facts tFilterItem
-        eFilterItem = rumors tFilterItem
-
-    let eSelectionItem = rumors $ UI.userSelection listBoxItem
-        eItemIn        = rumors $ tDataItem
-        eCreate        = UI.click createBtn
-        eClose         = UI.click closeBtn
-
+    let eCreate = UI.click createBtn
+        eClose  = UI.click closeBtn
+        eItemIn = rumors tItem
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
         [True <$ eCreate, False <$ eClose]
 
 
-    bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
-        [ eSelectionItem
-        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
-        <$> bSelectionItem
-        <*> bShowItem
-        <@> eFilterItem
-        , Nothing <$ eCreate
+    bItem <- stepper Nothing $ Unsafe.head <$> unions
+        [ Just <$> eItemIn
+        , Just emptyItem <$ eCreate
         ]
 
-
-    let bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
-        bLookupItem = flip lookup <$> bDatabaseItem
-
-        bSelectedItem :: Behavior (Maybe Item)
-        bSelectedItem = (=<<) <$> bLookupItem <*> bSelectionItem
-
-        bShowItem :: Behavior (DatabaseKey -> String)
-        bShowItem = (maybe "" Item.name .) <$> bLookupItem
-
-        bDisplayItemName :: Behavior (DatabaseKey -> UI Element)
-        bDisplayItemName = (UI.string .) <$> bShowItem
-
-        bListBoxItems :: Behavior [DatabaseKey]
-        bListBoxItems =
-            (\p show -> filter (p . show) . keys)
-                <$> bFilterItem
-                <*> bShowItem
-                <*> bDatabaseItem
-
-    let bDisplayItem :: Behavior Bool
-        bDisplayItem = isJust <$> bSelectionItem
-
-    element elemName # sink UI.enabled bDisplayItem
-    element elemCode # sink UI.enabled bDisplayItem
+    let bNotEmpty = isJust <$> bItem
+    element createBtn # sink UI.enabled bNotEmpty
 
     element modal # sink
         (attr "class")
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 
+    return (elem, filterJust $ bItem <@ eCreate)
 
-    return (elem, emptyDataItem <$ eCreate)
 
-
-emptyDataItem :: Item
-emptyDataItem = Item.Item "" ""
+emptyItem :: Item
+emptyItem = Item.Item "" ""
 
 dataItem :: Behavior (Maybe Item) -> UI ((Element, Element), Tidings Item)
 dataItem bItem = do
-    entry1 <- UI.entry $ Item.name . fromMaybe emptyDataItem <$> bItem
-    entry2 <- UI.entry $ Item.code . fromMaybe emptyDataItem <$> bItem
+    entry1 <- UI.entry $ Item.name . fromMaybe emptyItem <$> bItem
+    entry2 <- UI.entry $ Item.code . fromMaybe emptyItem <$> bItem
 
     return
         ( (getElement entry1, getElement entry2)
