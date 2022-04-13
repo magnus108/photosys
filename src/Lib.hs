@@ -41,7 +41,7 @@ import qualified Token.Create                  as TokenCreate
 
 import           Loan                           ( Loan(..) )
 import           User                           ( User(..) )
-import           Token                          ( Token(..) )
+import           Token                          ( Token(..) , isToken)
 
 
 import           Tab                            ( Tab(..) )
@@ -63,32 +63,6 @@ someFunc port = do
 
 setup :: Window -> UI ()
 setup window = void $ mdo
-
-    ----------------------------------------------------------------------------------
-
-    let datastoreToken = "data/token.json"
-    databaseToken <-
-        liftIO
-        $   Unsafe.fromJust
-        .   decode
-        .   fromStrict
-        <$> BS.readFile datastoreToken :: UI (Database Token)
-
-    (tokenCreate, eTokenCreate) <- TokenCreate.setup window
-                                                     bDatabaseLoan
-                                                     bDatabaseUser
-                                                     bDatabaseItem
-                                                     bDatabaseToken
-                                                     bTokenSelection
-
-    bTokenSelection <- stepper (Just 0) UI.never
-    bDatabaseToken  <- accumB databaseToken $ concatenate <$> unions
-        [filterJust $ Database.update' <$> bTokenSelection <@> eTokenCreate]
-
-    onChanges bDatabaseToken $ \items -> do
-        liftIO $ BS.writeFile datastoreToken $ toStrict $ encode items
-
-    ----------------------------------------------------------------------------------
     let datastoreLoan = "data/loan.json"
     databaseLoan <-
         liftIO
@@ -204,7 +178,7 @@ setup window = void $ mdo
         .   fromStrict
         <$> BS.readFile datastoreTab :: UI (Database Tab)
 
-    (tabs, tTabs) <- Tab.setup window
+    (tabs, tTabs, eLogout) <- Tab.setup window
                                bDatabaseLoan
                                bDatabaseUser
                                bDatabaseItem
@@ -217,6 +191,33 @@ setup window = void $ mdo
     bTabSelection <- stepper (Just 0) $ Unsafe.head <$> unions [ eTabs ]
     bDatabaseTab  <- accumB databaseTab $ concatenate <$> unions []
 
+    ----------------------------------------------------------------------------------
+
+    let datastoreToken = "data/token.json"
+    databaseToken <-
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile datastoreToken :: UI (Database Token)
+
+    (tokenCreate, eTokenCreate) <- TokenCreate.setup window
+                                                     bDatabaseLoan
+                                                     bDatabaseUser
+                                                     bDatabaseItem
+                                                     bDatabaseToken
+                                                     bTokenSelection
+
+    bTokenSelection <- stepper (Just 0) UI.never
+    bDatabaseToken  <- accumB databaseToken $ concatenate <$> unions
+        [filterJust $ Database.update' <$> bTokenSelection <@> eTokenCreate
+        ,filterJust $ Database.update' <$> bTokenSelection <@> eLogout
+        ]
+
+    onChanges bDatabaseToken $ \items -> do
+        liftIO $ BS.writeFile datastoreToken $ toStrict $ encode items
+
+    ----------------------------------------------------------------------------------
 
     ---------------------------------------------------------------------------
     -- EXPORT
@@ -240,7 +241,7 @@ setup window = void $ mdo
 
 
     notDone <- UI.string "Ikke færdig"
-    let display y x = if y
+    let display y x = if traceShowId y
             then case x of
                 0  -> [tabs, loanCreate]
                 1  -> [tabs, loanDelete]
@@ -267,7 +268,7 @@ setup window = void $ mdo
         bSelectedToken = (=<<) <$> bLookupToken <*> bTokenSelection
 
         bHasToken :: Behavior Bool
-        bHasToken = isJust <$> bSelectedToken
+        bHasToken = maybe False Token.isToken <$> bSelectedToken
 
     let bGui = display <$> bHasToken
 

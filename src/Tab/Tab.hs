@@ -36,12 +36,13 @@ setup
     -> Behavior (Maybe DatabaseKey)
     -> Behavior (Database Tab)
     -> Behavior (Maybe DatabaseKey)
-    -> UI (Element, Tidings (Maybe DatabaseKey))
+    -> UI (Element, Tidings (Maybe DatabaseKey), Event Token)
 setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelectionToken bDatabaseTab bSelectionTab
     = mdo
 
     -- GUI elements
     (bListBox, tListBox) <- MenuBox.listBox bListBoxItems bSelectionTab bDisplayTab
+    logoutBtn                          <- UI.button #+ [string "Log ud"]
 
     -- GUI layout
     currentUser <- UI.div #. "navbar-item" #+ [UI.span #. "tag is-danger is-large" # sink text bSelectedUserName ]
@@ -55,11 +56,13 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
              #+ [ element list
                 , UI.div
                 #. "navbar-menu"
-                #+ [UI.div #. "navbar-start", UI.div #. "navbar-end" #+ [UI.div #. "navbar-item" #+ [element logoutBtn]]]
+                #+ [UI.div #. "navbar-start", UI.div #. "navbar-end" #+ [UI.div #. "navbar-item" #+ [element logoutBtn #. "button"]]]
                 ]
            ]
 
     -- Events and behaviors
+    let eLogout = UI.click logoutBtn
+
     let bLookupTab :: Behavior (DatabaseKey -> Maybe Tab)
         bLookupTab = flip Database.lookup <$> bDatabaseTab
 
@@ -100,7 +103,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
         bSelectedTokenId = chainedTo Token.tokenId <$> bSelectedToken
 
 
-    return (elem, tListBox)
+    return (elem, tListBox, Token.NoToken <$ eLogout)
 
 items user = mkWriteAttr $ \i x -> void $ do
     return x # set children [] #+ ((element user) : i)

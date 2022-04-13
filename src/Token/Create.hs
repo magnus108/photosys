@@ -99,10 +99,10 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
         let bDisplayItem :: Behavior Bool
             bDisplayItem = isJust <$> bLogin
 
-            bHasNoToken :: Behavior Bool
-            bHasNoToken = isNothing <$> bSelectedToken
+            bHasToken :: Behavior Bool
+            bHasToken = maybe False Token.isToken <$> bSelectedToken
 
-        element createBtn # sink UI.enabled (bDisplayItem <&&> bHasNoToken)
+        element createBtn # sink UI.enabled (bDisplayItem <&&> (not <$> bHasToken))
 
         return (elem, maybe Token.NoToken Token.Token <$> bUser <@ eCreate)
 
