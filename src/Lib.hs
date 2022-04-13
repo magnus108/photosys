@@ -25,10 +25,9 @@ import qualified Loan.Delete as LoanDelete
 
 import Loan (Loan(..))
 import User (User(..))
+
 import qualified UserGui
 import qualified DeleteUserGui
-import qualified ItemGui
-import qualified DeleteItemGui
 import qualified LoginGui
 
 import           Tab                            ( Tab(..) )
@@ -169,22 +168,19 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
     onChanges bDatabaseUser $ \items -> do
         liftIO $ BS.writeFile datastoreUser $ toStrict $ encode items
     -------------------------------------------------------------------------------------
-
     let datastoreItem = "data/item.json"
     databaseItem <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreItem :: UI (Database Item)
 
-    (itemGui, eCreateItem, bSelectionCreateItem, eDataItemInItem)<- ItemGui.setup window bDatabaseItem
+    (itemCreate, eItemCreate) <- ItemCreate.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
     (itemDelete, eItemDelete) <- ItemDelete.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
 
     bDatabaseItem <- accumB databaseItem $ concatenate <$> unions
-        [ create (Item "" "") <$ eCreateItem
-        , filterJust $ update' <$> bSelectionCreateItem <@> eDataItemInItem
+        [ create <$> eItemCreate
         , delete <$> eItemDelete
         ]
 
     onChanges bDatabaseItem $ \items -> do
         liftIO $ BS.writeFile datastoreItem $ toStrict $ encode items
-
     ---------------------------------------------------------------------------
 
 
@@ -195,7 +191,7 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
             then case Tab.name x of
                 "Aflever" -> [tabs, loanDelete]
                 "Lån" -> [tabs, loanCreate]
-                "Opret vare"    -> [tabs, itemGui]
+                "Opret vare"    -> [tabs, itemCreate]
                 "Slet vare"    -> [tabs, itemDelete]
                 "Create User"    -> [tabs, userGui]
                 "Delete User"    -> [tabs, deleteUserGui]

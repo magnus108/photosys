@@ -20,7 +20,6 @@ import qualified Data.List                     as List
 import           Control.Bool
 
 
-    {- 
 setup
     :: Window
     -> Behavior (Database Loan)
@@ -30,14 +29,14 @@ setup
 setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
     -- GUI elements
-    filterItem  <- UI.entry bFilterEntryItem
+    filterItem                        <- UI.entry bFilterEntryItem
     listBoxItem <- UI.listBox bListBoxItems bSelectionItem bDisplayItemName
 
-    ((elemName, elemCode), tDataItem) <- dataItem bSelectionDataItem
-    createBtn   <- UI.button #+ [string "Opret"]
+    ((elemName, elemCode), tDataItem) <- dataItem bSelectedItem
+    createBtn                         <- UI.button #+ [string "Opret"]
 
     -- GUI layout
-    searchItem <-
+    searchItem                        <-
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Søg"]
@@ -93,7 +92,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
             #+ [ UI.div #. "modal-background"
                , UI.div
                #. "modal-content"
-               #+ [UI.div #. "box" #+ [string "Lån godkendt"]]
+               #+ [UI.div #. "box" #+ [string "Opret godkendt"]]
                , element closeBtn
                ]
 
@@ -124,6 +123,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         eFilterItem = rumors tFilterItem
 
     let eSelectionItem = rumors $ UI.userSelection listBoxItem
+        eItemIn        = rumors $ tDataItem
         eCreate        = UI.click createBtn
         eClose         = UI.click closeBtn
 
@@ -148,53 +148,42 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         bSelectedItem :: Behavior (Maybe Item)
         bSelectedItem = (=<<) <$> bLookupItem <*> bSelectionItem
 
-        bShowUser :: Behavior (DatabaseKey -> String)
-        bShowUser = (maybe "" User.name .) <$> bLookupUser
-
         bShowItem :: Behavior (DatabaseKey -> String)
         bShowItem = (maybe "" Item.name .) <$> bLookupItem
-
-        bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
-        bDisplayUserName = (UI.string .) <$> bShowUser
 
         bDisplayItemName :: Behavior (DatabaseKey -> UI Element)
         bDisplayItemName = (UI.string .) <$> bShowItem
 
-        bListBoxUsers :: Behavior [DatabaseKey]
-        bListBoxUsers =
-            (\p show -> filter (p . show) . keys)
-                <$> bFilterUser
-                <*> bShowUser
-                <*> bDatabaseUser
-
-
-        bItemsWithLoan :: Behavior [DatabaseKey]
-        bItemsWithLoan =
-            (\f -> catMaybes . fmap f . keys) <$> bLoanItem <*> bDatabaseLoan
-
         bListBoxItems :: Behavior [DatabaseKey]
         bListBoxItems =
-            (\p q show -> filter (flip List.notElem q) . filter (p . show) . keys)
+            (\p show -> filter (p . show) . keys)
                 <$> bFilterItem
-                <*> bItemsWithLoan
                 <*> bShowItem
                 <*> bDatabaseItem
 
-    let bCreateLoan :: Behavior (Maybe Loan)
-        bCreateLoan = liftA2 Loan.Loan <$> bSelectionItem <*> bSelectionUser
+    let bDisplayItem :: Behavior Bool
+        bDisplayItem = isJust <$> bSelectionItem
 
-        hasUserSelected :: Behavior Bool
-        hasUserSelected = isJust <$> bSelectionUser
+    element elemName # sink UI.enabled bDisplayItem
+    element elemCode # sink UI.enabled bDisplayItem
 
-        hasItemSelected :: Behavior Bool
-        hasItemSelected = isJust <$> bSelectionItem
-
-
-    element createBtn # sink UI.enabled (hasUserSelected <&&> hasItemSelected)
     element modal # sink
         (attr "class")
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 
 
-    return (elem, filterJust $ bCreateLoan <@ eCreate)
-    -}
+    return (elem, emptyDataItem <$ eCreate)
+
+
+emptyDataItem :: Item
+emptyDataItem = Item.Item "" ""
+
+dataItem :: Behavior (Maybe Item) -> UI ((Element, Element), Tidings Item)
+dataItem bItem = do
+    entry1 <- UI.entry $ Item.name . fromMaybe emptyDataItem <$> bItem
+    entry2 <- UI.entry $ Item.code . fromMaybe emptyDataItem <$> bItem
+
+    return
+        ( (getElement entry1, getElement entry2)
+        , Item.Item <$> UI.userText entry1 <*> UI.userText entry2
+        )
