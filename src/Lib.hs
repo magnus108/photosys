@@ -3,7 +3,7 @@ module Lib
     ( someFunc
     )
 where
-
+import qualified Data.Csv as Csv
 import           Data.Aeson
 
 import qualified Graphics.UI.Threepenny        as UI
@@ -13,9 +13,11 @@ import           Graphics.UI.Threepenny.Core
 import           Item
 
 import qualified Relude.Unsafe                 as Unsafe
-import           Database
+import Database (Database, DatabaseKey)
+import qualified Database
 
 import qualified MenuBox
+import qualified Export.Export as Export
 
 import qualified Item.Create as ItemCreate
 import qualified Item.Delete as ItemDelete
@@ -89,7 +91,7 @@ setup window = void $ mdo
     bSelection <- stepper (Just 5) $ Unsafe.head <$> unions [eSelection]
 
     let bLookup :: Behavior (DatabaseKey -> Maybe DataItem)
-        bLookup = flip lookup <$> bDatabase
+        bLookup = flip Database.lookup <$> bDatabase
 
         bShowDataItem :: Behavior (DatabaseKey -> String)
         bShowDataItem    = (maybe "" Tab.name .) <$> bLookup
@@ -97,7 +99,7 @@ setup window = void $ mdo
         bDisplayDataItem = (UI.string .) <$> bShowDataItem
 
         bListBoxItems :: Behavior [DatabaseKey]
-        bListBoxItems = keys <$> bDatabase
+        bListBoxItems = Database.keys <$> bDatabase
 
 
         bSelectionDataItem :: Behavior (Maybe DataItem)
@@ -140,7 +142,7 @@ dataItem bItem tabs = mdo
 
     bTokenSelection <- stepper (Just 0) UI.never
     bDatabaseToken <- accumB databaseToken $ concatenate <$> unions
-        [filterJust $ update' <$> bTokenSelection <@> eTokenCreate]
+        [filterJust $ Database.update' <$> bTokenSelection <@> eTokenCreate]
 
     onChanges bDatabaseToken $ \items -> do
         liftIO $ BS.writeFile datastoreToken $ toStrict $ encode items
@@ -161,10 +163,10 @@ dataItem bItem tabs = mdo
 
 
     bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
-        [ create <$> eLoanCreate
-        , delete <$> eLoanDelete
-        , create <$> eLoanCreateNormal
-        , delete <$> eLoanDeleteNormal
+        [ Database.create <$> eLoanCreate
+        , Database.delete <$> eLoanDelete
+        , Database.create <$> eLoanCreateNormal
+        , Database.delete <$> eLoanDeleteNormal
         ]
 
 
@@ -181,8 +183,8 @@ dataItem bItem tabs = mdo
     (userDelete, eUserDelete) <- UserDelete.setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bTokenSelection
 
     bDatabaseUser <- accumB databaseUser $ concatenate <$> unions
-        [ create <$> eUserCreate
-        , delete <$> eUserDelete
+        [ Database.create <$> eUserCreate
+        , Database.delete <$> eUserDelete
         ]
 
 
@@ -197,13 +199,24 @@ dataItem bItem tabs = mdo
     (itemDelete, eItemDelete) <- ItemDelete.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
 
     bDatabaseItem <- accumB databaseItem $ concatenate <$> unions
-        [ create <$> eItemCreate
-        , delete <$> eItemDelete
+        [ Database.create <$> eItemCreate
+        , Database.delete <$> eItemDelete
         ]
 
     onChanges bDatabaseItem $ \items -> do
         liftIO $ BS.writeFile datastoreItem $ toStrict $ encode items
 
+    ---------------------------------------------------------------------------
+    -- EXPORT
+    let exportFile = "data/export.csv"
+    (export, eExport) <- Export.setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bTokenSelection
+
+    bDatabaseExport <- stepper Database.emptydb $ Unsafe.head <$> unions [ eExport ]
+
+    onChanges bDatabaseExport $ \db -> do
+        let items = Database.elems db
+        let csv = Csv.encodeDefaultOrderedByName items
+        liftIO $ BS.writeFile exportFile (toStrict csv)
     ---------------------------------------------------------------------------
 
     notDone <- UI.string "Ikke færdig"
@@ -220,7 +233,7 @@ dataItem bItem tabs = mdo
                 "Smid til reperation" -> [tabs,notDone]
                 "Historik" -> [tabs,notDone]
                 "Optælling" -> [tabs,notDone]
-                "Eksport/Import" -> [tabs,notDone]
+                "Eksport/Import" -> [tabs,export]
                 "Søg" -> [tabs,search]
                 "Søg (Normal)" -> [tabs,searchNormal]
             else [tokenCreate]
@@ -228,7 +241,7 @@ dataItem bItem tabs = mdo
 
 --------------------------------------------------------------------------------
     let bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
-        bLookupToken = flip lookup <$> bDatabaseToken
+        bLookupToken = flip Database.lookup <$> bDatabaseToken
 
         bSelectedToken :: Behavior (Maybe Token)
         bSelectedToken = (=<<) <$> bLookupToken <*> bTokenSelection

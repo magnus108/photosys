@@ -1,0 +1,5 @@
+name,code,serie,price,vendor
+CAM1,00001,a1,100,Bob
+CAM2,00002,b1,100,Bob
+CAM3,00003,A2,1000,Bob
+CAM4,ABCD,A1,200,100

@@ -36,6 +36,7 @@ dependencies:
 - bytestring
 - control-bool
 - time
+- cassava
 
 default-extensions:
 - LambdaCase
