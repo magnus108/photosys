@@ -39,6 +39,7 @@ library
       Login
       MenuBox
       Search.Search
+      Search.SearchNormal
       Tab
       Token
       Token.Create

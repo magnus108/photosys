@@ -23,6 +23,7 @@ import qualified Item.Delete as ItemDelete
 import qualified Loan.Create as LoanCreate
 import qualified Loan.Delete as LoanDelete
 import qualified Search.Search as Search
+import qualified Search.SearchNormal as SearchNormal
 
 import qualified Loan.CreateNormal as LoanCreateNormal
 import qualified Loan.DeleteNormal as LoanDeleteNormal
@@ -156,6 +157,7 @@ dataItem bItem tabs = mdo
     (loanDeleteNormal, eLoanDeleteNormal) <- LoanDeleteNormal.setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bTokenSelection
 
     search <- Search.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
+    searchNormal <- SearchNormal.setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bTokenSelection
 
 
     bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
@@ -220,7 +222,7 @@ dataItem bItem tabs = mdo
                 "Optælling" -> [tabs,notDone]
                 "Eksport/Import" -> [tabs,notDone]
                 "Søg" -> [tabs,search]
-                "Søg (Normal)" -> [tabs,notDone]
+                "Søg (Normal)" -> [tabs,searchNormal]
             else [tokenCreate]
 
 
