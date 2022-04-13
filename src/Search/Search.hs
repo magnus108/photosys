@@ -92,6 +92,16 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
            ]
 
 
+    -- sorta hack
+    infoSerie <- UI.div #+ [string "Serie: ",UI.span # sink child (fmap <$> bDisplayItemSerie <*> bSelectionItem)]
+    infoPrice <- UI.div #+ [string "Pris: ", UI.span # sink child (fmap <$> bDisplayItemPrice <*> bSelectionItem)]
+    infoVendor <- UI.div #+ [string "Forhandler: ", UI.span # sink child (fmap <$> bDisplayItemVendor <*> bSelectionItem)]
+
+    infoElem <- UI.div # sink children bInfo
+    let info = [infoSerie, infoPrice, infoVendor]
+        bInfo = (\b -> if b then info else []) <$> bHasSelectedItem
+    -- sorta hack
+
     elem <-
         UI.div
         #. "section is-medium"
@@ -101,6 +111,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
                 , element dropdownUser
                 , element searchItem
                 , element dropdownItem
+                , element infoElem
                 ]
            ]
 
@@ -169,6 +180,21 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
         bShowItem :: Behavior (DatabaseKey -> String)
         bShowItem = (maybe "" Item.name .) <$> bLookupItem
+
+        bShowItemSerie :: Behavior (DatabaseKey -> String)
+        bShowItemSerie = (maybe "" Item.serie .) <$> bLookupItem
+        bDisplayItemSerie:: Behavior (DatabaseKey -> UI Element)
+        bDisplayItemSerie = (UI.string .) <$> bShowItemSerie
+
+        bShowItemPrice :: Behavior (DatabaseKey -> String)
+        bShowItemPrice = (maybe "" Item.price .) <$> bLookupItem
+        bDisplayItemPrice :: Behavior (DatabaseKey -> UI Element)
+        bDisplayItemPrice = (UI.string .) <$> bShowItemPrice
+
+        bShowItemVendor :: Behavior (DatabaseKey -> String)
+        bShowItemVendor = (maybe "" Item.vendor .) <$> bLookupItem
+        bDisplayItemVendor :: Behavior (DatabaseKey -> UI Element)
+        bDisplayItemVendor= (UI.string .) <$> bShowItemVendor
 
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
         bDisplayUserName = (UI.string .) <$> bShowUser
@@ -257,4 +283,14 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
                 <*> bLookupLoan
                 <*> bDatabaseLoan
 
+    let bHasSelectedItem :: Behavior Bool
+        bHasSelectedItem = (\x xs -> case x of
+                                       Nothing -> False
+                                       Just y -> List.elem y xs
+                           ) <$> bSelectionItem <*> bListBoxItems
+
     return elem
+
+
+child = mkWriteAttr $ \i x -> void $ do
+    return x # set children [] #+ (catMaybes [i])

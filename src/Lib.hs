@@ -220,7 +220,7 @@ dataItem bItem tabs = mdo
                 "Optælling" -> [tabs,notDone]
                 "Eksport/Import" -> [tabs,notDone]
                 "Søg" -> [tabs,search]
-                "Søg normal" -> [tabs,notDone]
+                "Søg (Normal)" -> [tabs,notDone]
             else [tokenCreate]
 
 

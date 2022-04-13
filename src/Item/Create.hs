@@ -90,8 +90,6 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
            ]
 
 
-
-
     createBtn' <-
         UI.div
         #. "field"
