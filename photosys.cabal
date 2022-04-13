@@ -38,6 +38,7 @@ library
       Loan.DeleteNormal
       Login
       MenuBox
+      Search.Search
       Tab
       Token
       Token.Create

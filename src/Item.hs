@@ -2,7 +2,7 @@ module Item where
 
 import Data.Aeson
 
-data Item = Item { name :: String, code :: String }
+data Item = Item { name :: String, code :: String, serie :: String, price :: String, vendor :: String}
     deriving stock (Eq, Ord, Show)
     deriving stock (Generic)
 

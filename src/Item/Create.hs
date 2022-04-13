@@ -31,7 +31,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
     -- GUI elements
 
     createBtn <- UI.button #+ [string "Opret"]
-    ((elemName, elemCode), tItem) <- dataItem bItem
+    ((elemName, elemCode, elemSerie, elemPrice, elemVendor), tItem) <- dataItem bItem
 
     -- GUI layout
     dataName  <-
@@ -55,6 +55,41 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
                                                   "Fx ABCDE"
               ]
            ]
+
+    dataSerie <-
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "Serie"]
+           , UI.div
+           #. "control"
+           #+ [ element elemSerie #. "input" # set (attr "placeholder")
+                                                  "Fx 13"
+              ]
+           ]
+
+    dataPrice <-
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "Pris"]
+           , UI.div
+           #. "control"
+           #+ [ element elemPrice #. "input" # set (attr "placeholder")
+                                                  "Fx 10.000"
+              ]
+           ]
+
+    dataVendor <-
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "Forhandler"]
+           , UI.div
+           #. "control"
+           #+ [ element elemVendor #. "input" # set (attr "placeholder")
+                                                  "Fx Kamera shoppen"
+              ]
+           ]
+
+
 
 
     createBtn' <-
@@ -80,6 +115,9 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
              #. "container"
              #+ [ element dataName
                 , element dataCode
+                , element dataSerie
+                , element dataPrice
+                , element dataVendor
                 , element createBtn'
                 , element modal
                 ]
@@ -111,14 +149,17 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
 
 emptyItem :: Item
-emptyItem = Item.Item "" ""
+emptyItem = Item.Item "" "" "" "" ""
 
-dataItem :: Behavior (Maybe Item) -> UI ((Element, Element), Tidings Item)
+dataItem :: Behavior (Maybe Item) -> UI ((Element, Element, Element, Element, Element), Tidings Item)
 dataItem bItem = do
     entry1 <- UI.entry $ Item.name . fromMaybe emptyItem <$> bItem
     entry2 <- UI.entry $ Item.code . fromMaybe emptyItem <$> bItem
+    entry3 <- UI.entry $ Item.serie . fromMaybe emptyItem <$> bItem
+    entry4 <- UI.entry $ Item.price . fromMaybe emptyItem <$> bItem
+    entry5 <- UI.entry $ Item.vendor . fromMaybe emptyItem <$> bItem
 
     return
-        ( (getElement entry1, getElement entry2)
-        , Item.Item <$> UI.userText entry1 <*> UI.userText entry2
+        ( (getElement entry1, getElement entry2, getElement entry3, getElement entry4, getElement entry5)
+        , Item.Item <$> UI.userText entry1 <*> UI.userText entry2 <*> UI.userText entry3 <*> UI.userText entry4 <*>  UI.userText entry5
         )
