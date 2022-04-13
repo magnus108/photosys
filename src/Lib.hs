@@ -23,6 +23,10 @@ import qualified Item.Delete as ItemDelete
 import qualified Loan.Create as LoanCreate
 import qualified Loan.Delete as LoanDelete
 
+import qualified Loan.CreateNormal as LoanCreateNormal
+import qualified Loan.DeleteNormal as LoanDeleteNormal
+
+
 import qualified User.Create as UserCreate
 import qualified User.Delete as UserDelete
 
@@ -139,10 +143,15 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
     (loanCreate, eLoanCreate) <- LoanCreate.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
     (loanDelete, eLoanDelete) <- LoanDelete.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
 
+    (loanCreateNormal, eLoanCreateNormal) <- LoanCreateNormal.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
+    (loanDeleteNormal, eLoanDeleteNormal) <- LoanDeleteNormal.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
+
 
     bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
         [ create <$> eLoanCreate
         , delete <$> eLoanDelete
+        , create <$> eLoanCreateNormal
+        , delete <$> eLoanDeleteNormal
         ]
 
 
@@ -192,6 +201,8 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
                 "Slet vare"    -> [tabs, itemDelete]
                 "Opret bruger"    -> [tabs, userCreate]
                 "Slet bruger"    -> [tabs, userDelete]
+                "Aflever (Normal)" -> [tabs, loanDeleteNormal]
+                "Lån (Normal)" -> [tabs, loanCreateNormal]
             else [loginGui]
 
 

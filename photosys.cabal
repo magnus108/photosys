@@ -27,14 +27,15 @@ library
   exposed-modules:
       Checkbox
       Database
-      DeleteUserGui
       Item
       Item.Create
       Item.Delete
       Lib
       Loan
       Loan.Create
+      Loan.CreateNormal
       Loan.Delete
+      Loan.DeleteNormal
       Login
       LoginGui
       MenuBox
@@ -43,7 +44,6 @@ library
       User
       User.Create
       User.Delete
-      UserGui
   other-modules:
       Paths_photosys
   hs-source-dirs:

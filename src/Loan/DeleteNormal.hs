@@ -1,5 +1,5 @@
 {-# LANGUAGE RecursiveDo #-}
-module Loan.Delete where
+module Loan.DeleteNormal where
 
 import           Data.Aeson
 
@@ -31,40 +31,12 @@ setup
 setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
     -- GUI elements
-    filterUser  <- UI.entry bFilterEntryUser
-    listBoxUser <- UI.listBox bListBoxUsers bSelectionUser bDisplayUserName
-
     filterItem  <- UI.entry bFilterEntryItem
     listBoxItem <- UI.listBox bListBoxItems bSelectionItem bDisplayItemName
 
     deleteBtn   <- UI.button #+ [string "Aflever"]
 
     -- GUI layout
-    searchUser  <-
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-           , UI.div
-           #. "control"
-           #+ [ element filterUser #. "input" # set (attr "placeholder")
-                                                    "Fx Anders Andersen"
-              ]
-           ]
-
-    dropdownUser <-
-        UI.div
-        #. "field"
-        #+ [ UI.div
-             #. "control is-expanded"
-             #+ [ UI.div
-                  #. "select is-multiple is-fullwidth"
-                  #+ [ element listBoxUser # set (attr "size") "5" # set
-                           (attr "multiple")
-                           ""
-                     ]
-                ]
-           ]
-
     searchItem <-
         UI.div
         #. "field"
@@ -112,9 +84,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         #. "section is-medium"
         #+ [ UI.div
              #. "container"
-             #+ [ element searchUser
-                , element dropdownUser
-                , element searchItem
+             #+ [ element searchItem
                 , element dropdownItem
                 , element deleteBtn'
                 , element modal
@@ -123,23 +93,17 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
 
     -- Events and behaviors
-    bFilterEntryUser <- stepper "" . rumors $ UI.userText filterUser
     bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
 
 
     let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
         isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
 
-    let tFilterUser = isInfixOf <$> UI.userText filterUser
-        bFilterUser = facts tFilterUser
-        eFilterUser = rumors tFilterUser
-
     let tFilterItem = isInfixOf <$> UI.userText filterItem
         bFilterItem = facts tFilterItem
         eFilterItem = rumors tFilterItem
 
-    let eSelectionUser = rumors $ UI.userSelection listBoxUser
-        eSelectionItem = rumors $ UI.userSelection listBoxItem
+    let eSelectionItem = rumors $ UI.userSelection listBoxItem
         eDelete        = UI.click deleteBtn
         eClose         = UI.click closeBtn
 
@@ -148,13 +112,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         [True <$ eDelete, False <$ eClose]
 
 
-    bSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
-        [ eSelectionUser
-        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
-        <$> bSelectionUser
-        <*> bShowUser
-        <@> eFilterUser
-        ]
+    bSelectionUser <- stepper Nothing $ Unsafe.head <$> unions [] -- currentUser
 
 
     bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
@@ -199,38 +157,6 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
         bDisplayItemName :: Behavior (DatabaseKey -> UI Element)
         bDisplayItemName = (UI.string .) <$> bShowItem
-
-        bListBoxUsers :: Behavior [DatabaseKey]
-        bListBoxUsers =
-            (\p q r show ->
-                    filter (flip List.elem r)
-                        . filter (flip List.elem q)
-                        . filter (p . show)
-                        . keys
-                )
-                <$> bFilterUser
-                <*> bUsersWithLoan
-                <*> bSelectionUsers
-                <*> bShowUser
-                <*> bDatabaseUser
-
-
-        bUsersWithLoan :: Behavior [DatabaseKey]
-        bUsersWithLoan =
-            (\f -> catMaybes . fmap f . keys) <$> bLoanUser <*> bDatabaseLoan
-
-        bSelectionUsers :: Behavior [DatabaseKey]
-        bSelectionUsers =
-            (\i lookupItem lookupUser ->
-                    catMaybes
-                        . fmap lookupUser
-                        . filter ((\x -> i == Nothing || i == x) . lookupItem)
-                        . keys
-                )
-                <$> bSelectionItem
-                <*> bLoanItem
-                <*> bLoanUser
-                <*> bDatabaseLoan
 
         bListBoxItems :: Behavior [DatabaseKey]
         bListBoxItems =
@@ -290,3 +216,4 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 
     return (elem, filterJust $ bSelectedLoan <@ eDelete)
+
