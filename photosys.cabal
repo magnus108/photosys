@@ -42,6 +42,7 @@ library
       Search.Search
       Search.SearchNormal
       Tab
+      Tab.Tab
       Token
       Token.Create
       User

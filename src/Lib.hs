@@ -3,7 +3,7 @@ module Lib
     ( someFunc
     )
 where
-import qualified Data.Csv as Csv
+import qualified Data.Csv                      as Csv
 import           Data.Aeson
 
 import qualified Graphics.UI.Threepenny        as UI
@@ -13,32 +13,35 @@ import           Graphics.UI.Threepenny.Core
 import           Item
 
 import qualified Relude.Unsafe                 as Unsafe
-import Database (Database, DatabaseKey)
+import           Database                       ( Database
+                                                , DatabaseKey
+                                                )
 import qualified Database
 
 import qualified MenuBox
-import qualified Export.Export as Export
+import qualified Export.Export                 as Export
+import qualified Tab.Tab                       as Tab
 
-import qualified Item.Create as ItemCreate
-import qualified Item.Delete as ItemDelete
+import qualified Item.Create                   as ItemCreate
+import qualified Item.Delete                   as ItemDelete
 
-import qualified Loan.Create as LoanCreate
-import qualified Loan.Delete as LoanDelete
-import qualified Search.Search as Search
-import qualified Search.SearchNormal as SearchNormal
+import qualified Loan.Create                   as LoanCreate
+import qualified Loan.Delete                   as LoanDelete
+import qualified Search.Search                 as Search
+import qualified Search.SearchNormal           as SearchNormal
 
-import qualified Loan.CreateNormal as LoanCreateNormal
-import qualified Loan.DeleteNormal as LoanDeleteNormal
+import qualified Loan.CreateNormal             as LoanCreateNormal
+import qualified Loan.DeleteNormal             as LoanDeleteNormal
 
 
-import qualified User.Create as UserCreate
-import qualified User.Delete as UserDelete
+import qualified User.Create                   as UserCreate
+import qualified User.Delete                   as UserDelete
 
-import qualified Token.Create as TokenCreate
+import qualified Token.Create                  as TokenCreate
 
-import Loan (Loan(..))
-import User (User(..))
-import Token (Token(..))
+import           Loan                           ( Loan(..) )
+import           User                           ( User(..) )
+import           Token                          ( Token(..) )
 
 
 import           Tab                            ( Tab(..) )
@@ -60,88 +63,47 @@ someFunc port = do
 
 setup :: Window -> UI ()
 setup window = void $ mdo
-    let datastore = "data/tab.json"
-    database <-
-        liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastore :: UI
-            (Database Tab)
+    ----------------------------------------------------------------------------------
 
-    listBox <- MenuBox.listBox {-currentUser-} bListBoxItems {-bTabPairsFilter-} bSelection bDisplayDataItem
+    let datastoreTab = "data/tab.json"
+    databaseTab <-
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile datastoreTab :: UI (Database Tab)
 
-    menu <-
-        UI.mkElement "nav"
-        #. "navbar is-primary is-spaced"
-        #+ [ UI.div
-             #. "container"
-             #+ [ element listBox
-                , UI.div
-                #. "navbar-menu"
-                #+ [UI.div #. "navbar-start", UI.div #. "navbar-end" #+ [UI.div #. "navbar-item" #+ [{-element logoutBtn-}]]]
-                ]
-           ]
+    tabs <- Tab.setup window
+                      bDatabaseLoan
+                      bDatabaseUser
+                      bDatabaseItem
+                      bDatabaseToken
+                      bTokenSelection
+                      bDatabaseTab
+                      bTabSelection
 
-    tab     <- dataItem bSelectionDataItem {-bSelectionDataItemFilter-} menu
-
-
-    getBody window #+ [element tab]
-
-
-    let eSelection = rumors $ MenuBox.userSelection listBox
-
-    bDatabase  <- accumB database $ concatenate <$> unions []
-    bSelection <- stepper (Just 5) $ Unsafe.head <$> unions [eSelection]
-
-    let bLookup :: Behavior (DatabaseKey -> Maybe DataItem)
-        bLookup = flip Database.lookup <$> bDatabase
-
-        bShowDataItem :: Behavior (DatabaseKey -> String)
-        bShowDataItem    = (maybe "" Tab.name .) <$> bLookup
-
-        bDisplayDataItem = (UI.string .) <$> bShowDataItem
-
-        bListBoxItems :: Behavior [DatabaseKey]
-        bListBoxItems = Database.keys <$> bDatabase
-
-
-        bSelectionDataItem :: Behavior (Maybe DataItem)
-        bSelectionDataItem = (=<<) <$> bLookup <*> bSelection
-
-
-    {-
-    let isAdmin = maybe False User.admin <$> bUser
-
-        bTabPairs :: Behavior [(DatabaseKey, DataItem)]
-        bTabPairs = toPairs <$> bDatabase
-
-        bTabPairsFilter :: Behavior [DatabaseKey]
-        bTabPairsFilter = fmap fst <$> ((\admin xs -> filter (\x -> admin == Tab.admin (snd x)) xs) <$> isAdmin <*> bTabPairs)
-
-        bTabItemsFilter :: Behavior [Maybe DataItem]
-        bTabItemsFilter = fmap <$> bLookup <*> bTabPairsFilter
-
-        bSelectionDataItemFilter :: Behavior (Maybe DataItem)
-        bSelectionDataItemFilter = (\x xs -> if elem x xs then x else Nothing) <$> bSelectionDataItem <*> bTabItemsFilter
-        -}
-
-
-    return ()
-
-
-type DataItem = Tab
-
-
-dataItem :: Behavior (Maybe DataItem) -> Element -> UI Element
-dataItem bItem tabs = mdo
-    window  <- askWindow
+    bTabSelection <- stepper (Just 0) UI.never
+    bDatabaseTab  <- accumB databaseTab $ concatenate <$> unions []
 
     ----------------------------------------------------------------------------------
 
     let datastoreToken = "data/token.json"
-    databaseToken <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreToken :: UI (Database Token)
+    databaseToken <-
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile datastoreToken :: UI (Database Token)
 
-    (tokenCreate, eTokenCreate) <- TokenCreate.setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bTokenSelection
+    (tokenCreate, eTokenCreate) <- TokenCreate.setup window
+                                                     bDatabaseLoan
+                                                     bDatabaseUser
+                                                     bDatabaseItem
+                                                     bDatabaseToken
+                                                     bTokenSelection
 
     bTokenSelection <- stepper (Just 0) UI.never
-    bDatabaseToken <- accumB databaseToken $ concatenate <$> unions
+    bDatabaseToken  <- accumB databaseToken $ concatenate <$> unions
         [filterJust $ Database.update' <$> bTokenSelection <@> eTokenCreate]
 
     onChanges bDatabaseToken $ \items -> do
@@ -149,17 +111,47 @@ dataItem bItem tabs = mdo
 
     ----------------------------------------------------------------------------------
     let datastoreLoan = "data/loan.json"
-    databaseLoan <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreLoan :: UI (Database Loan)
+    databaseLoan <-
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile datastoreLoan :: UI (Database Loan)
 
 
-    (loanCreate, eLoanCreate) <- LoanCreate.setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bTokenSelection
-    (loanDelete, eLoanDelete) <- LoanDelete.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
+    (loanCreate, eLoanCreate) <- LoanCreate.setup window
+                                                  bDatabaseLoan
+                                                  bDatabaseUser
+                                                  bDatabaseItem
+                                                  bDatabaseToken
+                                                  bTokenSelection
+    (loanDelete, eLoanDelete) <- LoanDelete.setup window
+                                                  bDatabaseLoan
+                                                  bDatabaseUser
+                                                  bDatabaseItem
 
-    (loanCreateNormal, eLoanCreateNormal) <- LoanCreateNormal.setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bTokenSelection
-    (loanDeleteNormal, eLoanDeleteNormal) <- LoanDeleteNormal.setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bTokenSelection
+    (loanCreateNormal, eLoanCreateNormal) <- LoanCreateNormal.setup
+        window
+        bDatabaseLoan
+        bDatabaseUser
+        bDatabaseItem
+        bDatabaseToken
+        bTokenSelection
+    (loanDeleteNormal, eLoanDeleteNormal) <- LoanDeleteNormal.setup
+        window
+        bDatabaseLoan
+        bDatabaseUser
+        bDatabaseItem
+        bDatabaseToken
+        bTokenSelection
 
     search <- Search.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
-    searchNormal <- SearchNormal.setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bTokenSelection
+    searchNormal <- SearchNormal.setup window
+                                       bDatabaseLoan
+                                       bDatabaseUser
+                                       bDatabaseItem
+                                       bDatabaseToken
+                                       bTokenSelection
 
 
     bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
@@ -176,16 +168,25 @@ dataItem bItem tabs = mdo
 
     let datastoreUser = "data/user.json"
     databaseUser <-
-        liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreUser :: UI
-            (Database User)
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile datastoreUser :: UI (Database User)
 
-    (userCreate, eUserCreate) <- UserCreate.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
-    (userDelete, eUserDelete) <- UserDelete.setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bTokenSelection
+    (userCreate, eUserCreate) <- UserCreate.setup window
+                                                  bDatabaseLoan
+                                                  bDatabaseUser
+                                                  bDatabaseItem
+    (userDelete, eUserDelete) <- UserDelete.setup window
+                                                  bDatabaseLoan
+                                                  bDatabaseUser
+                                                  bDatabaseItem
+                                                  bDatabaseToken
+                                                  bTokenSelection
 
     bDatabaseUser <- accumB databaseUser $ concatenate <$> unions
-        [ Database.create <$> eUserCreate
-        , Database.delete <$> eUserDelete
-        ]
+        [Database.create <$> eUserCreate, Database.delete <$> eUserDelete]
 
 
     onChanges bDatabaseUser $ \items -> do
@@ -193,15 +194,24 @@ dataItem bItem tabs = mdo
 
     -------------------------------------------------------------------------------------
     let datastoreItem = "data/item.json"
-    databaseItem <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreItem :: UI (Database Item)
+    databaseItem <-
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile datastoreItem :: UI (Database Item)
 
-    (itemCreate, eItemCreate) <- ItemCreate.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
-    (itemDelete, eItemDelete) <- ItemDelete.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
+    (itemCreate, eItemCreate) <- ItemCreate.setup window
+                                                  bDatabaseLoan
+                                                  bDatabaseUser
+                                                  bDatabaseItem
+    (itemDelete, eItemDelete) <- ItemDelete.setup window
+                                                  bDatabaseLoan
+                                                  bDatabaseUser
+                                                  bDatabaseItem
 
     bDatabaseItem <- accumB databaseItem $ concatenate <$> unions
-        [ Database.create <$> eItemCreate
-        , Database.delete <$> eItemDelete
-        ]
+        [Database.create <$> eItemCreate, Database.delete <$> eItemDelete]
 
     onChanges bDatabaseItem $ \items -> do
         liftIO $ BS.writeFile datastoreItem $ toStrict $ encode items
@@ -209,33 +219,41 @@ dataItem bItem tabs = mdo
     ---------------------------------------------------------------------------
     -- EXPORT
     let exportFile = "data/export.csv"
-    (export, eExport) <- Export.setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bTokenSelection
+    (export, eExport) <- Export.setup window
+                                      bDatabaseLoan
+                                      bDatabaseUser
+                                      bDatabaseItem
+                                      bDatabaseToken
+                                      bTokenSelection
 
-    bDatabaseExport <- stepper Database.emptydb $ Unsafe.head <$> unions [ eExport ]
+    bDatabaseExport <- stepper Database.emptydb $ Unsafe.head <$> unions
+        [eExport]
 
     onChanges bDatabaseExport $ \db -> do
         let items = Database.elems db
-        let csv = Csv.encodeDefaultOrderedByName items
+        let csv   = Csv.encodeDefaultOrderedByName items
         liftIO $ BS.writeFile exportFile (toStrict csv)
     ---------------------------------------------------------------------------
 
+
+
     notDone <- UI.string "Ikke færdig"
-    let display y x = if traceShowId y
-            then case Tab.name (traceShowId x) of
-                "Aflever" -> [tabs, loanDelete]
-                "Lån" -> [tabs, loanCreate]
-                "Opret vare"    -> [tabs, itemCreate]
-                "Slet vare"    -> [tabs, itemDelete]
-                "Opret bruger"    -> [tabs, userCreate]
-                "Slet bruger"    -> [tabs, userDelete]
-                "Aflever (Normal)" -> [tabs, loanDeleteNormal]
-                "Lån (Normal)" -> [tabs, loanCreateNormal]
-                "Smid til reperation" -> [tabs,notDone]
-                "Historik" -> [tabs,notDone]
-                "Optælling" -> [tabs,notDone]
-                "Eksport/Import" -> [tabs,export]
-                "Søg" -> [tabs,search]
-                "Søg (Normal)" -> [tabs,searchNormal]
+    let display y x = if y
+            then case x of
+                0  -> [tabs, loanCreate]
+                1  -> [tabs, loanDelete]
+                2  -> [tabs, itemCreate]
+                3  -> [tabs, itemDelete]
+                4  -> [tabs, userCreate]
+                5  -> [tabs, userDelete]
+                6  -> [tabs, loanCreateNormal]
+                7  -> [tabs, loanDeleteNormal]
+                8  -> [tabs, search]
+                9  -> [tabs, searchNormal]
+                10 -> [tabs, export]
+                11 -> [tabs, notDone]
+                12 -> [tabs, notDone]
+                13 -> [tabs, notDone]
             else [tokenCreate]
 
 
@@ -251,7 +269,8 @@ dataItem bItem tabs = mdo
 
     let bGui = display <$> bHasToken
 
-    content <- UI.div # sink children (maybe [tokenCreate] <$> bGui <*> bItem)
--------------------------------------------------------------------------------
+    content <- UI.div
+        # sink children (maybe [tokenCreate] <$> bGui <*> bTabSelection)
 
-    element content
+    getBody window #+ [element content]
+
