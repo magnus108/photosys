@@ -192,7 +192,7 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
         liftIO $ BS.writeFile datastoreItem $ toStrict $ encode items
     ---------------------------------------------------------------------------
 
-
+    notDone <- UI.string "Ikke færdig"
     let display y x = if y
             then case Tab.name x of
                 "Aflever" -> [tabs, loanDelete]
@@ -203,6 +203,12 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
                 "Slet bruger"    -> [tabs, userDelete]
                 "Aflever (Normal)" -> [tabs, loanDeleteNormal]
                 "Lån (Normal)" -> [tabs, loanCreateNormal]
+                "Smid til reperation" -> [tabs,notDone]
+                "Historik" -> [tabs,notDone]
+                "Optælling" -> [tabs,notDone]
+                "Eksport/Import" -> [tabs,notDone]
+                "Søg" -> [tabs,notDone]
+                "Søg Normal" -> [tabs,notDone]
             else [loginGui]
 
 
