@@ -23,11 +23,12 @@ import qualified Item.Delete as ItemDelete
 import qualified Loan.Create as LoanCreate
 import qualified Loan.Delete as LoanDelete
 
+import qualified User.Create as UserCreate
+import qualified User.Delete as UserDelete
+
 import Loan (Loan(..))
 import User (User(..))
 
-import qualified UserGui
-import qualified DeleteUserGui
 import qualified LoginGui
 
 import           Tab                            ( Tab(..) )
@@ -155,13 +156,12 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
         liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreUser :: UI
             (Database User)
 
-    (userGui, eCreateUser, bSelectionCreate, eDataItemInUser) <- UserGui.setup window bDatabaseUser bUser
-    (deleteUserGui, eDeleteUser, bSelectionDeleteUser) <- DeleteUserGui.setup window bDatabaseUser bUser bDatabaseLoan  -- BTOKEN SKAL INDEHOLDE EN USERJO!
+    (userCreate, eUserCreate) <- UserCreate.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
+    (userDelete, eUserDelete) <- UserDelete.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
 
     bDatabaseUser <- accumB databaseUser $ concatenate <$> unions
-        [ create (User "" "" False) <$ eCreateUser
-        , filterJust $ update' <$> bSelectionCreate <@> eDataItemInUser
-        , delete <$> filterJust (bSelectionDeleteUser <@ eDeleteUser)
+        [ create <$> eUserCreate
+        , delete <$> eUserDelete
         ]
 
 
@@ -184,19 +184,15 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
     ---------------------------------------------------------------------------
 
 
-
-
-
     let display y x = if y
             then case Tab.name x of
                 "Aflever" -> [tabs, loanDelete]
                 "Lån" -> [tabs, loanCreate]
                 "Opret vare"    -> [tabs, itemCreate]
                 "Slet vare"    -> [tabs, itemDelete]
-                "Create User"    -> [tabs, userGui]
-                "Delete User"    -> [tabs, deleteUserGui]
+                "Opret bruger"    -> [tabs, userCreate]
+                "Slet bruger"    -> [tabs, userDelete]
             else [loginGui]
-
 
 
     let bGui = display <$> bLogin

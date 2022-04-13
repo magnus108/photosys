@@ -41,6 +41,8 @@ library
       Tab
       Token
       User
+      User.Create
+      User.Delete
       UserGui
   other-modules:
       Paths_photosys
