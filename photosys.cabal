@@ -37,10 +37,10 @@ library
       Loan.Delete
       Loan.DeleteNormal
       Login
-      LoginGui
       MenuBox
       Tab
       Token
+      Token.Create
       User
       User.Create
       User.Delete

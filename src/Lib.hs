@@ -30,10 +30,12 @@ import qualified Loan.DeleteNormal as LoanDeleteNormal
 import qualified User.Create as UserCreate
 import qualified User.Delete as UserDelete
 
+import qualified Token.Create as TokenCreate
+
 import Loan (Loan(..))
 import User (User(..))
+import Token (Token(..))
 
-import qualified LoginGui
 
 import           Tab                            ( Tab(..) )
 import qualified Tab
@@ -54,19 +56,12 @@ someFunc port = do
 
 setup :: Window -> UI ()
 setup window = void $ mdo
-
-    --dangerMove
-    (loginGui, currentUser, (loginBtn, logoutBtn), bLogin, bUser) <- LoginGui.setup window
-
-
-
     let datastore = "data/tab.json"
     database <-
         liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastore :: UI
             (Database Tab)
 
-
-    listBox <- MenuBox.listBox currentUser bTabPairsFilter bSelection bDisplayDataItem
+    listBox <- MenuBox.listBox {-currentUser-} bListBoxItems {-bTabPairsFilter-} bSelection bDisplayDataItem
 
     menu <-
         UI.mkElement "nav"
@@ -76,13 +71,11 @@ setup window = void $ mdo
              #+ [ element listBox
                 , UI.div
                 #. "navbar-menu"
-                #+ [UI.div #. "navbar-start", UI.div #. "navbar-end" #+ [UI.div #. "navbar-item" #+ [element logoutBtn]]]
+                #+ [UI.div #. "navbar-start", UI.div #. "navbar-end" #+ [UI.div #. "navbar-item" #+ [{-element logoutBtn-}]]]
                 ]
            ]
 
-    tab     <- dataItem bSelectionDataItemFilter menu loginGui (loginBtn,logoutBtn) bLogin bUser
-
-
+    tab     <- dataItem bSelectionDataItem {-bSelectionDataItemFilter-} menu
 
 
     getBody window #+ [element tab]
@@ -109,6 +102,7 @@ setup window = void $ mdo
         bSelectionDataItem = (=<<) <$> bLookup <*> bSelection
 
 
+    {-
     let isAdmin = maybe False User.admin <$> bUser
 
         bTabPairs :: Behavior [(DatabaseKey, DataItem)]
@@ -122,7 +116,7 @@ setup window = void $ mdo
 
         bSelectionDataItemFilter :: Behavior (Maybe DataItem)
         bSelectionDataItemFilter = (\x xs -> if elem x xs then x else Nothing) <$> bSelectionDataItem <*> bTabItemsFilter
-
+        -}
 
 
     return ()
@@ -131,9 +125,23 @@ setup window = void $ mdo
 type DataItem = Tab
 
 
-dataItem :: Behavior (Maybe DataItem) -> Element -> Element -> (Element, Element) -> Behavior Bool -> Behavior (Maybe User) -> UI Element
-dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
+dataItem :: Behavior (Maybe DataItem) -> Element -> UI Element
+dataItem bItem tabs = mdo
     window  <- askWindow
+
+    ----------------------------------------------------------------------------------
+
+    let datastoreToken = "data/token.json"
+    databaseToken <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreToken :: UI (Database Token)
+
+    (tokenCreate, eTokenCreate) <- TokenCreate.setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bTokenSelection
+
+    bTokenSelection <- stepper (Just 0) UI.never
+    bDatabaseToken <- accumB databaseToken $ concatenate <$> unions
+        [filterJust $ update' <$> bTokenSelection <@> eTokenCreate]
+
+    onChanges bDatabaseToken $ \items -> do
+        liftIO $ BS.writeFile datastoreToken $ toStrict $ encode items
 
     ----------------------------------------------------------------------------------
     let datastoreLoan = "data/loan.json"
@@ -157,9 +165,8 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
 
     onChanges bDatabaseLoan $ \items -> do
         liftIO $ BS.writeFile datastoreLoan $ toStrict $ encode items
-
-
     -------------------------------------------------------------------------------------
+
     let datastoreUser = "data/user.json"
     databaseUser <-
         liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreUser :: UI
@@ -176,6 +183,7 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
 
     onChanges bDatabaseUser $ \items -> do
         liftIO $ BS.writeFile datastoreUser $ toStrict $ encode items
+
     -------------------------------------------------------------------------------------
     let datastoreItem = "data/item.json"
     databaseItem <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreItem :: UI (Database Item)
@@ -190,11 +198,12 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
 
     onChanges bDatabaseItem $ \items -> do
         liftIO $ BS.writeFile datastoreItem $ toStrict $ encode items
+
     ---------------------------------------------------------------------------
 
     notDone <- UI.string "Ikke færdig"
-    let display y x = if y
-            then case Tab.name x of
+    let display y x = if traceShowId y
+            then case Tab.name (traceShowId x) of
                 "Aflever" -> [tabs, loanDelete]
                 "Lån" -> [tabs, loanCreate]
                 "Opret vare"    -> [tabs, itemCreate]
@@ -209,11 +218,22 @@ dataItem bItem tabs loginGui (loginBtn,logoutBtn) bLogin bUser = mdo
                 "Eksport/Import" -> [tabs,notDone]
                 "Søg" -> [tabs,notDone]
                 "Søg Normal" -> [tabs,notDone]
-            else [loginGui]
+            else [tokenCreate]
 
 
-    let bGui = display <$> bLogin
+--------------------------------------------------------------------------------
+    let bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
+        bLookupToken = flip lookup <$> bDatabaseToken
 
-    content <- UI.div # sink children (maybe [loginGui] <$> bGui <*> bItem)
+        bSelectedToken :: Behavior (Maybe Token)
+        bSelectedToken = (=<<) <$> bLookupToken <*> bTokenSelection
+
+        bHasToken :: Behavior Bool
+        bHasToken = isJust <$> bSelectedToken
+
+    let bGui = display <$> bHasToken
+
+    content <- UI.div # sink children (maybe [tokenCreate] <$> bGui <*> bItem)
+-------------------------------------------------------------------------------
 
     element content

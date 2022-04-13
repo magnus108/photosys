@@ -30,9 +30,8 @@ setup
 setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
     -- GUI elements
-
-    createBtn <- UI.button #+ [string "Opret"]
     ((elemName, elemPassword, elemAdmin), tUser) <- dataItem bUser
+    createBtn <- UI.button #+ [string "Opret"]
 
     -- GUI layout
     dataName  <-

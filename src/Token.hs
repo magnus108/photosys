@@ -2,7 +2,7 @@ module Token where
 
 import           Data.Aeson
 
-data Token = Token | NoToken
+data Token = Token Int | NoToken
     deriving stock (Eq, Ord, Show)
     deriving stock (Generic)
 
@@ -13,5 +13,5 @@ instance FromJSON Token
 
 
 isToken :: Token -> Bool
-isToken Token   = True
+isToken (Token _) = True
 isToken NoToken = False
