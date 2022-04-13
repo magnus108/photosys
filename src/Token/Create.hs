@@ -23,33 +23,6 @@ import           Database
 import qualified Data.List                     as List
 import           Control.Bool
 
-
-
-    --currentUser <-
-     --   UI.div
-      --  #. "navbar-item"
-       -- #+ [UI.span #. "tag is-danger is-large" # sink text bUserName]
-           {-
-    buttons <-
-        UI.div
-        #. "field is-grouped"
-        #+ [ UI.div #. "control" #+ [element loginBtn #. "button"]
-           ]
-           -}
-    --dbDatabaseToken  <- accumB databaseToken $ concatenate <$> unions
-     --   [ --filterJust
-        -- $   update'
-        -- <$> bTokenSelection
-        -- <@> (Token <$ filterJust (bUser' <@ eLogin))
-        --, filterJust $ update' <$> bTokenSelection <@> (NoToken <$ eLogout)
-      --  ]
-    --
-    -- hack
-   -- bHack <- stepper Nothing $ Unsafe.head <$> unions
-        --[ (bUser' <@ eLogin)
-        --, (Nothing <$ eLogout)
-        --]
-
 setup
     :: Window
     -> Behavior (Database Loan)
@@ -60,8 +33,7 @@ setup
     -> UI (Element, Event Token)
 setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelectionToken
     = mdo
-
-    -- GUI elements
+        -- GUI elements
         ((elemName, elemPassword), tLogin) <- dataItem bLogin
         createBtn                          <- UI.button #+ [string "Login"]
 

@@ -36,60 +36,71 @@ setup
     -> Behavior (Maybe DatabaseKey)
     -> Behavior (Database Tab)
     -> Behavior (Maybe DatabaseKey)
-    -> UI Element -- (Element, Event (Database Item))
+    -> UI (Element, Tidings (Maybe DatabaseKey))
 setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelectionToken bDatabaseTab bSelectionTab
     = mdo
 
-    listBox <- MenuBox.listBox {-currentUser-} bListBoxItems {-bTabPairsFilter-} bSelection bDisplayDataItem
+    -- GUI elements
+    (bListBox, tListBox) <- MenuBox.listBox bListBoxItems bSelectionTab bDisplayTab
+
+    -- GUI layout
+    currentUser <- UI.div #. "navbar-item" #+ [UI.span #. "tag is-danger is-large" # sink text bSelectedUserName ]
+    list              <- UI.div #. "navbar-brand" # sink (items currentUser) bListBox
 
     elem <-
         UI.mkElement "nav"
         #. "navbar is-primary is-spaced"
         #+ [ UI.div
              #. "container"
-             #+ [ element listBox
+             #+ [ element list
                 , UI.div
                 #. "navbar-menu"
-                #+ [UI.div #. "navbar-start", UI.div #. "navbar-end" #+ [UI.div #. "navbar-item" #+ [{-element logoutBtn-}]]]
+                #+ [UI.div #. "navbar-start", UI.div #. "navbar-end" #+ [UI.div #. "navbar-item" #+ [element logoutBtn]]]
                 ]
            ]
 
---    tab     <- dataItem bSelectionDataItem {-bSelectionDataItemFilter-} menu
+    -- Events and behaviors
+    let bLookupTab :: Behavior (DatabaseKey -> Maybe Tab)
+        bLookupTab = flip Database.lookup <$> bDatabaseTab
 
+        bShowTab :: Behavior (DatabaseKey -> String)
+        bShowTab = (maybe "" Tab.name .) <$> bLookupTab
 
-    let eSelection = rumors $ MenuBox.userSelection listBox
-
-    bSelection <- stepper (Just 5) $ Unsafe.head <$> unions [eSelection]
-
-    let bLookup :: Behavior (DatabaseKey -> Maybe Tab)
-        bLookup = flip Database.lookup <$> bDatabaseTab
-
-        bShowDataItem :: Behavior (DatabaseKey -> String)
-        bShowDataItem    = (maybe "" Tab.name .) <$> bLookup
-
-        bDisplayDataItem = (UI.string .) <$> bShowDataItem
+        bDisplayTab :: Behavior (DatabaseKey -> UI Element)
+        bDisplayTab = (UI.string .) <$> bShowTab
 
         bListBoxItems :: Behavior [DatabaseKey]
         bListBoxItems = Database.keys <$> bDatabaseTab
 
-
         bSelectionDataItem :: Behavior (Maybe Tab)
-        bSelectionDataItem = (=<<) <$> bLookup <*> bSelection
+        bSelectionDataItem = (=<<) <$> bLookupTab <*> bSelectionTab
+
+        bLookupUser :: Behavior (DatabaseKey -> Maybe User)
+        bLookupUser = flip lookup <$> bDatabaseUser
+
+        bShowUser :: Behavior (DatabaseKey -> String)
+        bShowUser = (maybe "" User.name .) <$> bLookupUser
+
+        bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
+        bDisplayUserName = (UI.string .) <$> bShowUser
+
+        bSelectedUser :: Behavior (Maybe User)
+        bSelectedUser = (=<<) <$> bLookupUser <*> bSelectedTokenId
+
+        bSelectedUserName :: Behavior String
+        bSelectedUserName = (maybe "" User.name ) <$> bSelectedUser
+
+        bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
+        bLookupToken = flip lookup <$> bDatabaseToken
+
+        bSelectedToken :: Behavior (Maybe Token)
+        bSelectedToken = (=<<) <$> bLookupToken <*> bSelectionToken
+
+        bSelectedTokenId :: Behavior (Maybe Int)
+        bSelectedTokenId = chainedTo Token.tokenId <$> bSelectedToken
 
 
-    {-
-    let isAdmin = maybe False User.admin <$> bUser
+    return (elem, tListBox)
 
-        bTabPairs :: Behavior [(DatabaseKey, DataItem)]
-        bTabPairs = toPairs <$> bDatabase
-
-        bTabPairsFilter :: Behavior [DatabaseKey]
-        bTabPairsFilter = fmap fst <$> ((\admin xs -> filter (\x -> admin == Tab.admin (snd x)) xs) <$> isAdmin <*> bTabPairs)
-
-        bTabItemsFilter :: Behavior [Maybe DataItem]
-        bTabItemsFilter = fmap <$> bLookup <*> bTabPairsFilter
-
-        bSelectionDataItemFilter :: Behavior (Maybe DataItem)
-        bSelectionDataItemFilter = (\x xs -> if elem x xs then x else Nothing) <$> bSelectionDataItem <*> bTabItemsFilter
-        -}
-    return elem
+items user = mkWriteAttr $ \i x -> void $ do
+    return x # set children [] #+ ((element user) : i)

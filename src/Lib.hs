@@ -63,27 +63,6 @@ someFunc port = do
 
 setup :: Window -> UI ()
 setup window = void $ mdo
-    ----------------------------------------------------------------------------------
-
-    let datastoreTab = "data/tab.json"
-    databaseTab <-
-        liftIO
-        $   Unsafe.fromJust
-        .   decode
-        .   fromStrict
-        <$> BS.readFile datastoreTab :: UI (Database Tab)
-
-    tabs <- Tab.setup window
-                      bDatabaseLoan
-                      bDatabaseUser
-                      bDatabaseItem
-                      bDatabaseToken
-                      bTokenSelection
-                      bDatabaseTab
-                      bTabSelection
-
-    bTabSelection <- stepper (Just 0) UI.never
-    bDatabaseTab  <- accumB databaseTab $ concatenate <$> unions []
 
     ----------------------------------------------------------------------------------
 
@@ -215,6 +194,29 @@ setup window = void $ mdo
 
     onChanges bDatabaseItem $ \items -> do
         liftIO $ BS.writeFile datastoreItem $ toStrict $ encode items
+
+    ----------------------------------------------------------------------------------
+    let datastoreTab = "data/tab.json"
+    databaseTab <-
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile datastoreTab :: UI (Database Tab)
+
+    (tabs, tTabs) <- Tab.setup window
+                               bDatabaseLoan
+                               bDatabaseUser
+                               bDatabaseItem
+                               bDatabaseToken
+                               bTokenSelection
+                               bDatabaseTab
+                               bTabSelection
+
+    let eTabs = rumors tTabs
+    bTabSelection <- stepper (Just 0) $ Unsafe.head <$> unions [ eTabs ]
+    bDatabaseTab  <- accumB databaseTab $ concatenate <$> unions []
+
 
     ---------------------------------------------------------------------------
     -- EXPORT

@@ -34,6 +34,7 @@ setup
     -> UI (Element, Event (Database Item))
 setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelectionToken
     = mdo
+        -- GUI elements
         exportBtn  <- UI.button #+ [string "Export"]
 
         -- GUI layout
