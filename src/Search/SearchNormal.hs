@@ -245,7 +245,6 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
 
         hasSelectedLoan :: Behavior Bool
         hasSelectedLoan = isJust <$> bSelectedLoan
-        
 
     return elem
 

@@ -178,7 +178,7 @@ dataItem bItem tabs = mdo
             (Database User)
 
     (userCreate, eUserCreate) <- UserCreate.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
-    (userDelete, eUserDelete) <- UserDelete.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
+    (userDelete, eUserDelete) <- UserDelete.setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bTokenSelection
 
     bDatabaseUser <- accumB databaseUser $ concatenate <$> unions
         [ create <$> eUserCreate
