@@ -15,3 +15,7 @@ instance FromJSON Token
 isToken :: Token -> Bool
 isToken (Token _) = True
 isToken NoToken = False
+
+tokenId :: Token -> Maybe Int
+tokenId (Token x) = Just x
+tokenId NoToken = Nothing

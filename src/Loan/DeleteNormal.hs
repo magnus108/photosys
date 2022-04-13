@@ -7,6 +7,8 @@ import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
+import           Token                          ( Token )
+import qualified Token
 import           Loan                           ( Loan )
 import qualified Loan
 import           User                           ( User )
@@ -27,8 +29,10 @@ setup
     -> Behavior (Database Loan)
     -> Behavior (Database User)
     -> Behavior (Database Item)
+    -> Behavior (Database Token)
+    -> Behavior (Maybe DatabaseKey)
     -> UI (Element, Event DatabaseKey)
-setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
+setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelectionToken = mdo
 
     -- GUI elements
     filterItem  <- UI.entry bFilterEntryItem
@@ -112,9 +116,6 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         [True <$ eDelete, False <$ eClose]
 
 
-    bSelectionUser <- stepper Nothing $ Unsafe.head <$> unions [] -- currentUser
-
-
     bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionItem
         , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
@@ -124,6 +125,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         , Nothing <$ eDelete
         ]
 
+    let bSelectionUser = bSelectedTokenId
 
     let bLookupUser :: Behavior (DatabaseKey -> Maybe User)
         bLookupUser = flip lookup <$> bDatabaseUser
@@ -206,6 +208,15 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
                 <*> bSelectionUser
                 <*> bLookupLoan
                 <*> bDatabaseLoan
+
+        bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
+        bLookupToken = flip lookup <$> bDatabaseToken
+
+        bSelectedToken :: Behavior (Maybe Token)
+        bSelectedToken = (=<<) <$> bLookupToken <*> bSelectionToken
+
+        bSelectedTokenId :: Behavior (Maybe Int)
+        bSelectedTokenId = chainedTo Token.tokenId <$> bSelectedToken
 
         hasSelectedLoan :: Behavior Bool
         hasSelectedLoan = isJust <$> bSelectedLoan

@@ -7,6 +7,9 @@ import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
+import           Token                          ( Token )
+import qualified Token
+
 import           Loan                           ( Loan )
 import qualified Loan
 import           User                           ( User )
@@ -21,14 +24,25 @@ import           Database
 import qualified Data.List                     as List
 import           Control.Bool
 
+liftA4
+    :: Applicative f
+    => (a -> b -> c -> d -> e)
+    -> f a
+    -> f b
+    -> f c
+    -> f d
+    -> f e
+liftA4 f a b c d = f <$> a <*> b <*> c <*> d
 
 setup
     :: Window
     -> Behavior (Database Loan)
     -> Behavior (Database User)
     -> Behavior (Database Item)
+    -> Behavior (Database Token)
+    -> Behavior (Maybe DatabaseKey)
     -> UI (Element, Event Loan)
-setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
+setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelectionToken = mdo
 
     -- GUI elements
     filterUser  <- UI.entry bFilterEntryUser
@@ -218,6 +232,14 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
                 <*> bShowItem
                 <*> bDatabaseItem
 
+        bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
+        bLookupToken = flip lookup <$> bDatabaseToken
+
+        bSelectedToken :: Behavior (Maybe Token)
+        bSelectedToken = (=<<) <$> bLookupToken <*> bSelectionToken
+
+        bSelectedTokenId :: Behavior (Maybe Int)
+        bSelectedTokenId = chainedTo Token.tokenId <$> bSelectedToken
 
 
 ---------
@@ -241,9 +263,10 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
     let bCreateLoan :: Behavior (Maybe Loan)
         bCreateLoan =
-            liftA3 Loan.Loan
+            liftA4 Loan.Loan
                 <$> bSelectionItem
                 <*> bSelectionUser
+                <*> bSelectedTokenId
                 <*> bTimer
 
         hasUserSelected :: Behavior Bool

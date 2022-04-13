@@ -148,11 +148,11 @@ dataItem bItem tabs = mdo
     databaseLoan <- liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile datastoreLoan :: UI (Database Loan)
 
 
-    (loanCreate, eLoanCreate) <- LoanCreate.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
+    (loanCreate, eLoanCreate) <- LoanCreate.setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bTokenSelection
     (loanDelete, eLoanDelete) <- LoanDelete.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
 
-    (loanCreateNormal, eLoanCreateNormal) <- LoanCreateNormal.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
-    (loanDeleteNormal, eLoanDeleteNormal) <- LoanDeleteNormal.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
+    (loanCreateNormal, eLoanCreateNormal) <- LoanCreateNormal.setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bTokenSelection
+    (loanDeleteNormal, eLoanDeleteNormal) <- LoanDeleteNormal.setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bTokenSelection
 
 
     bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
