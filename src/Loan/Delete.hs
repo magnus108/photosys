@@ -264,14 +264,20 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
                 <*> bLoanItem
                 <*> bDatabaseLoan
 
-
-    let bDeleteLoan :: Behavior (Maybe Loan)
-        bDeleteLoan = liftA2 Loan.Loan <$> bSelectionItem <*> bSelectionUser
-
-        bSelectedLoan :: Behavior (Maybe DatabaseKey)
+    let bSelectedLoan :: Behavior (Maybe DatabaseKey)
         bSelectedLoan =
-            (\i lookup -> find ((i ==) . lookup) . keys)
-                <$> bDeleteLoan
+            (\item user lookup ->
+                    find
+                            ( (\x ->
+                                  ((Loan.item <$> x) == item)
+                                      && ((Loan.user <$> x) == user)
+                              )
+                            . lookup
+                            )
+                        . keys
+                )
+                <$> bSelectionItem
+                <*> bSelectionUser
                 <*> bLookupLoan
                 <*> bDatabaseLoan
 

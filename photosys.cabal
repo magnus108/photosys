@@ -66,6 +66,7 @@ library
     , lens
     , relude
     , threepenny-gui
+    , time
   mixins:
       base hiding (Prelude)
     , relude (Relude as Prelude, Relude.Unsafe, Relude.Extra.Map, Relude.Container.Reexport)
@@ -97,6 +98,7 @@ executable photosys-exe
     , photosys
     , relude
     , threepenny-gui
+    , time
   mixins:
       base hiding (Prelude)
     , relude (Relude as Prelude, Relude.Unsafe, Relude.Extra.Map, Relude.Container.Reexport)
@@ -129,6 +131,7 @@ test-suite photosys-test
     , photosys
     , relude
     , threepenny-gui
+    , time
   mixins:
       base hiding (Prelude)
     , relude (Relude as Prelude, Relude.Unsafe, Relude.Extra.Map, Relude.Container.Reexport)

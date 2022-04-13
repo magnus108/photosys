@@ -1,6 +1,8 @@
 {-# LANGUAGE RecursiveDo #-}
 module Loan.Create where
 
+import           Data.Time
+
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
@@ -208,14 +210,41 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
         bListBoxItems :: Behavior [DatabaseKey]
         bListBoxItems =
-            (\p q show -> filter (flip List.notElem q) . filter (p . show) . keys)
+            (\p q show ->
+                    filter (flip List.notElem q) . filter (p . show) . keys
+                )
                 <$> bFilterItem
                 <*> bItemsWithLoan
                 <*> bShowItem
                 <*> bDatabaseItem
 
+
+
+---------
+    timer <- UI.timer # set UI.interval 1000
+    let eTick = UI.tick timer
+
+    (eTime, hTime) <- liftIO $ newEvent
+
+    c              <- liftIO $ showGregorian . utctDay <$> getCurrentTime
+
+    bTimer         <- stepper (Just c) $ Unsafe.head <$> unions [eTime]
+
+    onEvent eTick $ \items -> do
+        c <- liftIO $ showGregorian . utctDay <$> getCurrentTime
+        liftIO $ hTime (Just c)
+
+    UI.start timer
+---------
+
+
+
     let bCreateLoan :: Behavior (Maybe Loan)
-        bCreateLoan = liftA2 Loan.Loan <$> bSelectionItem <*> bSelectionUser
+        bCreateLoan =
+            liftA3 Loan.Loan
+                <$> bSelectionItem
+                <*> bSelectionUser
+                <*> bTimer
 
         hasUserSelected :: Behavior Bool
         hasUserSelected = isJust <$> bSelectionUser

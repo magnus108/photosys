@@ -2,7 +2,7 @@ module Loan where
 
 import Data.Aeson
 
-data Loan = Loan { item :: Int, user :: Int }
+data Loan = Loan { item :: Int, user :: Int, timestamp :: String }
     deriving stock (Eq, Ord, Show)
     deriving stock (Generic)
 

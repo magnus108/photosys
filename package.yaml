@@ -35,6 +35,7 @@ dependencies:
 - filepath
 - bytestring
 - control-bool
+- time
 
 default-extensions:
 - LambdaCase
