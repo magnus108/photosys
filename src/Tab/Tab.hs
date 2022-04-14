@@ -69,11 +69,18 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
         bShowTab :: Behavior (DatabaseKey -> String)
         bShowTab = (maybe "" Tab.name .) <$> bLookupTab
 
+        bShowTabAdmin :: Behavior (DatabaseKey -> Bool)
+        bShowTabAdmin = (maybe False Tab.admin .) <$> bLookupTab
+
         bDisplayTab :: Behavior (DatabaseKey -> UI Element)
         bDisplayTab = (UI.string .) <$> bShowTab
 
         bListBoxItems :: Behavior [DatabaseKey]
-        bListBoxItems = Database.keys <$> bDatabaseTab
+        bListBoxItems =
+            (\p q -> filter (\x -> q == p x) . keys)
+                <$> bShowTabAdmin
+                <*> bSelectedAdmin
+                <*> bDatabaseTab
 
         bSelectionDataItem :: Behavior (Maybe Tab)
         bSelectionDataItem = (=<<) <$> bLookupTab <*> bSelectionTab
@@ -92,6 +99,9 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
 
         bSelectedUserName :: Behavior String
         bSelectedUserName = (maybe "" User.name ) <$> bSelectedUser
+
+        bSelectedAdmin :: Behavior Bool
+        bSelectedAdmin = (maybe False User.admin ) <$> bSelectedUser
 
         bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
         bLookupToken = flip lookup <$> bDatabaseToken
