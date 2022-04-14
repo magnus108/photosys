@@ -24,15 +24,6 @@ import           Database
 import qualified Data.List                     as List
 import           Control.Bool
 
-liftA4
-    :: Applicative f
-    => (a -> b -> c -> d -> e)
-    -> f a
-    -> f b
-    -> f c
-    -> f d
-    -> f e
-liftA4 f a b c d = f <$> a <*> b <*> c <*> d
 
 setup
     :: Window
@@ -51,7 +42,8 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
     filterItem  <- UI.entry bFilterEntryItem
     listBoxItem <- UI.listBox bListBoxItems bSelectionItem bDisplayItemName
 
-    createBtn   <- UI.button #+ [string "Lån"]
+    filterLoan <- UI.entry bFilterEntryLoan
+    listBoxLoan <- UI.listBox bListBoxLoans bSelectionLoan bDisplayLoanTime
 
     -- GUI layout
     searchUser  <-
@@ -104,22 +96,30 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
                 ]
            ]
 
-
-    createBtn' <-
+    searchLoan <-
         UI.div
         #. "field"
-        #+ [UI.div #. "control" #+ [element createBtn #. "button"]]
+        #+ [ UI.label #. "label" #+ [string "Søg"]
+           , UI.div
+           #. "control"
+           #+ [ element filterLoan #. "input" # set (attr "placeholder")
+                                                    "Dato"
+              ]
+           ]
 
-
-    closeBtn <- UI.button #. "modal-close is-large"
-    modal    <-
+    dropdownLoan <-
         UI.div
-            #+ [ UI.div #. "modal-background"
-               , UI.div
-               #. "modal-content"
-               #+ [UI.div #. "box" #+ [string "Lån godkendt"]]
-               , element closeBtn
-               ]
+        #. "field"
+        #+ [ UI.div
+             #. "control is-expanded"
+             #+ [ UI.div
+                  #. "select is-multiple is-fullwidth"
+                  #+ [ element listBoxLoan # set (attr "size") "5" # set
+                           (attr "multiple")
+                           ""
+                     ]
+                ]
+           ]
 
     elem <-
         UI.div
@@ -130,8 +130,8 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
                 , element dropdownUser
                 , element searchItem
                 , element dropdownItem
-                , element createBtn'
-                , element modal
+                , element searchLoan
+                , element dropdownLoan
                 ]
            ]
 
@@ -139,6 +139,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
     -- Events and behaviors
     bFilterEntryUser <- stepper "" . rumors $ UI.userText filterUser
     bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
+    bFilterEntryLoan <- stepper "" . rumors $ UI.userText filterLoan
 
 
     let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
@@ -152,14 +153,13 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
         bFilterItem = facts tFilterItem
         eFilterItem = rumors tFilterItem
 
+    let tFilterLoan = isInfixOf <$> UI.userText filterLoan
+        bFilterLoan = facts tFilterLoan
+        eFilterLoan = rumors tFilterLoan
+
     let eSelectionUser = rumors $ UI.userSelection listBoxUser
         eSelectionItem = rumors $ UI.userSelection listBoxItem
-        eCreate        = UI.click createBtn
-        eClose         = UI.click closeBtn
-
-
-    bActiveModal <- stepper False $ Unsafe.head <$> unions
-        [True <$ eCreate, False <$ eClose]
+        eSelectionLoan = rumors $ UI.userSelection listBoxLoan
 
 
     bSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
@@ -176,7 +176,14 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
         <$> bSelectionItem
         <*> bShowItem
         <@> eFilterItem
-        , Nothing <$ eCreate
+        ]
+
+    bSelectionLoan <- stepper Nothing $ Unsafe.head <$> unions
+        [ eSelectionLoan
+        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
+        <$> bSelectionLoan
+        <*> bShowLoan
+        <@> eFilterLoan
         ]
 
 
@@ -186,8 +193,57 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
         bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
         bLookupLoan = flip lookup <$> bDatabaseLoan
 
-        bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
-        bLoanItem = (fmap Loan.item .) <$> bLookupLoan
+        bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
+        bLookupItem  = flip lookup <$> bDatabaseItem
+
+        bSelectedUser :: Behavior (Maybe User)
+        bSelectedUser = (=<<) <$> bLookupUser <*> bSelectionUser
+
+        bSelectedItem :: Behavior (Maybe Item)
+        bSelectedItem = (=<<) <$> bLookupItem <*> bSelectionItem
+
+        bSelectedLoan :: Behavior (Maybe Loan)
+        bSelectedLoan = (=<<) <$> bLookupLoan <*> bSelectionLoan
+
+        bShowUser :: Behavior (DatabaseKey -> String)
+        bShowUser = (maybe "" User.name .) <$> bLookupUser
+
+        bShowItem :: Behavior (DatabaseKey -> String)
+        bShowItem = (maybe "" Item.name .) <$> bLookupItem
+
+        bShowLoan :: Behavior (DatabaseKey -> String)
+        bShowLoan = (maybe "" Loan.timestamp .) <$> bLookupLoan
+
+        bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
+        bDisplayUserName = (UI.string .) <$> bShowUser
+
+        bDisplayLoanTime :: Behavior (DatabaseKey -> UI Element)
+        bDisplayLoanTime = (UI.string .) <$> bShowLoan
+
+        bDisplayItemName :: Behavior (DatabaseKey -> UI Element)
+        bDisplayItemName = (UI.string .) <$> bShowItem
+
+        bListBoxUsers :: Behavior [DatabaseKey]
+        bListBoxUsers =
+            (\p show -> filter (p . show) . keys)
+                <$> bFilterUser
+                <*> bShowUser
+                <*> bDatabaseUser
+
+        bListBoxLoans :: Behavior [DatabaseKey]
+        bListBoxLoans =
+            (\p show -> filter (p . show) . keys)
+                <$> bFilterLoan
+                <*> bShowLoan
+                <*> bDatabaseLoan
+
+        bListBoxItems :: Behavior [DatabaseKey]
+        bListBoxItems =
+            (\p show -> filter (p . show) . keys)
+                <$> bFilterItem
+                <*> bShowItem
+                <*> bDatabaseItem
+        {-
 
         bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
         bLookupItem = flip lookup <$> bDatabaseItem
@@ -240,46 +296,6 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
 
         bSelectedTokenId :: Behavior (Maybe Int)
         bSelectedTokenId = chainedTo Token.tokenId <$> bSelectedToken
-
-
----------
-    timer <- UI.timer # set UI.interval 1000
-    let eTick = UI.tick timer
-
-    (eTime, hTime) <- liftIO $ newEvent
-
-    c              <- liftIO $ showGregorian . utctDay <$> getCurrentTime
-
-    bTimer         <- stepper (Just c) $ Unsafe.head <$> unions [eTime]
-
-    onEvent eTick $ \items -> do
-        c <- liftIO $ showGregorian . utctDay <$> getCurrentTime
-        liftIO $ hTime (Just c)
-
-    UI.start timer
----------
-
-
-
-    let bCreateLoan :: Behavior (Maybe Loan)
-        bCreateLoan =
-            liftA4 Loan.Loan
-                <$> bSelectionItem
-                <*> bSelectionUser
-                <*> bSelectedTokenId
-                <*> bTimer
-
-        hasUserSelected :: Behavior Bool
-        hasUserSelected = isJust <$> bSelectionUser
-
-        hasItemSelected :: Behavior Bool
-        hasItemSelected = isJust <$> bSelectionItem
-
-
-    element createBtn # sink UI.enabled (hasUserSelected <&&> hasItemSelected)
-    element modal # sink
-        (attr "class")
-        ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
-
+        -}
 
     return elem
