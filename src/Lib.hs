@@ -43,7 +43,7 @@ import qualified Token.Create                  as TokenCreate
 import           History                           ( History(..) )
 import           Loan                           ( Loan(..) )
 import           User                           ( User(..) )
-import           Token                          ( Token(..) , isToken)
+import           Token                          ( Token(..) , isToken, tokenId)
 
 
 import           Tab                            ( Tab(..) )
@@ -271,22 +271,23 @@ setup window = void $ mdo
 
 
     notDone <- UI.string "Ikke færdig"
-    let display y x = if traceShowId y
-            then case x of
-                0  -> [tabs, loanCreate]
-                1  -> [tabs, loanDelete]
-                2  -> [tabs, itemCreate]
-                3  -> [tabs, itemDelete]
-                4  -> [tabs, userCreate]
-                5  -> [tabs, userDelete]
-                6  -> [tabs, loanCreateNormal]
-                7  -> [tabs, loanDeleteNormal]
-                8  -> [tabs, search]
-                9  -> [tabs, searchNormal]
-                10 -> [tabs, export]
-                11 -> [tabs, history]
-                12 -> [tabs, notDone]
-                13 -> [tabs, notDone]
+    let display y isAdmin x = if traceShowId y
+            then case (x,isAdmin) of
+                (0,True)  -> [tabs, loanCreate]
+                (1,True)  -> [tabs, loanDelete]
+                (2,True)  -> [tabs, itemCreate]
+                (3,True)  -> [tabs, itemDelete]
+                (4,True)  -> [tabs, userCreate]
+                (5,True)  -> [tabs, userDelete]
+                (6,False)  -> [tabs, loanCreateNormal]
+                (7,False)  -> [tabs, loanDeleteNormal]
+                (8,True)  -> [tabs, search]
+                (9,False)  -> [tabs, searchNormal]
+                (10,True) -> [tabs, export]
+                (11,True) -> [tabs, history]
+                (12,True)-> [tabs, notDone]
+                (13,True) -> [tabs, notDone]
+                (0,False) -> [tabs, loanDeleteNormal]--- Hack
             else [tokenCreate]
 
 
@@ -300,7 +301,19 @@ setup window = void $ mdo
         bHasToken :: Behavior Bool
         bHasToken = maybe False Token.isToken <$> bSelectedToken
 
-    let bGui = display <$> bHasToken
+        bLookupUser :: Behavior (DatabaseKey -> Maybe User)
+        bLookupUser = flip Database.lookup <$> bDatabaseUser
+
+        bSelectedUser :: Behavior (Maybe User)
+        bSelectedUser = (=<<) <$> bLookupUser <*> bSelectedTokenId
+
+        bSelectedAdmin :: Behavior Bool
+        bSelectedAdmin = (maybe False User.admin ) <$> bSelectedUser
+
+        bSelectedTokenId :: Behavior (Maybe Int)
+        bSelectedTokenId = chainedTo tokenId <$> bSelectedToken
+
+    let bGui = display <$> bHasToken <*> bSelectedAdmin
 
     content <- UI.div
         # sink children (maybe [tokenCreate] <$> bGui <*> bTabSelection)
