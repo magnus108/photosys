@@ -28,6 +28,8 @@ library
       Checkbox
       Database
       Export.Export
+      History
+      History.History
       Item
       Item.Create
       Item.Delete

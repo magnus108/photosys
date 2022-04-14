@@ -19,6 +19,7 @@ import           Database                       ( Database
 import qualified Database
 
 import qualified MenuBox
+import qualified History.History               as History
 import qualified Export.Export                 as Export
 import qualified Tab.Tab                       as Tab
 
@@ -39,6 +40,7 @@ import qualified User.Delete                   as UserDelete
 
 import qualified Token.Create                  as TokenCreate
 
+import           History                           ( History(..) )
 import           Loan                           ( Loan(..) )
 import           User                           ( User(..) )
 import           Token                          ( Token(..) , isToken)
@@ -219,6 +221,34 @@ setup window = void $ mdo
 
     ----------------------------------------------------------------------------------
 
+    let datastoreHistory = "data/history.json"
+    databaseHistory <- 
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile datastoreHistory :: UI (Database History)
+
+    history <- History.setup window
+                                                     bDatabaseLoan
+                                                     bDatabaseUser
+                                                     bDatabaseItem
+                                                     bDatabaseToken
+                                                     bTokenSelection
+
+    bDatabaseHistory <- accumB databaseHistory $ concatenate <$> unions
+        [ Database.create . History <$> ((Database.nextKey <$> bDatabaseLoan) <@ eLoanCreate)
+        , Database.create . History <$> ((Database.nextKey <$> bDatabaseLoan) <@ eLoanCreateNormal)
+        ]
+
+    onChanges bDatabaseHistory $ \items -> do
+        liftIO $ BS.writeFile datastoreHistory $ toStrict $ encode items
+
+    ----------------------------------------------------------------------------------
+
+
+
+
     ---------------------------------------------------------------------------
     -- EXPORT
     let exportFile = "data/export.csv"
@@ -254,7 +284,7 @@ setup window = void $ mdo
                 8  -> [tabs, search]
                 9  -> [tabs, searchNormal]
                 10 -> [tabs, export]
-                11 -> [tabs, notDone]
+                11 -> [tabs, history]
                 12 -> [tabs, notDone]
                 13 -> [tabs, notDone]
             else [tokenCreate]
