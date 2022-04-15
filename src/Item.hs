@@ -15,3 +15,7 @@ instance FromJSON Item
 instance Csv.DefaultOrdered Item
 instance Csv.FromNamedRecord Item
 instance Csv.ToNamedRecord Item
+
+
+showItem :: Item -> String
+showItem x = name x ++ ", " ++ code x

@@ -129,7 +129,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         bLookupItem = flip lookup <$> bDatabaseItem
 
         bShowDataItem :: Behavior (DatabaseKey -> String)
-        bShowDataItem = (maybe "" Item.name .) <$> bLookupItem
+        bShowDataItem = (maybe "" Item.showItem .) <$> bLookupItem
 
         bDisplayItemName :: Behavior (DatabaseKey -> UI Element)
         bDisplayItemName = (UI.string .) <$> bShowDataItem

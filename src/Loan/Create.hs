@@ -202,7 +202,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
         bShowUser = (maybe "" User.name .) <$> bLookupUser
 
         bShowItem :: Behavior (DatabaseKey -> String)
-        bShowItem = (maybe "" Item.name .) <$> bLookupItem
+        bShowItem = (maybe "" Item.showItem .) <$> bLookupItem
 
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
         bDisplayUserName = (UI.string .) <$> bShowUser

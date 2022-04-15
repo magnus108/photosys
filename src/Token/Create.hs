@@ -1,6 +1,7 @@
 {-# LANGUAGE RecursiveDo #-}
 module Token.Create where
 
+import qualified Data.Text as T
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
@@ -22,6 +23,7 @@ import           Database
 
 import qualified Data.List                     as List
 import           Control.Bool
+import           Data.Password.Bcrypt
 
 setup
     :: Window
@@ -77,7 +79,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
         let compareLogin :: Login -> User -> Bool
             compareLogin y x =
                 (User.name x == Login.name y)
-                    && (User.password x == Login.password y)
+                    && (checkPassword (mkPassword $ T.pack $ Login.password y) (PasswordHash (T.pack $ User.password x) :: PasswordHash Bcrypt) == PasswordCheckSuccess)
 
             bLookupUser :: Behavior (DatabaseKey -> Maybe User)
             bLookupUser = flip lookup <$> bDatabaseUser
@@ -102,7 +104,8 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
             bHasToken :: Behavior Bool
             bHasToken = maybe False Token.isToken <$> bSelectedToken
 
-        element createBtn # sink UI.enabled (bDisplayItem <&&> (not <$> bHasToken))
+        element createBtn
+            # sink UI.enabled (bDisplayItem <&&> (not <$> bHasToken))
 
         return (elem, maybe Token.NoToken Token.Token <$> bUser <@ eCreate)
 

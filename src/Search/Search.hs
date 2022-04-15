@@ -179,7 +179,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         bShowUser = (maybe "" User.name .) <$> bLookupUser
 
         bShowItem :: Behavior (DatabaseKey -> String)
-        bShowItem = (maybe "" Item.name .) <$> bLookupItem
+        bShowItem = (maybe "" Item.showItem .) <$> bLookupItem
 
         bShowItemSerie :: Behavior (DatabaseKey -> String)
         bShowItemSerie = (maybe "" Item.serie .) <$> bLookupItem

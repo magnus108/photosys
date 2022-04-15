@@ -3,6 +3,8 @@ module Lib
     ( someFunc
     )
 where
+import qualified Data.Text as T
+import           Data.Password.Bcrypt
 import qualified Data.Csv                      as Csv
 import           Data.Aeson
 
@@ -140,8 +142,15 @@ setup window = void $ mdo
                                                   bDatabaseToken
                                                   bTokenSelection
 
+
+    (eUserCreate', hUserCreate') <- liftIO $ newEvent
+    onEvent eUserCreate $ \x -> void $ liftIO $ do
+            let password = mkPassword $ T.pack $ User.password x
+            passHash <- hashPassword password
+            hUserCreate' (User.User (User.name x) (T.unpack $ unPasswordHash passHash) (User.admin x))
+
     bDatabaseUser <- accumB databaseUser $ concatenate <$> unions
-        [Database.create <$> eUserCreate, Database.delete <$> eUserDelete]
+        [Database.create <$> eUserCreate', Database.delete <$> eUserDelete]
 
 
     onChanges bDatabaseUser $ \items -> do

@@ -71,7 +71,9 @@ library
     , filepath
     , generic-lens
     , lens
+    , password
     , relude
+    , text
     , threepenny-gui
     , time
   mixins:
@@ -103,8 +105,10 @@ executable photosys-exe
     , filepath
     , generic-lens
     , lens
+    , password
     , photosys
     , relude
+    , text
     , threepenny-gui
     , time
   mixins:
@@ -137,8 +141,10 @@ test-suite photosys-test
     , filepath
     , generic-lens
     , lens
+    , password
     , photosys
     , relude
+    , text
     , threepenny-gui
     , time
   mixins:

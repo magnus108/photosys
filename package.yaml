@@ -37,6 +37,8 @@ dependencies:
 - control-bool
 - time
 - cassava
+- password
+- text
 
 default-extensions:
 - LambdaCase

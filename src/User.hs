@@ -6,6 +6,7 @@ data User = User { name :: String, password :: String, admin :: Bool }
     deriving stock (Eq, Ord, Show)
     deriving stock (Generic)
 
+
 instance ToJSON User where
     toEncoding = genericToEncoding defaultOptions
 
