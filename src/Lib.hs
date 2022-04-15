@@ -67,13 +67,73 @@ someFunc port = do
 
 setup :: Window -> UI ()
 setup window = void $ mdo
+    let dataTabSelectionFile = "data/tabSelection.json"
+
     let datastoreLoan = "data/loan.json"
+    let datastoreUser = "data/user.json"
+    let datastoreToken = "data/token.json"
+    let datastoreTab = "data/tab.json"
+    let datastoreItem = "data/item.json"
+    let datastoreHistory = "data/history.json"
+    let exportFile = "data/export.csv"
+    (eUserCreate', hUserCreate') <- liftIO $ newEvent
+    tabSelectionFile <- return (Just 0)
+        {-
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile dataTabSelectionFile :: UI (Maybe Int)
+        -}
+
+    databaseUser <-
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile datastoreUser :: UI (Database User)
+    databaseToken <-
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile datastoreToken :: UI (Database Token)
+    databaseTab <-
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile datastoreTab :: UI (Database Tab)
+    databaseItem <-
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile datastoreItem :: UI (Database Item)
+
     databaseLoan <-
         liftIO
         $   Unsafe.fromJust
         .   decode
         .   fromStrict
         <$> BS.readFile datastoreLoan :: UI (Database Loan)
+
+    databaseHistory <- 
+        liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile datastoreHistory :: UI (Database History)
+
+
+    notDone <- UI.string "Ikke færdig"
+
+    (export, eExport) <- Export.setup window
+                                      bDatabaseLoan
+                                      bDatabaseUser
+                                      bDatabaseItem
+                                      bDatabaseToken
+                                      bTokenSelection
 
 
     (loanCreate, eLoanCreate) <- LoanCreate.setup window
@@ -94,6 +154,7 @@ setup window = void $ mdo
         bDatabaseItem
         bDatabaseToken
         bTokenSelection
+
     (loanDeleteNormal, eLoanDeleteNormal) <- LoanDeleteNormal.setup
         window
         bDatabaseLoan
@@ -102,34 +163,32 @@ setup window = void $ mdo
         bDatabaseToken
         bTokenSelection
 
+    history <- History.setup window
+                                                     bDatabaseLoan
+                                                     bDatabaseUser
+                                                     bDatabaseItem
+                                                     bDatabaseToken
+                                                     bTokenSelection
+
+
     search <- Search.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
+
+
+    (tabs, tTabs, eLogout) <- Tab.setup window
+                               bDatabaseLoan
+                               bDatabaseUser
+                               bDatabaseItem
+                               bDatabaseToken
+                               bTokenSelection
+                               bDatabaseTab
+                               bTabSelection
+
     searchNormal <- SearchNormal.setup window
                                        bDatabaseLoan
                                        bDatabaseUser
                                        bDatabaseItem
                                        bDatabaseToken
                                        bTokenSelection
-
-
-    bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
-        [ Database.create <$> eLoanCreate
-        , Database.delete <$> eLoanDelete
-        , Database.create <$> eLoanCreateNormal
-        , Database.delete <$> eLoanDeleteNormal
-        ]
-
-
-    onChanges bDatabaseLoan $ \items -> do
-        liftIO $ BS.writeFile datastoreLoan $ toStrict $ encode items
-    -------------------------------------------------------------------------------------
-
-    let datastoreUser = "data/user.json"
-    databaseUser <-
-        liftIO
-        $   Unsafe.fromJust
-        .   decode
-        .   fromStrict
-        <$> BS.readFile datastoreUser :: UI (Database User)
 
     (userCreate, eUserCreate) <- UserCreate.setup window
                                                   bDatabaseLoan
@@ -143,28 +202,6 @@ setup window = void $ mdo
                                                   bTokenSelection
 
 
-    (eUserCreate', hUserCreate') <- liftIO $ newEvent
-    onEvent eUserCreate $ \x -> void $ liftIO $ do
-            let password = mkPassword $ T.pack $ User.password x
-            passHash <- hashPassword password
-            hUserCreate' (User.User (User.name x) (T.unpack $ unPasswordHash passHash) (User.admin x))
-
-    bDatabaseUser <- accumB databaseUser $ concatenate <$> unions
-        [Database.create <$> eUserCreate', Database.delete <$> eUserDelete]
-
-
-    onChanges bDatabaseUser $ \items -> do
-        liftIO $ BS.writeFile datastoreUser $ toStrict $ encode items
-
-    -------------------------------------------------------------------------------------
-    let datastoreItem = "data/item.json"
-    databaseItem <-
-        liftIO
-        $   Unsafe.fromJust
-        .   decode
-        .   fromStrict
-        <$> BS.readFile datastoreItem :: UI (Database Item)
-
     (itemCreate, eItemCreate) <- ItemCreate.setup window
                                                   bDatabaseLoan
                                                   bDatabaseUser
@@ -174,43 +211,6 @@ setup window = void $ mdo
                                                   bDatabaseUser
                                                   bDatabaseItem
 
-    bDatabaseItem <- accumB databaseItem $ concatenate <$> unions
-        [Database.create <$> eItemCreate, Database.delete <$> eItemDelete]
-
-    onChanges bDatabaseItem $ \items -> do
-        liftIO $ BS.writeFile datastoreItem $ toStrict $ encode items
-
-    ----------------------------------------------------------------------------------
-    let datastoreTab = "data/tab.json"
-    databaseTab <-
-        liftIO
-        $   Unsafe.fromJust
-        .   decode
-        .   fromStrict
-        <$> BS.readFile datastoreTab :: UI (Database Tab)
-
-    (tabs, tTabs, eLogout) <- Tab.setup window
-                               bDatabaseLoan
-                               bDatabaseUser
-                               bDatabaseItem
-                               bDatabaseToken
-                               bTokenSelection
-                               bDatabaseTab
-                               bTabSelection
-
-    let eTabs = rumors tTabs
-    bTabSelection <- stepper (Just 0) $ Unsafe.head <$> unions [ eTabs ]
-    bDatabaseTab  <- accumB databaseTab $ concatenate <$> unions []
-
-    ----------------------------------------------------------------------------------
-
-    let datastoreToken = "data/token.json"
-    databaseToken <-
-        liftIO
-        $   Unsafe.fromJust
-        .   decode
-        .   fromStrict
-        <$> BS.readFile datastoreToken :: UI (Database Token)
 
     (tokenCreate, eTokenCreate) <- TokenCreate.setup window
                                                      bDatabaseLoan
@@ -219,69 +219,45 @@ setup window = void $ mdo
                                                      bDatabaseToken
                                                      bTokenSelection
 
+
+    let eTabs = rumors tTabs
+
+    bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
+        [ Database.create <$> eLoanCreate
+        , Database.delete <$> eLoanDelete
+        , Database.create <$> eLoanCreateNormal
+        , Database.delete <$> eLoanDeleteNormal
+        ]
+
+
+
+    bDatabaseItem <- accumB databaseItem $ concatenate <$> unions
+        [Database.create <$> eItemCreate, Database.delete <$> eItemDelete]
+
+
     bTokenSelection <- stepper (Just 0) UI.never
     bDatabaseToken  <- accumB databaseToken $ concatenate <$> unions
         [filterJust $ Database.update' <$> bTokenSelection <@> eTokenCreate
         ,filterJust $ Database.update' <$> bTokenSelection <@> eLogout
         ]
 
-    onChanges bDatabaseToken $ \items -> do
-        liftIO $ BS.writeFile datastoreToken $ toStrict $ encode items
+    bTabSelection <- stepper tabSelectionFile $ Unsafe.head <$> unions [ eTabs, Nothing <$ eLogout, (\b -> if b then Just 6 else Just 0) <$> bSelectedAdmin <@ eTokenCreate]
+    bDatabaseTab  <- accumB databaseTab $ concatenate <$> unions []
 
-    ----------------------------------------------------------------------------------
 
-    let datastoreHistory = "data/history.json"
-    databaseHistory <- 
-        liftIO
-        $   Unsafe.fromJust
-        .   decode
-        .   fromStrict
-        <$> BS.readFile datastoreHistory :: UI (Database History)
-
-    history <- History.setup window
-                                                     bDatabaseLoan
-                                                     bDatabaseUser
-                                                     bDatabaseItem
-                                                     bDatabaseToken
-                                                     bTokenSelection
-
+    bDatabaseExport <- stepper Database.emptydb $ Unsafe.head <$> unions
+        [eExport]
     bDatabaseHistory <- accumB databaseHistory $ concatenate <$> unions
         [ Database.create . History <$> ((Database.nextKey <$> bDatabaseLoan) <@ eLoanCreate)
         , Database.create . History <$> ((Database.nextKey <$> bDatabaseLoan) <@ eLoanCreateNormal)
         ]
 
-    onChanges bDatabaseHistory $ \items -> do
-        liftIO $ BS.writeFile datastoreHistory $ toStrict $ encode items
 
-    ----------------------------------------------------------------------------------
+    bDatabaseUser <- accumB databaseUser $ concatenate <$> unions
+        [Database.create <$> eUserCreate', Database.delete <$> eUserDelete]
 
-
-
-
-    ---------------------------------------------------------------------------
-    -- EXPORT
-    let exportFile = "data/export.csv"
-    (export, eExport) <- Export.setup window
-                                      bDatabaseLoan
-                                      bDatabaseUser
-                                      bDatabaseItem
-                                      bDatabaseToken
-                                      bTokenSelection
-
-    bDatabaseExport <- stepper Database.emptydb $ Unsafe.head <$> unions
-        [eExport]
-
-    onChanges bDatabaseExport $ \db -> do
-        let items = Database.elems db
-        let csv   = Csv.encodeDefaultOrderedByName items
-        liftIO $ BS.writeFile exportFile (toStrict csv)
-    ---------------------------------------------------------------------------
-
-
-
-    notDone <- UI.string "Ikke færdig"
-    let display y isAdmin x = if traceShowId y
-            then case (x,isAdmin) of
+    let display y isAdmin x = if y
+            then case (x, isAdmin) of
                 (0,True)  -> [tabs, loanCreate]
                 (1,True)  -> [tabs, loanDelete]
                 (2,True)  -> [tabs, itemCreate]
@@ -300,7 +276,6 @@ setup window = void $ mdo
             else [tokenCreate]
 
 
---------------------------------------------------------------------------------
     let bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
         bLookupToken = flip Database.lookup <$> bDatabaseToken
 
@@ -324,8 +299,38 @@ setup window = void $ mdo
 
     let bGui = display <$> bHasToken <*> bSelectedAdmin
 
+
     content <- UI.div
         # sink children (maybe [tokenCreate] <$> bGui <*> bTabSelection)
 
     getBody window #+ [element content]
+
+
+    onEvent eUserCreate $ \x -> void $ liftIO $ do
+            let password = mkPassword $ T.pack $ User.password x
+            passHash <- hashPassword password
+            hUserCreate' (User.User (User.name x) (T.unpack $ unPasswordHash passHash) (User.admin x))
+
+    onChanges bDatabaseHistory $ \items -> do
+        liftIO $ BS.writeFile datastoreHistory $ toStrict $ encode items
+
+    onChanges bDatabaseLoan $ \items -> do
+        liftIO $ BS.writeFile datastoreLoan $ toStrict $ encode items
+
+    onChanges bDatabaseUser $ \items -> do
+        liftIO $ BS.writeFile datastoreUser $ toStrict $ encode items
+
+    onChanges bDatabaseItem $ \items -> do
+        liftIO $ BS.writeFile datastoreItem $ toStrict $ encode items
+
+    onChanges bDatabaseToken $ \items -> do
+        liftIO $ BS.writeFile datastoreToken $ toStrict $ encode items
+    onChanges bDatabaseExport $ \db -> do
+        let items = Database.elems db
+        let csv   = Csv.encodeDefaultOrderedByName items
+        liftIO $ BS.writeFile exportFile (toStrict csv)
+
+
+    onChanges bTabSelection $ \item -> do -- NOT A DB MAYBE CHANGE THAT?
+        liftIO $ BS.writeFile dataTabSelectionFile $ toStrict $ encode item
 
