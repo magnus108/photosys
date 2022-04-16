@@ -169,6 +169,7 @@ setup window = void $ mdo
                                                      bDatabaseItem
                                                      bDatabaseToken
                                                      bTokenSelection
+                                                     bDatabaseHistory
 
 
     search <- Search.setup window bDatabaseLoan bDatabaseUser bDatabaseItem
@@ -247,10 +248,14 @@ setup window = void $ mdo
 
     bDatabaseExport <- stepper Database.emptydb $ Unsafe.head <$> unions
         [eExport]
+
+
     bDatabaseHistory <- accumB databaseHistory $ concatenate <$> unions
-        [ Database.create . History <$> ((Database.nextKey <$> bDatabaseLoan) <@ eLoanCreate)
-        , Database.create . History <$> ((Database.nextKey <$> bDatabaseLoan) <@ eLoanCreateNormal)
+        [ Database.create . History <$> eLoanCreate
+        , Database.create . History <$> eLoanCreateNormal
         ]
+    let bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
+        bLookupLoan = flip Database.lookup <$> bDatabaseLoan
 
 
     bDatabaseUser <- accumB databaseUser $ concatenate <$> unions

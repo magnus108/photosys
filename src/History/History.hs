@@ -7,6 +7,8 @@ import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
+import           History                        ( History )
+import qualified History
 import           Token                          ( Token )
 import qualified Token
 
@@ -32,22 +34,29 @@ setup
     -> Behavior (Database Item)
     -> Behavior (Database Token)
     -> Behavior (Maybe DatabaseKey)
+    -> Behavior (Database History)
     -> UI Element
-setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelectionToken
+setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelectionToken bDatabaseHistory
     = mdo
 
     -- GUI elements
         filterUser  <- UI.entry bFilterEntryUser
-        listBoxUser <- UI.listBox bListBoxUsers'' bSelectionUser bDisplayUserName
+        listBoxUser <- UI.listBox bListBoxUsers''
+                                  bSelectionUser
+                                  bDisplayUserName
 
         filterItem  <- UI.entry bFilterEntryItem
-        listBoxItem <- UI.listBox bListBoxItems'' bSelectionItem bDisplayItemName
+        listBoxItem <- UI.listBox bListBoxItems''
+                                  bSelectionItem
+                                  bDisplayItemName
 
         filterLoan  <- UI.entry bFilterEntryLoan
-        listBoxLoan <- UI.listBox bListBoxLoans'' bSelectionLoan bDisplayLoanTime
+        listBoxLoan <- UI.listBox bListBoxLoans''
+                                  bSelectionLoan
+                                  bDisplayLoanTime
 
         -- GUI layout
-        searchUser  <-
+        searchUser <-
             UI.div
             #. "field"
             #+ [ UI.label #. "label" #+ [string "Søg"]
@@ -193,7 +202,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
             bLookupUser = flip lookup <$> bDatabaseUser
 
             bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
-            bLookupLoan = flip lookup <$> bDatabaseLoan
+            bLookupLoan = (\x y -> fmap History.loan (lookup y x)) <$> bDatabaseHistory
 
             bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
             bLookupItem = flip lookup <$> bDatabaseItem
@@ -230,18 +239,32 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
                 (\p show -> filter (p . show) . keys)
                     <$> bFilterLoan
                     <*> bShowLoan
-                    <*> bDatabaseLoan
+                    <*> bDatabaseHistory
 
             bListBoxLoans' :: Behavior [DatabaseKey]
             bListBoxLoans' =
-                (\mi lookup -> filter ((\ml -> fromMaybe True (liftA2 (\l i -> Loan.item l == i) ml mi)) . lookup))
+                (\mi lookup -> filter
+                        ( (\ml -> fromMaybe
+                              True
+                              (liftA2 (\l i -> Loan.item l == i) ml mi)
+                          )
+                        . lookup
+                        )
+                    )
                     <$> bSelectionItem
                     <*> bLookupLoan
                     <*> bListBoxLoans
 
             bListBoxLoans'' :: Behavior [DatabaseKey]
             bListBoxLoans'' =
-                (\mu lookup -> filter ((\ml -> fromMaybe True (liftA2 (\l u -> Loan.user l == u) ml mu)) . lookup))
+                (\mu lookup -> filter
+                        ( (\ml -> fromMaybe
+                              True
+                              (liftA2 (\l u -> Loan.user l == u) ml mu)
+                          )
+                        . lookup
+                        )
+                    )
                     <$> bSelectionUser
                     <*> bLookupLoan
                     <*> bListBoxLoans'
@@ -265,7 +288,13 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
 
             bListBoxUsers'' :: Behavior [DatabaseKey]
             bListBoxUsers'' =
-                (\loans lookup -> filter (flip List.elem (catMaybes (fmap Loan.user <$> (lookup <$> loans)))))
+                (\loans lookup ->
+                        filter
+                            (flip
+                                List.elem
+                                (catMaybes (fmap Loan.user <$> (lookup <$> loans)))
+                            )
+                    )
                     <$> bListBoxLoans''
                     <*> bLookupLoan
                     <*> bListBoxUsers'
@@ -289,7 +318,13 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
 
             bListBoxItems'' :: Behavior [DatabaseKey]
             bListBoxItems'' =
-                (\loans lookup -> filter (flip List.elem (catMaybes (fmap Loan.item <$> (lookup <$> loans)))))
+                (\loans lookup ->
+                        filter
+                            (flip
+                                List.elem
+                                (catMaybes (fmap Loan.item <$> (lookup <$> loans)))
+                            )
+                    )
                     <$> bListBoxLoans''
                     <*> bLookupLoan
                     <*> bListBoxItems'

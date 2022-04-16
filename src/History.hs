@@ -1,8 +1,9 @@
 module History where
 
 import Data.Aeson
+import Loan
 
-data History = History { loan :: Int }
+data History = History { loan :: Loan }
     deriving stock (Eq, Ord, Show)
     deriving stock (Generic)
 
