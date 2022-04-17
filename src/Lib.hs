@@ -77,14 +77,11 @@ setup window = void $ mdo
     let datastoreHistory = "data/history.json"
     let exportFile = "data/export.csv"
     (eUserCreate', hUserCreate') <- liftIO $ newEvent
-    tabSelectionFile <- return (Just 0)
-        {-
-        liftIO
+    tabSelectionFile <- liftIO
         $   Unsafe.fromJust
         .   decode
         .   fromStrict
         <$> BS.readFile dataTabSelectionFile :: UI (Maybe Int)
-        -}
 
     databaseUser <-
         liftIO
