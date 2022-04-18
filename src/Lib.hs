@@ -76,6 +76,9 @@ readJson fp = liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile fp
 writeJson :: (MonadIO m, ToJSON a) => FilePath -> a -> m ()
 writeJson fp items = liftIO $ BS.writeFile fp $ toStrict $ encode items
 
+writeCsv :: (MonadIO m, Csv.DefaultOrdered a, Csv.ToNamedRecord a) => FilePath -> [a] -> m ()
+writeCsv fp items = liftIO $ BS.writeFile fp $ toStrict $ Csv.encodeDefaultOrderedByName items
+
 
 setup :: Window -> UI ()
 setup window = void $ mdo
@@ -146,25 +149,13 @@ setup window = void $ mdo
     bDatabaseTab    <- accumB databaseTab $ concatenate <$> unions []
 
 
-    bDatabaseExport <- stepper Database.emptydb $ Unsafe.head <$> unions
-        [eExport]
+    bDatabaseExport <- stepper [] $ Unsafe.head <$> unions [eExport]
 
 
     bDatabaseHistory <- accumB databaseHistory $ concatenate <$> unions
         [ Database.create . History <$> eLoanCreate
         , Database.create . History <$> eLoanCreateNormal
         ]
-
-
-    let env = Env { bDatabaseLoan    = bDatabaseLoan
-                  , bDatabaseUser    = bDatabaseUser
-                  , bDatabaseItem    = bDatabaseItem
-                  , bDatabaseToken   = bDatabaseToken
-                  , bSelectionToken  = bTokenSelection
-                  , bDatabaseHistory = bDatabaseHistory
-                  , bDatabaseTab     = bDatabaseTab
-                  , bSelectionTab    = bTabSelection
-                  }
 
 
     let bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
@@ -185,6 +176,17 @@ setup window = void $ mdo
                     eUserCreate
         , Database.delete <$> eUserDelete
         ]
+
+
+    let env = Env { bDatabaseLoan    = bDatabaseLoan
+                  , bDatabaseUser    = bDatabaseUser
+                  , bDatabaseItem    = bDatabaseItem
+                  , bDatabaseToken   = bDatabaseToken
+                  , bSelectionToken  = bTokenSelection
+                  , bDatabaseHistory = bDatabaseHistory
+                  , bDatabaseTab     = bDatabaseTab
+                  , bSelectionTab    = bTabSelection
+                  }
 
     notDone <- UI.string "Ikke færdig"
 
@@ -249,10 +251,7 @@ setup window = void $ mdo
 
     onChanges bDatabaseToken $ writeJson datastoreToken
 
-    onChanges bDatabaseExport $ \db -> do
-        let items = Database.elems db
-        let csv   = Csv.encodeDefaultOrderedByName items
-        liftIO $ BS.writeFile exportFile (toStrict csv)
+    onChanges bDatabaseExport $ writeCsv exportFile 
 
     onChanges bTabSelection $ writeJson dataTabSelectionFile
 

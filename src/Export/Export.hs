@@ -30,7 +30,7 @@ import qualified Env
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
-    -> m (Element, Event (Database Item))
+    -> m (Element, Event [Item])
 setup window = mdo
     bDatabaseItem   <- asks Env.bDatabaseItem
 
@@ -51,4 +51,4 @@ setup window = mdo
     -- Events and behaviors
     let eExport = UI.click exportBtn
 
-    return (elem, bDatabaseItem <@ eExport)
+    return (elem,elems <$> bDatabaseItem <@ eExport)
