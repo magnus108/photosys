@@ -22,26 +22,30 @@ import           Database
 
 import qualified Data.List                     as List
 import           Control.Bool
+import           Monad
+import           Env                            ( Env )
+import qualified Env
 
 
 setup
-    :: Window
-    -> Behavior (Database Loan)
-    -> Behavior (Database User)
-    -> Behavior (Database Item)
-    -> Behavior (Database Token)
-    -> Behavior (Maybe DatabaseKey)
-    -> UI (Element, Event DatabaseKey)
-setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelectionToken = mdo
+    :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => Window
+    -> m (Element, Event DatabaseKey)
+setup window = mdo
+    bDatabaseLoan   <- asks Env.bDatabaseLoan
+    bDatabaseUser   <- asks Env.bDatabaseUser
+    bDatabaseItem   <- asks Env.bDatabaseItem
+    bDatabaseToken  <- asks Env.bDatabaseToken
+    bSelectionToken <- asks Env.bSelectionToken
 
     -- GUI elements
-    filterItem  <- UI.entry bFilterEntryItem
-    listBoxItem <- UI.listBox bListBoxItems bSelectionItem bDisplayItemName
+    filterItem  <- liftUI $ UI.entry bFilterEntryItem
+    listBoxItem <- liftUI $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
 
-    deleteBtn   <- UI.button #+ [string "Aflever"]
+    deleteBtn <- liftUI $ UI.button #+ [string "Aflever"]
 
     -- GUI layout
-    searchItem <-
+    searchItem <- liftUI $
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Søg"]
@@ -52,7 +56,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
               ]
            ]
 
-    dropdownItem <-
+    dropdownItem <- liftUI $
         UI.div
         #. "field"
         #+ [ UI.div
@@ -67,14 +71,14 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
            ]
 
 
-    deleteBtn' <-
+    deleteBtn' <- liftUI $
         UI.div
         #. "field"
         #+ [UI.div #. "control" #+ [element deleteBtn #. "button"]]
 
 
-    closeBtn <- UI.button #. "modal-close is-large"
-    modal    <-
+    closeBtn <- liftUI $ UI.button #. "modal-close is-large"
+    modal    <- liftUI $ 
         UI.div
             #+ [ UI.div #. "modal-background"
                , UI.div
@@ -83,7 +87,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
                , element closeBtn
                ]
 
-    elem <-
+    elem <- liftUI $ 
         UI.div
         #. "section is-medium"
         #+ [ UI.div
@@ -221,8 +225,8 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
         hasSelectedLoan :: Behavior Bool
         hasSelectedLoan = isJust <$> bSelectedLoan
 
-    element deleteBtn # sink UI.enabled hasSelectedLoan
-    element modal # sink
+    liftUI $ element deleteBtn # sink UI.enabled hasSelectedLoan
+    liftUI $ element modal # sink
         (attr "class")
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 

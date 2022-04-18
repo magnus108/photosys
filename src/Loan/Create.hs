@@ -24,6 +24,10 @@ import           Database
 import qualified Data.List                     as List
 import           Control.Bool
 
+import           Monad
+import           Env                            ( Env )
+import qualified Env
+
 liftA4
     :: Applicative f
     => (a -> b -> c -> d -> e)
@@ -35,26 +39,27 @@ liftA4
 liftA4 f a b c d = f <$> a <*> b <*> c <*> d
 
 setup
-    :: Window
-    -> Behavior (Database Loan)
-    -> Behavior (Database User)
-    -> Behavior (Database Item)
-    -> Behavior (Database Token)
-    -> Behavior (Maybe DatabaseKey)
-    -> UI (Element, Event Loan)
-setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelectionToken = mdo
+    :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => Window
+    -> m (Element, Event Loan)
+setup window = mdo
+    bDatabaseLoan   <- asks Env.bDatabaseLoan
+    bDatabaseUser   <- asks Env.bDatabaseUser
+    bDatabaseItem   <- asks Env.bDatabaseItem
+    bDatabaseToken  <- asks Env.bDatabaseToken
+    bSelectionToken <- asks Env.bSelectionToken
 
     -- GUI elements
-    filterUser  <- UI.entry bFilterEntryUser
-    listBoxUser <- UI.listBox bListBoxUsers bSelectionUser bDisplayUserName
+    filterUser  <- liftUI $ UI.entry bFilterEntryUser
+    listBoxUser <- liftUI $ UI.listBox bListBoxUsers bSelectionUser bDisplayUserName
 
-    filterItem  <- UI.entry bFilterEntryItem
-    listBoxItem <- UI.listBox bListBoxItems bSelectionItem bDisplayItemName
+    filterItem  <- liftUI $ UI.entry bFilterEntryItem
+    listBoxItem <- liftUI $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
 
-    createBtn   <- UI.button #+ [string "Lån"]
+    createBtn   <- liftUI $ UI.button #+ [string "Lån"]
 
     -- GUI layout
-    searchUser  <-
+    searchUser  <- liftUI $
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Søg"]
@@ -65,7 +70,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
               ]
            ]
 
-    dropdownUser <-
+    dropdownUser <- liftUI $
         UI.div
         #. "field"
         #+ [ UI.div
@@ -79,7 +84,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
                 ]
            ]
 
-    searchItem <-
+    searchItem <- liftUI $
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Søg"]
@@ -90,7 +95,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
               ]
            ]
 
-    dropdownItem <-
+    dropdownItem <- liftUI $
         UI.div
         #. "field"
         #+ [ UI.div
@@ -105,14 +110,14 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
            ]
 
 
-    createBtn' <-
+    createBtn' <- liftUI $
         UI.div
         #. "field"
         #+ [UI.div #. "control" #+ [element createBtn #. "button"]]
 
 
-    closeBtn <- UI.button #. "modal-close is-large"
-    modal    <-
+    closeBtn <- liftUI $ UI.button #. "modal-close is-large"
+    modal    <- liftUI $
         UI.div
             #+ [ UI.div #. "modal-background"
                , UI.div
@@ -121,7 +126,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
                , element closeBtn
                ]
 
-    elem <-
+    elem <- liftUI $
         UI.div
         #. "section is-medium"
         #+ [ UI.div
@@ -243,7 +248,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
 
 
 ---------
-    timer <- UI.timer # set UI.interval 1000
+    timer <- liftUI $ UI.timer # set UI.interval 1000
     let eTick = UI.tick timer
 
     (eTime, hTime) <- liftIO $ newEvent
@@ -252,11 +257,11 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
 
     bTimer         <- stepper (Just c) $ Unsafe.head <$> unions [eTime]
 
-    onEvent eTick $ \items -> do
+    liftUI $ onEvent eTick $ \items -> do
         c <- liftIO $ showGregorian . utctDay <$> getCurrentTime
         liftIO $ hTime (Just c)
 
-    UI.start timer
+    liftUI $ UI.start timer
 ---------
 
 
@@ -276,8 +281,8 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
         hasItemSelected = isJust <$> bSelectionItem
 
 
-    element createBtn # sink UI.enabled (hasUserSelected <&&> hasItemSelected)
-    element modal # sink
+    liftUI $ element createBtn # sink UI.enabled (hasUserSelected <&&> hasItemSelected)
+    liftUI $ element modal # sink
         (attr "class")
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 

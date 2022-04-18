@@ -22,33 +22,33 @@ import           Database
 
 import qualified Data.List                     as List
 import           Control.Bool
+import           Monad
+import           Env                            ( Env )
+import qualified Env
 
 
 setup
-    :: Window
-    -> Behavior (Database Loan)
-    -> Behavior (Database User)
-    -> Behavior (Database Item)
-    -> Behavior (Database Token)
-    -> Behavior (Maybe DatabaseKey)
-    -> UI (Element, Event (Database Item))
-setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelectionToken
-    = mdo
-        -- GUI elements
-        exportBtn  <- UI.button #+ [string "Export"]
+    :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => Window
+    -> m (Element, Event (Database Item))
+setup window = mdo
+    bDatabaseItem   <- asks Env.bDatabaseItem
 
-        -- GUI layout
-        exportBtn' <-
-            UI.div
-            #. "field"
-            #+ [UI.div #. "control" #+ [element exportBtn #. "button"]]
+    -- GUI elements
+    exportBtn  <- liftUI $ UI.button #+ [string "Export"]
 
-        elem <-
-            UI.div
-            #. "section is-medium"
-            #+ [UI.div #. "container" #+ [element exportBtn']]
+    -- GUI layout
+    exportBtn' <- liftUI $
+        UI.div
+        #. "field"
+        #+ [UI.div #. "control" #+ [element exportBtn #. "button"]]
 
-        -- Events and behaviors
-        let eExport = UI.click exportBtn
+    elem <- liftUI $
+        UI.div
+        #. "section is-medium"
+        #+ [UI.div #. "container" #+ [element exportBtn']]
 
-        return (elem, bDatabaseItem <@ eExport)
+    -- Events and behaviors
+    let eExport = UI.click exportBtn
+
+    return (elem, bDatabaseItem <@ eExport)

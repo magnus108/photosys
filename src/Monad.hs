@@ -1,7 +1,6 @@
 module Monad
     ( App(..)
     , runApp
-    , MyApp
     )
 where
 
@@ -16,7 +15,6 @@ newtype App env a = App
 instance (MonadUI m) => MonadUI (ReaderT r m) where
     liftUI = lift . liftUI
 
-type MyApp = App Env
 
 runApp :: env -> App env a -> UI a
 runApp env = usingReaderT env . unApp

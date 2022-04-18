@@ -24,24 +24,32 @@ import           Database
 import qualified Data.List                     as List
 import           Control.Bool
 
+import           Monad
+import           Env                            ( Env )
+import qualified Env
+
 
 setup
-    :: Window
-    -> Behavior (Database Loan)
-    -> Behavior (Database User)
-    -> Behavior (Database Item)
-    -> UI Element
-setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
+    :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => Window
+    -> m Element
+setup window = mdo
+    bDatabaseLoan   <- asks Env.bDatabaseLoan
+    bDatabaseUser   <- asks Env.bDatabaseUser
+    bDatabaseItem   <- asks Env.bDatabaseItem
+    bDatabaseToken  <- asks Env.bDatabaseToken
+    bSelectionToken <- asks Env.bSelectionToken
+    bDatabaseHistory <- asks Env.bDatabaseHistory
 
     -- GUI elements
-    filterUser  <- UI.entry bFilterEntryUser
-    listBoxUser <- UI.listBox bListBoxUsers bSelectionUser bDisplayUserName
+    filterUser  <- liftUI $ UI.entry bFilterEntryUser
+    listBoxUser <- liftUI $ UI.listBox bListBoxUsers bSelectionUser bDisplayUserName
 
-    filterItem  <- UI.entry bFilterEntryItem
-    listBoxItem <- UI.listBox bListBoxItems bSelectionItem bDisplayItemName
+    filterItem  <- liftUI $ UI.entry bFilterEntryItem
+    listBoxItem <- liftUI $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
 
     -- GUI layout
-    searchUser  <-
+    searchUser  <- liftUI $
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Søg"]
@@ -52,7 +60,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
               ]
            ]
 
-    dropdownUser <-
+    dropdownUser <- liftUI $ 
         UI.div
         #. "field"
         #+ [ UI.div
@@ -66,7 +74,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
                 ]
            ]
 
-    searchItem <-
+    searchItem <- liftUI $ 
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Søg"]
@@ -77,7 +85,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
               ]
            ]
 
-    dropdownItem <-
+    dropdownItem <- liftUI $ 
         UI.div
         #. "field"
         #+ [ UI.div
@@ -93,17 +101,17 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
 
 
     -- sorta hack
-    infoSerie <- UI.div #+ [string "Serie: ",UI.span # sink child (fmap <$> bDisplayItemSerie <*> bSelectionItem)]
-    infoPrice <- UI.div #+ [string "Pris: ", UI.span # sink child (fmap <$> bDisplayItemPrice <*> bSelectionItem)]
-    infoVendor <- UI.div #+ [string "Forhandler: ", UI.span # sink child (fmap <$> bDisplayItemVendor <*> bSelectionItem)]
+    infoSerie <- liftUI $ UI.div #+ [string "Serie: ",UI.span # sink child (fmap <$> bDisplayItemSerie <*> bSelectionItem)]
+    infoPrice <- liftUI $ UI.div #+ [string "Pris: ", UI.span # sink child (fmap <$> bDisplayItemPrice <*> bSelectionItem)]
+    infoVendor <- liftUI $ UI.div #+ [string "Forhandler: ", UI.span # sink child (fmap <$> bDisplayItemVendor <*> bSelectionItem)]
 
-    infoElem <- UI.div # sink children bInfo
+    infoElem <- liftUI $ UI.div # sink children bInfo
     let info = [infoSerie, infoPrice, infoVendor]
         bInfo = (\b -> if b then info else []) <$> bHasSelectedItem
     -- sorta hack
 
     elem <-
-        UI.div
+        liftUI $ UI.div
         #. "section is-medium"
         #+ [ UI.div
              #. "container"
