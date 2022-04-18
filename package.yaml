@@ -26,8 +26,9 @@ dependencies:
     - hiding (Prelude)
 - name: relude
   mixin:
-    - (Relude as Prelude, Relude.Unsafe, Relude.Extra.Map, Relude.Container.Reexport)
+    - (Relude as Prelude, Relude.Unsafe, Relude.Extra.Bifunctor,Relude.Extra.Map, Relude.Container.Reexport)
 - lens
+- mtl
 - generic-lens
 - threepenny-gui
 - comonad
@@ -47,6 +48,11 @@ default-extensions:
 - DerivingStrategies
 - DeriveGeneric
 - DeriveFunctor
+- GeneralizedNewtypeDeriving
+- DeriveAnyClass
+- MultiParamTypeClasses
+- InstanceSigs
+- FlexibleContexts
 
 library:
   source-dirs: src

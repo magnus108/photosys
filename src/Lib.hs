@@ -3,6 +3,8 @@ module Lib
     ( someFunc
     )
 where
+import Env
+import Monad
 import qualified Data.Text as T
 import           Data.Password.Bcrypt
 import qualified Data.Csv                      as Csv
@@ -63,6 +65,16 @@ someFunc port = do
                            }
         $ setup
 
+
+
+    {-
+readFile :: (FromJSON a) => FilePath -> UI a
+readFile fp = liftIO
+        $   Unsafe.fromJust
+        .   decode
+        .   fromStrict
+        <$> BS.readFile fp :: UI a
+-}
 
 
 setup :: Window -> UI ()
@@ -181,12 +193,9 @@ setup window = void $ mdo
                                bDatabaseTab
                                bTabSelection
 
-    searchNormal <- SearchNormal.setup window
-                                       bDatabaseLoan
-                                       bDatabaseUser
-                                       bDatabaseItem
-                                       bDatabaseToken
-                                       bTokenSelection
+
+    searchNormal <- runApp env $ SearchNormal.setup window
+
 
     (userCreate, eUserCreate) <- UserCreate.setup window
                                                   bDatabaseLoan
@@ -251,6 +260,17 @@ setup window = void $ mdo
         [ Database.create . History <$> eLoanCreate
         , Database.create . History <$> eLoanCreateNormal
         ]
+
+
+    let env = Env
+                { bDatabaseLoan = bDatabaseLoan
+                , bDatabaseUser = bDatabaseUser
+                , bDatabaseItem = bDatabaseItem
+                , bDatabaseToken = bDatabaseToken
+                , bSelectionToken = bTokenSelection
+                }
+
+
     let bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
         bLookupLoan = flip Database.lookup <$> bDatabaseLoan
 

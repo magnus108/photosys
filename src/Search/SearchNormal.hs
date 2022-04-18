@@ -23,25 +23,28 @@ import           Database
 
 import qualified Data.List                     as List
 import           Control.Bool
-
+import           Monad
+import           Env                            ( Env )
+import qualified Env
 
 setup
-    :: Window
-    -> Behavior (Database Loan)
-    -> Behavior (Database User)
-    -> Behavior (Database Item)
-    -> Behavior (Database Token)
-    -> Behavior (Maybe DatabaseKey)
-    -> UI Element
-setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelectionToken = mdo
-
-    -- GUI elements
-    filterItem  <- UI.entry bFilterEntryItem
-    listBoxItem <- UI.listBox bListBoxItems bSelectionItem bDisplayItemName
+    :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => Window
+    -> m Element
+setup win = mdo
+    bDatabaseLoan   <- asks Env.bDatabaseLoan
+    bDatabaseUser   <- asks Env.bDatabaseUser
+    bDatabaseItem   <- asks Env.bDatabaseItem
+    bDatabaseToken  <- asks Env.bDatabaseToken
+    bSelectionToken <- asks Env.bSelectionToken
+    filterItem      <- liftUI $ UI.entry bFilterEntryItem
+    listBoxItem     <- liftUI
+        $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
 
     -- GUI layout
     searchItem <-
-        UI.div
+        liftUI
+        $  UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Søg"]
            , UI.div
@@ -52,7 +55,8 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
            ]
 
     dropdownItem <-
-        UI.div
+        liftUI
+        $  UI.div
         #. "field"
         #+ [ UI.div
              #. "control is-expanded"
@@ -67,26 +71,41 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
 
 
     -- sorta hack
-    infoSerie <- UI.div #+ [string "Serie: ",UI.span # sink child (fmap <$> bDisplayItemSerie <*> bSelectionItem)]
-    infoPrice <- UI.div #+ [string "Pris: ", UI.span # sink child (fmap <$> bDisplayItemPrice <*> bSelectionItem)]
-    infoVendor <- UI.div #+ [string "Forhandler: ", UI.span # sink child (fmap <$> bDisplayItemVendor <*> bSelectionItem)]
+    infoSerie <-
+        liftUI
+        $  UI.div
+        #+ [ string "Serie: "
+           , UI.span
+               # sink child (fmap <$> bDisplayItemSerie <*> bSelectionItem)
+           ]
+    infoPrice <-
+        liftUI
+        $  UI.div
+        #+ [ string "Pris: "
+           , UI.span
+               # sink child (fmap <$> bDisplayItemPrice <*> bSelectionItem)
+           ]
+    infoVendor <-
+        liftUI
+        $  UI.div
+        #+ [ string "Forhandler: "
+           , UI.span
+               # sink child (fmap <$> bDisplayItemVendor <*> bSelectionItem)
+           ]
 
-    infoElem <- UI.div # sink children bInfo
-    let info = [infoSerie, infoPrice, infoVendor]
+    infoElem <- liftUI $ UI.div # sink children bInfo
+    let info  = [infoSerie, infoPrice, infoVendor]
         bInfo = (\b -> if b then info else []) <$> bHasSelectedItem
     -- sorta hack
 
     elem <-
-        UI.div
+        liftUI
+        $  UI.div
         #. "section is-medium"
         #+ [ UI.div
              #. "container"
-             #+ [ element searchItem
-                , element dropdownItem
-                , element infoElem
-                ]
+             #+ [element searchItem, element dropdownItem, element infoElem]
            ]
-
 
     -- Events and behaviors
     bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
@@ -142,7 +161,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
 
         bShowItemSerie :: Behavior (DatabaseKey -> String)
         bShowItemSerie = (maybe "" Item.serie .) <$> bLookupItem
-        bDisplayItemSerie:: Behavior (DatabaseKey -> UI Element)
+        bDisplayItemSerie :: Behavior (DatabaseKey -> UI Element)
         bDisplayItemSerie = (UI.string .) <$> bShowItemSerie
 
         bShowItemPrice :: Behavior (DatabaseKey -> String)
@@ -153,7 +172,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
         bShowItemVendor :: Behavior (DatabaseKey -> String)
         bShowItemVendor = (maybe "" Item.vendor .) <$> bLookupItem
         bDisplayItemVendor :: Behavior (DatabaseKey -> UI Element)
-        bDisplayItemVendor= (UI.string .) <$> bShowItemVendor
+        bDisplayItemVendor = (UI.string .) <$> bShowItemVendor
 
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
         bDisplayUserName = (UI.string .) <$> bShowUser
@@ -228,10 +247,13 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
                 <*> bDatabaseLoan
 
     let bHasSelectedItem :: Behavior Bool
-        bHasSelectedItem = (\x xs -> case x of
-                                       Nothing -> False
-                                       Just y -> List.elem y xs
-                           ) <$> bSelectionItem <*> bListBoxItems
+        bHasSelectedItem =
+            (\x xs -> case x of
+                    Nothing -> False
+                    Just y  -> List.elem y xs
+                )
+                <$> bSelectionItem
+                <*> bListBoxItems
 
 
         bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
@@ -247,7 +269,6 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
         hasSelectedLoan = isJust <$> bSelectedLoan
 
     return elem
-
 
 child = mkWriteAttr $ \i x -> void $ do
     return x # set children [] #+ (catMaybes [i])
