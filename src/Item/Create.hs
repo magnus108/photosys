@@ -19,22 +19,30 @@ import           Database
 import qualified Data.List                     as List
 import           Control.Bool
 
+import           Monad
+import           Env                            ( Env )
+import qualified Env
+
 
 setup
-    :: Window
-    -> Behavior (Database Loan)
-    -> Behavior (Database User)
-    -> Behavior (Database Item)
-    -> UI (Element, Event Item)
-setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
+    :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => Window
+    -> m (Element, Event Item)
+setup window = mdo
+    bDatabaseLoan                      <- asks Env.bDatabaseLoan
+    bDatabaseUser                      <- asks Env.bDatabaseUser
+    bDatabaseItem                      <- asks Env.bDatabaseItem
+    bDatabaseToken                     <- asks Env.bDatabaseToken
+    bSelectionToken                    <- asks Env.bSelectionToken
+    bDatabaseHistory                   <- asks Env.bDatabaseHistory
+
 
     -- GUI elements
-
-    createBtn <- UI.button #+ [string "Opret"]
-    ((elemName, elemCode, elemSerie, elemPrice, elemVendor), tItem) <- dataItem bItem
+    createBtn <- liftUI $ UI.button #+ [string "Opret"]
+    ((elemName, elemCode, elemSerie, elemPrice, elemVendor), tItem) <- liftUI $ dataItem bItem
 
     -- GUI layout
-    dataName  <-
+    dataName  <- liftUI $
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Name"]
@@ -45,7 +53,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
               ]
            ]
 
-    dataCode <-
+    dataCode <- liftUI $
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Code"]
@@ -56,7 +64,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
               ]
            ]
 
-    dataSerie <-
+    dataSerie <- liftUI $
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Serie"]
@@ -67,7 +75,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
               ]
            ]
 
-    dataPrice <-
+    dataPrice <- liftUI $
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Pris"]
@@ -78,7 +86,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
               ]
            ]
 
-    dataVendor <-
+    dataVendor <- liftUI $
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Forhandler"]
@@ -90,14 +98,14 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
            ]
 
 
-    createBtn' <-
+    createBtn' <- liftUI $
         UI.div
         #. "field"
         #+ [UI.div #. "control" #+ [element createBtn #. "button"]]
 
 
-    closeBtn <- UI.button #. "modal-close is-large"
-    modal    <-
+    closeBtn <- liftUI $ UI.button #. "modal-close is-large"
+    modal    <- liftUI $ 
         UI.div
             #+ [ UI.div #. "modal-background"
                , UI.div
@@ -106,7 +114,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
                , element closeBtn
                ]
 
-    elem <-
+    elem <- liftUI $ 
         UI.div
         #. "section is-medium"
         #+ [ UI.div
@@ -137,9 +145,9 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         ]
 
     let bNotEmpty = isJust <$> bItem
-    element createBtn # sink UI.enabled bNotEmpty
+    liftUI $ element createBtn # sink UI.enabled bNotEmpty
 
-    element modal # sink
+    liftUI $ element modal # sink
         (attr "class")
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 

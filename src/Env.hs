@@ -10,6 +10,8 @@ import           User                           ( User )
 import qualified User
 import           Item                           ( Item )
 import qualified Item
+import           Tab                            ( Tab )
+import qualified Tab
 import           History                        ( History )
 import qualified History
 import           Database                       ( Database
@@ -23,4 +25,6 @@ data Env = Env
     , bDatabaseToken :: Behavior (Database Token)
     , bSelectionToken :: Behavior (Maybe DatabaseKey)
     , bDatabaseHistory :: Behavior (Database History)
+    , bDatabaseTab :: Behavior (Database Tab)
+    , bSelectionTab :: Behavior (Maybe DatabaseKey)
     }

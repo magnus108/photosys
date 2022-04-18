@@ -20,21 +20,23 @@ import qualified Data.List                     as List
 import           Control.Bool
 import qualified Checkbox
 
+import           Monad
+import           Env                            ( Env )
+import qualified Env
+
 
 setup
-    :: Window
-    -> Behavior (Database Loan)
-    -> Behavior (Database User)
-    -> Behavior (Database Item)
-    -> UI (Element, Event User)
-setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
+    :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => Window
+    -> m (Element, Event User)
+setup window = mdo
 
     -- GUI elements
-    ((elemName, elemPassword, elemAdmin), tUser) <- dataItem bUser
-    createBtn <- UI.button #+ [string "Opret"]
+    ((elemName, elemPassword, elemAdmin), tUser) <- liftUI $ dataItem bUser
+    createBtn <- liftUI $ UI.button #+ [string "Opret"]
 
     -- GUI layout
-    dataName  <-
+    dataName  <- liftUI $
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Name"]
@@ -45,7 +47,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
               ]
            ]
 
-    dataPassword <-
+    dataPassword <- liftUI $
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Password"]
@@ -54,21 +56,21 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
            #+ [element elemPassword #. "input" # set UI.type_ "password"]
            ]
 
-    dataAdmin <-
+    dataAdmin <- liftUI $
         UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Admin"]
            , UI.div #. "control" #+ [element elemAdmin #. "checkbox"]
            ]
 
-    createBtn' <-
+    createBtn' <- liftUI $
         UI.div
         #. "field"
         #+ [UI.div #. "control" #+ [element createBtn #. "button"]]
 
 
-    closeBtn <- UI.button #. "modal-close is-large"
-    modal    <-
+    closeBtn <- liftUI $ UI.button #. "modal-close is-large"
+    modal    <- liftUI $
         UI.div
             #+ [ UI.div #. "modal-background"
                , UI.div
@@ -77,7 +79,7 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
                , element closeBtn
                ]
 
-    elem <-
+    elem <- liftUI $
         UI.div
         #. "section is-medium"
         #+ [ UI.div
@@ -89,7 +91,6 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
                 , element modal
                 ]
            ]
-
 
     -- Events and behaviors
     let eCreate = UI.click createBtn
@@ -104,9 +105,9 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem = mdo
         [Just <$> eUserIn, Just emptyUser <$ eCreate]
 
     let bNotEmpty = isJust <$> bUser
-    element createBtn # sink UI.enabled bNotEmpty
+    liftUI $ element createBtn # sink UI.enabled bNotEmpty
 
-    element modal # sink
+    liftUI $ element modal # sink
         (attr "class")
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 

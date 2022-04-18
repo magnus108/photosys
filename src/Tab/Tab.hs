@@ -16,7 +16,7 @@ import           User                           ( User )
 import qualified User
 import           Item                           ( Item )
 import qualified Item
-import           Tab                           ( Tab )
+import           Tab                            ( Tab )
 import qualified Tab
 
 import qualified Relude.Unsafe                 as Unsafe
@@ -27,36 +27,56 @@ import qualified Data.List                     as List
 import           Control.Bool
 
 
+import           Monad
+import           Env                            ( Env )
+import qualified Env
+
+
 setup
-    :: Window
-    -> Behavior (Database Loan)
-    -> Behavior (Database User)
-    -> Behavior (Database Item)
-    -> Behavior (Database Token)
-    -> Behavior (Maybe DatabaseKey)
-    -> Behavior (Database Tab)
-    -> Behavior (Maybe DatabaseKey)
-    -> UI (Element, Tidings (Maybe DatabaseKey), Event Token)
-setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelectionToken bDatabaseTab bSelectionTab
-    = mdo
+    :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => Window
+    -> m (Element, Tidings (Maybe DatabaseKey), Event Token)
+setup window = mdo
+    bDatabaseLoan        <- asks Env.bDatabaseLoan
+    bDatabaseUser        <- asks Env.bDatabaseUser
+    bDatabaseItem        <- asks Env.bDatabaseItem
+    bDatabaseToken       <- asks Env.bDatabaseToken
+    bSelectionToken      <- asks Env.bSelectionToken
+    bDatabaseHistory     <- asks Env.bDatabaseHistory
+    bDatabaseTab         <- asks Env.bDatabaseTab
+    bSelectionTab        <- asks Env.bSelectionTab
 
     -- GUI elements
-    (bListBox, tListBox) <- MenuBox.listBox bListBoxItems bSelectionTab bDisplayTab
-    logoutBtn                          <- UI.button #+ [string "Log ud"]
+    (bListBox, tListBox) <- liftUI
+        $ MenuBox.listBox bListBoxItems bSelectionTab bDisplayTab
+    logoutBtn   <- liftUI $ UI.button #+ [string "Log ud"]
 
     -- GUI layout
-    currentUser <- UI.div #. "navbar-item" #+ [UI.span #. "tag is-danger is-large" # sink text bSelectedUserName ]
-    list              <- UI.div #. "navbar-brand" # sink (items currentUser) bListBox
+    currentUser <-
+        liftUI
+        $  UI.div
+        #. "navbar-item"
+        #+ [UI.span #. "tag is-danger is-large" # sink text bSelectedUserName]
+    list <-
+        liftUI $ UI.div #. "navbar-brand" # sink (items currentUser) bListBox
 
     elem <-
-        UI.mkElement "nav"
+        liftUI
+        $  UI.mkElement "nav"
         #. "navbar is-primary is-spaced"
         #+ [ UI.div
              #. "container"
              #+ [ element list
                 , UI.div
                 #. "navbar-menu"
-                #+ [UI.div #. "navbar-start", UI.div #. "navbar-end" #+ [UI.div #. "navbar-item" #+ [element logoutBtn #. "button"]]]
+                #+ [ UI.div #. "navbar-start"
+                   , UI.div
+                   #. "navbar-end"
+                   #+ [ UI.div
+                        #. "navbar-item"
+                        #+ [element logoutBtn #. "button"]
+                      ]
+                   ]
                 ]
            ]
 
@@ -98,10 +118,10 @@ setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelection
         bSelectedUser = (=<<) <$> bLookupUser <*> bSelectedTokenId
 
         bSelectedUserName :: Behavior String
-        bSelectedUserName = (maybe "" User.name ) <$> bSelectedUser
+        bSelectedUserName = (maybe "" User.name) <$> bSelectedUser
 
         bSelectedAdmin :: Behavior Bool
-        bSelectedAdmin = (maybe False User.admin ) <$> bSelectedUser
+        bSelectedAdmin = (maybe False User.admin) <$> bSelectedUser
 
         bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
         bLookupToken = flip lookup <$> bDatabaseToken

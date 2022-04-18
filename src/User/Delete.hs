@@ -23,178 +23,185 @@ import           Database
 import qualified Data.List                     as List
 import           Control.Bool
 
+import           Monad
+import           Env                            ( Env )
+import qualified Env
+
 
 setup
-    :: Window
-    -> Behavior (Database Loan)
-    -> Behavior (Database User)
-    -> Behavior (Database Item)
-    -> Behavior (Database Token)
-    -> Behavior (Maybe DatabaseKey)
-    -> UI (Element, Event DatabaseKey)
-setup window bDatabaseLoan bDatabaseUser bDatabaseItem bDatabaseToken bSelectionToken
-    = mdo
+    :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => Window
+    -> m (Element, Event DatabaseKey)
+setup window = mdo
+    bDatabaseLoan                      <- asks Env.bDatabaseLoan
+    bDatabaseUser                      <- asks Env.bDatabaseUser
+    bDatabaseItem                      <- asks Env.bDatabaseItem
+    bDatabaseToken                     <- asks Env.bDatabaseToken
+    bSelectionToken                    <- asks Env.bSelectionToken
+    bDatabaseHistory                   <- asks Env.bDatabaseHistory
+
 
     -- GUI elements
-        filterUser  <- UI.entry bFilterEntryUser
-        listBoxUser <- UI.listBox bListBoxUsers bSelectionUser bDisplayUserName
+    filterUser  <- liftUI $ UI.entry bFilterEntryUser
+    listBoxUser <- liftUI $ UI.listBox bListBoxUsers bSelectionUser bDisplayUserName
 
-        deleteBtn   <- UI.button #+ [string "Slet"]
+    deleteBtn   <- liftUI $ UI.button #+ [string "Slet"]
 
-        -- GUI layout
-        searchUser  <-
-            UI.div
-            #. "field"
-            #+ [ UI.label #. "label" #+ [string "Søg"]
-               , UI.div
-               #. "control"
-               #+ [ element filterUser #. "input" # set (attr "placeholder")
-                                                        "Fx Anders Andersen"
-                  ]
-               ]
+    -- GUI layout
+    searchUser  <- liftUI $
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "Søg"]
+            , UI.div
+            #. "control"
+            #+ [ element filterUser #. "input" # set (attr "placeholder")
+                                                    "Fx Anders Andersen"
+                ]
+            ]
 
-        dropdownUser <-
-            UI.div
-            #. "field"
-            #+ [ UI.div
-                 #. "control is-expanded"
-                 #+ [ UI.div
-                      #. "select is-multiple is-fullwidth"
-                      #+ [ element listBoxUser # set (attr "size") "5" # set
-                               (attr "multiple")
-                               ""
-                         ]
-                    ]
-               ]
-
-
-        deleteBtn' <-
-            UI.div
-            #. "field"
-            #+ [UI.div #. "control" #+ [element deleteBtn #. "button"]]
-
-
-        closeBtn <- UI.button #. "modal-close is-large"
-
-        modal    <-
-            UI.div
-                #+ [ UI.div #. "modal-background"
-                   , UI.div
-                   #. "modal-content"
-                   #+ [UI.div #. "box" #+ [string "Sletning godkendt"]]
-                   , element closeBtn
-                   ]
-
-        elem <-
-            UI.div
-            #. "section is-medium"
-            #+ [ UI.div
-                 #. "container"
-                 #+ [ element searchUser
-                    , element dropdownUser
-                    , element deleteBtn'
-                    , element modal
-                    ]
-               ]
-
-
-        -- Events and behaviors
-        bFilterEntryUser <- stepper "" . rumors $ UI.userText filterUser
-
-
-        let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
-            isInfixOf needle haystack =
-                any (isPrefixOf needle) (tails haystack)
-
-        let tFilterUser = isInfixOf <$> UI.userText filterUser
-            bFilterUser = facts tFilterUser
-            eFilterUser = rumors tFilterUser
-
-        let eSelectionUser = rumors $ UI.userSelection listBoxUser
-            eDelete        = UI.click deleteBtn
-            eClose         = UI.click closeBtn
-
-
-        bActiveModal <- stepper False $ Unsafe.head <$> unions
-            [True <$ eDelete, False <$ eClose]
-
-        bSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
-            [ eSelectionUser
-            , Nothing <$ eDelete
-            , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
-            <$> bSelectionUser
-            <*> bShowDataUser
-            <@> eFilterUser
+    dropdownUser <- liftUI $
+        UI.div
+        #. "field"
+        #+ [ UI.div
+                #. "control is-expanded"
+                #+ [ UI.div
+                    #. "select is-multiple is-fullwidth"
+                    #+ [ element listBoxUser # set (attr "size") "5" # set
+                            (attr "multiple")
+                            ""
+                        ]
+                ]
             ]
 
 
-        let bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
-            bLookupLoan = flip lookup <$> bDatabaseLoan
-
-            bLookupUser :: Behavior (DatabaseKey -> Maybe User)
-            bLookupUser = flip lookup <$> bDatabaseUser
-
-            bShowDataUser :: Behavior (DatabaseKey -> String)
-            bShowDataUser = (maybe "" User.name .) <$> bLookupUser
-
-            bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
-            bDisplayUserName = (UI.string .) <$> bShowDataUser
-
-            bLoanUser :: Behavior (DatabaseKey -> Maybe Int)
-            bLoanUser = (fmap Loan.user .) <$> bLookupLoan
-
-            bListBoxUsers :: Behavior [DatabaseKey]
-            bListBoxUsers =
-                (\p q show f ->
-                        filter (f . Just)  . filter (flip List.notElem q) . filter (p . show) . keys
-                    )
-                    <$> bFilterUser
-                    <*> bUsersWithLoan
-                    <*> bShowDataUser
-                    <*> isSelectedCurrentUser'
-                    <*> bDatabaseUser
-
-            bSelectionDataUser :: Behavior (Maybe User)
-            bSelectionDataUser = (=<<) <$> bLookupUser <*> bSelectionUser
+    deleteBtn' <- liftUI $
+        UI.div
+        #. "field"
+        #+ [UI.div #. "control" #+ [element deleteBtn #. "button"]]
 
 
-            bUsersWithLoan :: Behavior [DatabaseKey]
-            bUsersWithLoan =
-                (\f -> catMaybes . fmap f . keys)
-                    <$> bLoanUser
-                    <*> bDatabaseLoan
+    closeBtn <- liftUI $ UI.button #. "modal-close is-large"
+
+    modal    <- liftUI $
+        UI.div
+            #+ [ UI.div #. "modal-background"
+                , UI.div
+                #. "modal-content"
+                #+ [UI.div #. "box" #+ [string "Sletning godkendt"]]
+                , element closeBtn
+                ]
+
+    elem <- liftUI $
+        UI.div
+        #. "section is-medium"
+        #+ [ UI.div
+                #. "container"
+                #+ [ element searchUser
+                , element dropdownUser
+                , element deleteBtn'
+                , element modal
+                ]
+            ]
 
 
-        let bHasSelectedUser :: Behavior Bool
-            bHasSelectedUser =
-                (\x xs -> case x of
-                        Nothing -> False
-                        Just y  -> List.elem y xs
-                    )
-                    <$> bSelectionUser
-                    <*> bListBoxUsers
+    -- Events and behaviors
+    bFilterEntryUser <- stepper "" . rumors $ UI.userText filterUser
 
-            bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
-            bLookupToken = flip lookup <$> bDatabaseToken
 
-            bSelectedToken :: Behavior (Maybe Token)
-            bSelectedToken = (=<<) <$> bLookupToken <*> bSelectionToken
+    let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
+        isInfixOf needle haystack =
+            any (isPrefixOf needle) (tails haystack)
 
-            bSelectedTokenId :: Behavior (Maybe Int)
-            bSelectedTokenId = chainedTo Token.tokenId <$> bSelectedToken
+    let tFilterUser = isInfixOf <$> UI.userText filterUser
+        bFilterUser = facts tFilterUser
+        eFilterUser = rumors tFilterUser
 
-            isSelectedCurrentUser' :: Behavior (Maybe Int -> Bool)
-            isSelectedCurrentUser' =
-                (/=) <$> bSelectedTokenId
+    let eSelectionUser = rumors $ UI.userSelection listBoxUser
+        eDelete        = UI.click deleteBtn
+        eClose         = UI.click closeBtn
 
-            isSelectedCurrentUser :: Behavior Bool
-            isSelectedCurrentUser =
-                (/=) <$> bSelectedTokenId <*> bSelectionUser
 
-        element deleteBtn
-            # sink UI.enabled (bHasSelectedUser <&&> isSelectedCurrentUser)
-        element modal # sink
-            (attr "class")
-            ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
+    bActiveModal <- stepper False $ Unsafe.head <$> unions
+        [True <$ eDelete, False <$ eClose]
 
-        return (elem, filterJust $ bSelectionUser <@ eDelete)
+    bSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
+        [ eSelectionUser
+        , Nothing <$ eDelete
+        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
+        <$> bSelectionUser
+        <*> bShowDataUser
+        <@> eFilterUser
+        ]
+
+
+    let bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
+        bLookupLoan = flip lookup <$> bDatabaseLoan
+
+        bLookupUser :: Behavior (DatabaseKey -> Maybe User)
+        bLookupUser = flip lookup <$> bDatabaseUser
+
+        bShowDataUser :: Behavior (DatabaseKey -> String)
+        bShowDataUser = (maybe "" User.name .) <$> bLookupUser
+
+        bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
+        bDisplayUserName = (UI.string .) <$> bShowDataUser
+
+        bLoanUser :: Behavior (DatabaseKey -> Maybe Int)
+        bLoanUser = (fmap Loan.user .) <$> bLookupLoan
+
+        bListBoxUsers :: Behavior [DatabaseKey]
+        bListBoxUsers =
+            (\p q show f ->
+                    filter (f . Just)  . filter (flip List.notElem q) . filter (p . show) . keys
+                )
+                <$> bFilterUser
+                <*> bUsersWithLoan
+                <*> bShowDataUser
+                <*> isSelectedCurrentUser'
+                <*> bDatabaseUser
+
+        bSelectionDataUser :: Behavior (Maybe User)
+        bSelectionDataUser = (=<<) <$> bLookupUser <*> bSelectionUser
+
+
+        bUsersWithLoan :: Behavior [DatabaseKey]
+        bUsersWithLoan =
+            (\f -> catMaybes . fmap f . keys)
+                <$> bLoanUser
+                <*> bDatabaseLoan
+
+
+    let bHasSelectedUser :: Behavior Bool
+        bHasSelectedUser =
+            (\x xs -> case x of
+                    Nothing -> False
+                    Just y  -> List.elem y xs
+                )
+                <$> bSelectionUser
+                <*> bListBoxUsers
+
+        bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
+        bLookupToken = flip lookup <$> bDatabaseToken
+
+        bSelectedToken :: Behavior (Maybe Token)
+        bSelectedToken = (=<<) <$> bLookupToken <*> bSelectionToken
+
+        bSelectedTokenId :: Behavior (Maybe Int)
+        bSelectedTokenId = chainedTo Token.tokenId <$> bSelectedToken
+
+        isSelectedCurrentUser' :: Behavior (Maybe Int -> Bool)
+        isSelectedCurrentUser' =
+            (/=) <$> bSelectedTokenId
+
+        isSelectedCurrentUser :: Behavior Bool
+        isSelectedCurrentUser =
+            (/=) <$> bSelectedTokenId <*> bSelectionUser
+
+    liftUI $ element deleteBtn
+        # sink UI.enabled (bHasSelectedUser <&&> isSelectedCurrentUser)
+
+    liftUI $ element modal # sink
+        (attr "class")
+        ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
+
+    return (elem, filterJust $ bSelectionUser <@ eDelete)

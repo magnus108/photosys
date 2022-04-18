@@ -79,6 +79,7 @@ writeJson fp items = liftIO $ BS.writeFile fp $ toStrict $ encode items
 
 setup :: Window -> UI ()
 setup window = void $ mdo
+
     let dataTabSelectionFile = "data/tabSelection.json"
     let datastoreLoan        = "data/loan.json"
     let datastoreUser        = "data/user.json"
@@ -96,64 +97,21 @@ setup window = void $ mdo
     databaseLoan <- readJson datastoreLoan :: UI (Database Loan)
     databaseHistory <- readJson datastoreHistory :: UI (Database History)
 
-
-    (eUserCreate', hUserCreate') <- liftIO $ newEvent
-
-    notDone <- UI.string "Ikke færdig"
-
-
     (export, eExport) <- runApp env $ Export.setup window
-
     (loanCreate, eLoanCreate) <- runApp env $ LoanCreate.setup window
     (loanDelete, eLoanDelete) <- runApp env $ LoanDelete.setup window
-
     (loanCreateNormal, eLoanCreateNormal) <- runApp env
         $ LoanCreateNormal.setup window
     (loanDeleteNormal, eLoanDeleteNormal) <- runApp env
         $ LoanDeleteNormal.setup window
-
-    history                <- runApp env $ History.setup window
-
-    search                 <- runApp env $ Search.setup window
-
-
-    (tabs, tTabs, eLogout) <- Tab.setup window
-                                        bDatabaseLoan
-                                        bDatabaseUser
-                                        bDatabaseItem
-                                        bDatabaseToken
-                                        bTokenSelection
-                                        bDatabaseTab
-                                        bTabSelection
-
-
-    searchNormal              <- runApp env $ SearchNormal.setup window
-
-
-    (userCreate, eUserCreate) <- UserCreate.setup window
-                                                  bDatabaseLoan
-                                                  bDatabaseUser
-                                                  bDatabaseItem
-
-    (userDelete, eUserDelete) <- UserDelete.setup window
-                                                  bDatabaseLoan
-                                                  bDatabaseUser
-                                                  bDatabaseItem
-                                                  bDatabaseToken
-                                                  bTokenSelection
-
-
-    (itemCreate, eItemCreate) <- ItemCreate.setup window
-                                                  bDatabaseLoan
-                                                  bDatabaseUser
-                                                  bDatabaseItem
-
-    (itemDelete, eItemDelete) <- ItemDelete.setup window
-                                                  bDatabaseLoan
-                                                  bDatabaseUser
-                                                  bDatabaseItem
-
-
+    history                     <- runApp env $ History.setup window
+    search                      <- runApp env $ Search.setup window
+    (tabs, tTabs, eLogout)      <- runApp env $ Tab.setup window
+    searchNormal                <- runApp env $ SearchNormal.setup window
+    (userCreate , eUserCreate ) <- runApp env $ UserCreate.setup window
+    (userDelete , eUserDelete ) <- runApp env $ UserDelete.setup window
+    (itemCreate , eItemCreate ) <- runApp env $ ItemCreate.setup window
+    (itemDelete , eItemDelete ) <- runApp env $ ItemDelete.setup window
     (tokenCreate, eTokenCreate) <- runApp env $ TokenCreate.setup window
 
 
@@ -171,6 +129,7 @@ setup window = void $ mdo
 
 
     bTokenSelection <- stepper (Just 0) UI.never
+
     bDatabaseToken  <- accumB databaseToken $ concatenate <$> unions
         [ filterJust $ Database.update' <$> bTokenSelection <@> eTokenCreate
         , filterJust $ Database.update' <$> bTokenSelection <@> eLogout
@@ -183,6 +142,7 @@ setup window = void $ mdo
         <$> bSelectedAdmin
         <@  eTokenCreate
         ]
+
     bDatabaseTab    <- accumB databaseTab $ concatenate <$> unions []
 
 
@@ -202,6 +162,8 @@ setup window = void $ mdo
                   , bDatabaseToken   = bDatabaseToken
                   , bSelectionToken  = bTokenSelection
                   , bDatabaseHistory = bDatabaseHistory
+                  , bDatabaseTab     = bDatabaseTab
+                  , bSelectionTab    = bTabSelection
                   }
 
 
@@ -210,7 +172,21 @@ setup window = void $ mdo
 
 
     bDatabaseUser <- accumB databaseUser $ concatenate <$> unions
-        [Database.create <$> eUserCreate', Database.delete <$> eUserDelete]
+        [ Database.create
+            <$> unsafeMapIO
+                    (\x -> do
+                        let password = mkPassword $ T.pack $ User.password x
+                        passHash <- hashPassword password
+                        return $ User.User
+                            (User.name x)
+                            (T.unpack $ unPasswordHash passHash)
+                            (User.admin x)
+                    )
+                    eUserCreate
+        , Database.delete <$> eUserDelete
+        ]
+
+    notDone <- UI.string "Ikke færdig"
 
     let display y isAdmin x = if y
             then case (x, isAdmin) of
@@ -255,21 +231,13 @@ setup window = void $ mdo
 
     let bGui = display <$> bHasToken <*> bSelectedAdmin
 
-
     content <- UI.div
         # sink children (maybe [tokenCreate] <$> bGui <*> bTabSelection)
 
+
+
+
     getBody window #+ [element content]
-
-
-    onEvent eUserCreate $ \x -> void $ liftIO $ do
-        let password = mkPassword $ T.pack $ User.password x
-        passHash <- hashPassword password
-        hUserCreate'
-            (User.User (User.name x)
-                       (T.unpack $ unPasswordHash passHash)
-                       (User.admin x)
-            )
 
     onChanges bDatabaseHistory $ writeJson datastoreHistory
 
