@@ -66,7 +66,7 @@ someFunc port = do
                            , jsStatic                   = Just "static"
                            , jsCustomHTML               = Just "index.html"
                            }
-        $ setup
+        $ setup2
 
 
 
@@ -80,8 +80,14 @@ writeCsv :: (MonadIO m, Csv.DefaultOrdered a, Csv.ToNamedRecord a) => FilePath -
 writeCsv fp items = liftIO $ BS.writeFile fp $ toStrict $ Csv.encodeDefaultOrderedByName items
 
 
-setup :: Window -> UI ()
-setup window = void $ mdo
+
+setup2 :: Window -> UI ()
+setup2 window = void $ mdo
+    env <- runApp env $ setup window
+    return () 
+
+setup :: forall m. (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m) => Window -> m Env
+setup window = mdo
 
     let dataTabSelectionFile = "data/tabSelection.json"
     let datastoreLoan        = "data/loan.json"
@@ -92,30 +98,28 @@ setup window = void $ mdo
     let datastoreHistory     = "data/history.json"
     let exportFile           = "data/export.csv"
 
-    tabSelectionFile <- readJson dataTabSelectionFile :: UI (Maybe Int)
-    databaseUser <- readJson datastoreUser :: UI (Database User)
-    databaseToken <- readJson datastoreToken :: UI (Database Token)
-    databaseTab <- readJson datastoreTab :: UI (Database Tab)
-    databaseItem <- readJson datastoreItem :: UI (Database Item)
-    databaseLoan <- readJson datastoreLoan :: UI (Database Loan)
-    databaseHistory <- readJson datastoreHistory :: UI (Database History)
+    tabSelectionFile <- readJson dataTabSelectionFile :: m (Maybe Int)
+    databaseUser <- readJson datastoreUser :: m (Database User)
+    databaseToken <- readJson datastoreToken :: m (Database Token)
+    databaseTab <- readJson datastoreTab :: m (Database Tab)
+    databaseItem <- readJson datastoreItem :: m (Database Item)
+    databaseLoan <- readJson datastoreLoan :: m (Database Loan)
+    databaseHistory <- readJson datastoreHistory :: m (Database History)
 
-    (export, eExport) <- runApp env $ Export.setup window
-    (loanCreate, eLoanCreate) <- runApp env $ LoanCreate.setup window
-    (loanDelete, eLoanDelete) <- runApp env $ LoanDelete.setup window
-    (loanCreateNormal, eLoanCreateNormal) <- runApp env
-        $ LoanCreateNormal.setup window
-    (loanDeleteNormal, eLoanDeleteNormal) <- runApp env
-        $ LoanDeleteNormal.setup window
-    history                     <- runApp env $ History.setup window
-    search                      <- runApp env $ Search.setup window
-    (tabs, tTabs, eLogout)      <- runApp env $ Tab.setup window
-    searchNormal                <- runApp env $ SearchNormal.setup window
-    (userCreate , eUserCreate ) <- runApp env $ UserCreate.setup window
-    (userDelete , eUserDelete ) <- runApp env $ UserDelete.setup window
-    (itemCreate , eItemCreate ) <- runApp env $ ItemCreate.setup window
-    (itemDelete , eItemDelete ) <- runApp env $ ItemDelete.setup window
-    (tokenCreate, eTokenCreate) <- runApp env $ TokenCreate.setup window
+    (export, eExport) <- Export.setup window
+    (loanCreate, eLoanCreate) <- LoanCreate.setup window
+    (loanDelete, eLoanDelete) <- LoanDelete.setup window
+    (loanCreateNormal, eLoanCreateNormal) <- LoanCreateNormal.setup window
+    (loanDeleteNormal, eLoanDeleteNormal) <- LoanDeleteNormal.setup window
+    history                     <- History.setup window
+    search                      <- Search.setup window
+    (tabs, tTabs, eLogout)      <- Tab.setup window
+    searchNormal                <- SearchNormal.setup window
+    (userCreate , eUserCreate ) <- UserCreate.setup window
+    (userDelete , eUserDelete ) <- UserDelete.setup window
+    (itemCreate , eItemCreate ) <- ItemCreate.setup window
+    (itemDelete , eItemDelete ) <- ItemDelete.setup window
+    (tokenCreate, eTokenCreate) <- TokenCreate.setup window
 
 
     let eTabs = rumors tTabs
@@ -131,13 +135,6 @@ setup window = void $ mdo
         [Database.create <$> eItemCreate, Database.delete <$> eItemDelete]
 
 
-    bTokenSelection <- stepper (Just 0) UI.never
-
-    bDatabaseToken  <- accumB databaseToken $ concatenate <$> unions
-        [ filterJust $ Database.update' <$> bTokenSelection <@> eTokenCreate
-        , filterJust $ Database.update' <$> bTokenSelection <@> eLogout
-        ]
-
     bTabSelection <- stepper tabSelectionFile $ Unsafe.head <$> unions
         [ eTabs
         , Nothing <$ eLogout
@@ -148,9 +145,7 @@ setup window = void $ mdo
 
     bDatabaseTab    <- accumB databaseTab $ concatenate <$> unions []
 
-
     bDatabaseExport <- stepper [] $ Unsafe.head <$> unions [eExport]
-
 
     bDatabaseHistory <- accumB databaseHistory $ concatenate <$> unions
         [ Database.create . History <$> eLoanCreate
@@ -160,7 +155,6 @@ setup window = void $ mdo
 
     let bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
         bLookupLoan = flip Database.lookup <$> bDatabaseLoan
-
 
     bDatabaseUser <- accumB databaseUser $ concatenate <$> unions
         [ Database.create
@@ -178,6 +172,14 @@ setup window = void $ mdo
         ]
 
 
+    bTokenSelection <- stepper (Just 0) UI.never
+
+    bDatabaseToken  <- accumB databaseToken $ concatenate <$> unions
+        [ filterJust $ Database.update' <$> bTokenSelection <@> eTokenCreate
+        , filterJust $ Database.update' <$> bTokenSelection <@> eLogout
+        ]
+
+
     let env = Env { bDatabaseLoan    = bDatabaseLoan
                   , bDatabaseUser    = bDatabaseUser
                   , bDatabaseItem    = bDatabaseItem
@@ -188,7 +190,7 @@ setup window = void $ mdo
                   , bSelectionTab    = bTabSelection
                   }
 
-    notDone <- UI.string "Ikke færdig"
+    notDone <- liftUI $ UI.string "Ikke færdig"
 
     let display y isAdmin x = if y
             then case (x, isAdmin) of
@@ -233,25 +235,24 @@ setup window = void $ mdo
 
     let bGui = display <$> bHasToken <*> bSelectedAdmin
 
-    content <- UI.div
+    content <- liftUI $ UI.div
         # sink children (maybe [tokenCreate] <$> bGui <*> bTabSelection)
 
 
+    liftUI $ getBody window #+ [element content]
 
+    liftUI $ onChanges bDatabaseHistory $ writeJson datastoreHistory
 
-    getBody window #+ [element content]
+    liftUI $ onChanges bDatabaseLoan $ writeJson datastoreLoan
 
-    onChanges bDatabaseHistory $ writeJson datastoreHistory
+    liftUI $ onChanges bDatabaseUser $ writeJson datastoreUser
 
-    onChanges bDatabaseLoan $ writeJson datastoreLoan
+    liftUI $ onChanges bDatabaseItem $ writeJson datastoreItem
 
-    onChanges bDatabaseUser $ writeJson datastoreUser
+    liftUI $ onChanges bDatabaseToken $ writeJson datastoreToken
 
-    onChanges bDatabaseItem $ writeJson datastoreItem
+    liftUI $ onChanges bDatabaseExport $ writeCsv exportFile
 
-    onChanges bDatabaseToken $ writeJson datastoreToken
+    liftUI $ onChanges bTabSelection $ writeJson dataTabSelectionFile
 
-    onChanges bDatabaseExport $ writeCsv exportFile 
-
-    onChanges bTabSelection $ writeJson dataTabSelectionFile
-
+    return env

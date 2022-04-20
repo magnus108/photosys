@@ -68,6 +68,7 @@ library
       MultiParamTypeClasses
       InstanceSigs
       FlexibleContexts
+      ScopedTypeVariables
   build-depends:
       aeson
     , base >=4.7 && <5
@@ -107,6 +108,7 @@ executable photosys-exe
       MultiParamTypeClasses
       InstanceSigs
       FlexibleContexts
+      ScopedTypeVariables
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
@@ -149,6 +151,7 @@ test-suite photosys-test
       MultiParamTypeClasses
       InstanceSigs
       FlexibleContexts
+      ScopedTypeVariables
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson

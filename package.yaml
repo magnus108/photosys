@@ -53,6 +53,7 @@ default-extensions:
 - MultiParamTypeClasses
 - InstanceSigs
 - FlexibleContexts
+- ScopedTypeVariables
 
 library:
   source-dirs: src

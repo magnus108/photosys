@@ -1,6 +1,7 @@
 {-# LANGUAGE RecursiveDo #-}
 module Token.Create where
 
+import           Data.Time
 import qualified Data.Text                     as T
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
@@ -125,7 +126,24 @@ setup window = mdo
         UI.enabled
         (bDisplayItem <&&> (not <$> bHasToken))
 
-    return (elem, maybe Token.NoToken Token.Token <$> bUser <@ eCreate)
+---------
+    timer <- liftUI $ UI.timer # set UI.interval 1000
+    let eTick = UI.tick timer
+
+    (eTime, hTime) <- liftIO $ newEvent
+
+    c              <- liftIO $ getCurrentTime
+
+    bTimer         <- stepper (show c) $ Unsafe.head <$> unions [eTime]
+
+    liftUI $ onEvent eTick $ \items -> do
+        c <- liftIO $ getCurrentTime
+        liftIO $ hTime (show c)
+
+    liftUI $ UI.start timer
+---------
+
+    return (elem, maybe (const Token.NoToken) Token.Token <$> bUser <*> bTimer <@ eCreate)
 
 
 emptyLogin :: Login
