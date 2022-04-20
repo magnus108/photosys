@@ -32,11 +32,6 @@ setup
     => Window
     -> m Element
 setup win = mdo
-    bDatabaseLoan   <- asks Env.bDatabaseLoan
-    bDatabaseUser   <- asks Env.bDatabaseUser
-    bDatabaseItem   <- asks Env.bDatabaseItem
-    bDatabaseToken  <- asks Env.bDatabaseToken
-    bSelectionToken <- asks Env.bSelectionToken
     filterItem      <- liftUI $ UI.entry bFilterEntryItem
     listBoxItem     <- liftUI
         $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
@@ -130,6 +125,11 @@ setup win = mdo
         <*> bShowItem
         <@> eFilterItem
         ]
+    bDatabaseLoan   <- asks Env.bDatabaseLoan
+    bDatabaseUser   <- asks Env.bDatabaseUser
+    bDatabaseItem   <- asks Env.bDatabaseItem
+    bDatabaseToken  <- asks Env.bDatabaseToken
+    bSelectionToken <- asks Env.bSelectionToken
 
 
     let bLookupUser :: Behavior (DatabaseKey -> Maybe User)

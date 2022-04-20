@@ -29,13 +29,6 @@ setup
     => Window
     -> m (Element, Event Item)
 setup window = mdo
-    bDatabaseLoan                      <- asks Env.bDatabaseLoan
-    bDatabaseUser                      <- asks Env.bDatabaseUser
-    bDatabaseItem                      <- asks Env.bDatabaseItem
-    bDatabaseToken                     <- asks Env.bDatabaseToken
-    bSelectionToken                    <- asks Env.bSelectionToken
-    bDatabaseHistory                   <- asks Env.bDatabaseHistory
-
 
     -- GUI elements
     createBtn <- liftUI $ UI.button #+ [string "Opret"]
@@ -143,6 +136,14 @@ setup window = mdo
         [ Just <$> eItemIn
         , Just emptyItem <$ eCreate
         ]
+
+    bDatabaseLoan                      <- asks Env.bDatabaseLoan
+    bDatabaseUser                      <- asks Env.bDatabaseUser
+    bDatabaseItem                      <- asks Env.bDatabaseItem
+    bDatabaseToken                     <- asks Env.bDatabaseToken
+    bSelectionToken                    <- asks Env.bSelectionToken
+    bDatabaseHistory                   <- asks Env.bDatabaseHistory
+
 
     let bNotEmpty = isJust <$> bItem
     liftUI $ element createBtn # sink UI.enabled bNotEmpty

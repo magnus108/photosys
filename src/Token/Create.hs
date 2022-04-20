@@ -36,12 +36,6 @@ setup
     => Window
     -> m (Element, Event Token)
 setup window = mdo
-    bDatabaseLoan                      <- asks Env.bDatabaseLoan
-    bDatabaseUser                      <- asks Env.bDatabaseUser
-    bDatabaseItem                      <- asks Env.bDatabaseItem
-    bDatabaseToken                     <- asks Env.bDatabaseToken
-    bSelectionToken                    <- asks Env.bSelectionToken
-    bDatabaseHistory                   <- asks Env.bDatabaseHistory
 
     -- GUI elements
     ((elemName, elemPassword), tLogin) <- liftUI $ dataItem bLogin
@@ -87,6 +81,12 @@ setup window = mdo
     bLogin <- stepper Nothing $ Unsafe.head <$> unions
         [Just <$> eLoginIn, Just emptyLogin <$ eCreate]
 
+    bDatabaseLoan                      <- asks Env.bDatabaseLoan
+    bDatabaseUser                      <- asks Env.bDatabaseUser
+    bDatabaseItem                      <- asks Env.bDatabaseItem
+    bDatabaseToken                     <- asks Env.bDatabaseToken
+    bSelectionToken                    <- asks Env.bSelectionToken
+    bDatabaseHistory                   <- asks Env.bDatabaseHistory
 
     let compareLogin :: Login -> User -> Bool
         compareLogin y x =

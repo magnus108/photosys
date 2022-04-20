@@ -34,13 +34,6 @@ setup
     => Window
     -> m Element
 setup window = mdo
-    bDatabaseLoan   <- asks Env.bDatabaseLoan
-    bDatabaseUser   <- asks Env.bDatabaseUser
-    bDatabaseItem   <- asks Env.bDatabaseItem
-    bDatabaseToken  <- asks Env.bDatabaseToken
-    bSelectionToken <- asks Env.bSelectionToken
-    bDatabaseHistory <- asks Env.bDatabaseHistory
-
     -- GUI elements
     filterUser  <- liftUI $ UI.entry bFilterEntryUser
     listBoxUser <- liftUI $ UI.listBox bListBoxUsers bSelectionUser bDisplayUserName
@@ -128,7 +121,7 @@ setup window = mdo
     bFilterEntryUser <- stepper "" . rumors $ UI.userText filterUser
     bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
 
-
+    
     let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
         isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
 
@@ -160,6 +153,15 @@ setup window = mdo
         <*> bShowItem
         <@> eFilterItem
         ]
+
+    bDatabaseLoan   <- asks Env.bDatabaseLoan
+    bDatabaseUser   <- asks Env.bDatabaseUser
+    bDatabaseItem   <- asks Env.bDatabaseItem
+    bDatabaseToken  <- asks Env.bDatabaseToken
+    bSelectionToken <- asks Env.bSelectionToken
+    bDatabaseHistory <- asks Env.bDatabaseHistory
+
+
 
 
     let bLookupUser :: Behavior (DatabaseKey -> Maybe User)

@@ -30,11 +30,6 @@ setup
     => Window
     -> m (Element, Event DatabaseKey)
 setup window = mdo
-    bDatabaseLoan   <- asks Env.bDatabaseLoan
-    bDatabaseUser   <- asks Env.bDatabaseUser
-    bDatabaseItem   <- asks Env.bDatabaseItem
-    bDatabaseToken  <- asks Env.bDatabaseToken
-    bSelectionToken <- asks Env.bSelectionToken
 
     -- GUI elements
     filterUser  <- liftUI $  UI.entry bFilterEntryUser
@@ -171,6 +166,12 @@ setup window = mdo
         <@> eFilterItem
         , Nothing <$ eDelete
         ]
+
+    bDatabaseLoan   <- asks Env.bDatabaseLoan
+    bDatabaseUser   <- asks Env.bDatabaseUser
+    bDatabaseItem   <- asks Env.bDatabaseItem
+    bDatabaseToken  <- asks Env.bDatabaseToken
+    bSelectionToken <- asks Env.bSelectionToken
 
 
     let bLookupUser :: Behavior (DatabaseKey -> Maybe User)

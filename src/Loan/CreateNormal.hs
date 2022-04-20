@@ -41,11 +41,6 @@ setup
     => Window
     -> m (Element, Event Loan)
 setup window = mdo
-    bDatabaseLoan   <- asks Env.bDatabaseLoan
-    bDatabaseUser   <- asks Env.bDatabaseUser
-    bDatabaseItem   <- asks Env.bDatabaseItem
-    bDatabaseToken  <- asks Env.bDatabaseToken
-    bSelectionToken <- asks Env.bSelectionToken
 
 
     -- GUI elements
@@ -113,7 +108,6 @@ setup window = mdo
     -- Events and behaviors
     bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
 
-
     let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
         isInfixOf needle haystack =
             any (isPrefixOf needle) (tails haystack)
@@ -139,6 +133,13 @@ setup window = mdo
         <@> eFilterItem
         , Nothing <$ eCreate
         ]
+
+    bDatabaseLoan   <- asks Env.bDatabaseLoan
+    bDatabaseUser   <- asks Env.bDatabaseUser
+    bDatabaseItem   <- asks Env.bDatabaseItem
+    bDatabaseToken  <- asks Env.bDatabaseToken
+    bSelectionToken <- asks Env.bSelectionToken
+
 
 
     let bLookupUser :: Behavior (DatabaseKey -> Maybe User)

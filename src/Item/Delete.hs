@@ -31,13 +31,6 @@ setup
     => Window
     -> m (Element, Event DatabaseKey)
 setup window = mdo
-    bDatabaseLoan                      <- asks Env.bDatabaseLoan
-    bDatabaseUser                      <- asks Env.bDatabaseUser
-    bDatabaseItem                      <- asks Env.bDatabaseItem
-    bDatabaseToken                     <- asks Env.bDatabaseToken
-    bSelectionToken                    <- asks Env.bSelectionToken
-    bDatabaseHistory                   <- asks Env.bDatabaseHistory
-
     -- GUI elements
     filterItem  <- liftUI $ UI.entry bFilterEntryItem
     listBoxItem <- liftUI $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
@@ -129,6 +122,13 @@ setup window = mdo
         <@> eFilterItem
         ]
 
+
+    bDatabaseLoan                      <- asks Env.bDatabaseLoan
+    bDatabaseUser                      <- asks Env.bDatabaseUser
+    bDatabaseItem                      <- asks Env.bDatabaseItem
+    bDatabaseToken                     <- asks Env.bDatabaseToken
+    bSelectionToken                    <- asks Env.bSelectionToken
+    bDatabaseHistory                   <- asks Env.bDatabaseHistory
 
     let bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
         bLookupLoan = flip lookup <$> bDatabaseLoan
