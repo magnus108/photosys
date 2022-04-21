@@ -31,6 +31,7 @@ library
       Export.Export
       History
       History.History
+      History.HistoryNormal
       Item
       Item.Create
       Item.Delete

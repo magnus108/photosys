@@ -23,6 +23,7 @@ import           Database                       ( Database
 import qualified Database
 
 import qualified MenuBox
+import qualified History.HistoryNormal         as HistoryNormal
 import qualified History.History               as History
 import qualified Export.Export                 as Export
 import qualified Tab.Tab                       as Tab
@@ -76,17 +77,26 @@ readJson fp = liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile fp
 writeJson :: (MonadIO m, ToJSON a) => FilePath -> a -> m ()
 writeJson fp items = liftIO $ BS.writeFile fp $ toStrict $ encode items
 
-writeCsv :: (MonadIO m, Csv.DefaultOrdered a, Csv.ToNamedRecord a) => FilePath -> [a] -> m ()
-writeCsv fp items = liftIO $ BS.writeFile fp $ toStrict $ Csv.encodeDefaultOrderedByName items
+writeCsv
+    :: (MonadIO m, Csv.DefaultOrdered a, Csv.ToNamedRecord a)
+    => FilePath
+    -> [a]
+    -> m ()
+writeCsv fp items =
+    liftIO $ BS.writeFile fp $ toStrict $ Csv.encodeDefaultOrderedByName items
 
 
 
 setup2 :: Window -> UI ()
 setup2 window = void $ mdo
     env <- runApp env $ setup window
-    return () 
+    return ()
 
-setup :: forall m. (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m) => Window -> m Env
+setup
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => Window
+    -> m Env
 setup window = mdo
 
     let dataTabSelectionFile = "data/tabSelection.json"
@@ -111,14 +121,15 @@ setup window = mdo
     (loanDelete, eLoanDelete) <- LoanDelete.setup window
     (loanCreateNormal, eLoanCreateNormal) <- LoanCreateNormal.setup window
     (loanDeleteNormal, eLoanDeleteNormal) <- LoanDeleteNormal.setup window
-    history                     <- History.setup window
-    search                      <- Search.setup window
-    (tabs, tTabs, eLogout)      <- Tab.setup window
-    searchNormal                <- SearchNormal.setup window
-    (userCreate , eUserCreate ) <- UserCreate.setup window
-    (userDelete , eUserDelete ) <- UserDelete.setup window
-    (itemCreate , eItemCreate ) <- ItemCreate.setup window
-    (itemDelete , eItemDelete ) <- ItemDelete.setup window
+    history <- History.setup window
+    historyNormal <- HistoryNormal.setup window
+    search <- Search.setup window
+    (tabs, tTabs, eLogout) <- Tab.setup window
+    searchNormal <- SearchNormal.setup window
+    (userCreate, eUserCreate) <- UserCreate.setup window
+    (userDelete, eUserDelete) <- UserDelete.setup window
+    (itemCreate, eItemCreate) <- ItemCreate.setup window
+    (itemDelete, eItemDelete) <- ItemDelete.setup window
     (tokenCreate, eTokenCreate) <- TokenCreate.setup window
 
 
@@ -143,9 +154,9 @@ setup window = mdo
         <@  eTokenCreate
         ]
 
-    bDatabaseTab    <- accumB databaseTab $ concatenate <$> unions []
+    bDatabaseTab     <- accumB databaseTab $ concatenate <$> unions []
 
-    bDatabaseExport <- stepper [] $ Unsafe.head <$> unions [eExport]
+    bDatabaseExport  <- stepper [] $ Unsafe.head <$> unions [eExport]
 
     bDatabaseHistory <- accumB databaseHistory $ concatenate <$> unions
         [ Database.create . History <$> eLoanCreate
@@ -206,8 +217,9 @@ setup window = mdo
                 (9 , False) -> [tabs, searchNormal]
                 (10, True ) -> [tabs, export]
                 (11, True ) -> [tabs, history]
-                (12, True ) -> [tabs, notDone]
+                (12, False) -> [tabs, historyNormal]
                 (13, True ) -> [tabs, notDone]
+                (14, True ) -> [tabs, notDone]
                 (0 , False) -> [tabs, loanDeleteNormal]--- Hack
             else [tokenCreate]
 
@@ -235,8 +247,9 @@ setup window = mdo
 
     let bGui = display <$> bHasToken <*> bSelectedAdmin
 
-    content <- liftUI $ UI.div
-        # sink children (maybe [tokenCreate] <$> bGui <*> bTabSelection)
+    content <- liftUI $ UI.div # sink
+        children
+        (maybe [tokenCreate] <$> bGui <*> bTabSelection)
 
 
     liftUI $ getBody window #+ [element content]
