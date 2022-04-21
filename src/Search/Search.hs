@@ -27,6 +27,7 @@ import           Control.Bool
 import           Monad
 import           Env                            ( Env )
 import qualified Env
+import qualified Counter
 
 
 setup
@@ -37,9 +38,11 @@ setup window = mdo
     -- GUI elements
     filterUser  <- liftUI $ UI.entry bFilterEntryUser
     listBoxUser <- liftUI $ UI.listBox bListBoxUsers bSelectionUser bDisplayUserName
+    counterUser <- liftUI $ Counter.counter bListBoxUsers
 
     filterItem  <- liftUI $ UI.entry bFilterEntryItem
     listBoxItem <- liftUI $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
+    counterItem <- liftUI $ Counter.counter bListBoxItems
 
     -- GUI layout
     searchUser  <- liftUI $
@@ -110,8 +113,10 @@ setup window = mdo
              #. "container"
              #+ [ element searchUser
                 , element dropdownUser
+                , element counterUser
                 , element searchItem
                 , element dropdownItem
+                , element counterItem
                 , element infoElem
                 ]
            ]

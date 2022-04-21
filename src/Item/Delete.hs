@@ -24,6 +24,7 @@ import           Control.Bool
 import           Monad
 import           Env                            ( Env )
 import qualified Env
+import qualified Counter
 
 
 setup
@@ -34,6 +35,7 @@ setup window = mdo
     -- GUI elements
     filterItem  <- liftUI $ UI.entry bFilterEntryItem
     listBoxItem <- liftUI $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
+    counter <- liftUI $ Counter.counter bListBoxItems
 
     deleteBtn   <- liftUI $ UI.button #+ [string "Slet"]
 
@@ -89,6 +91,7 @@ setup window = mdo
              #+ [ element searchItem
                 , element dropdownItem
                 , element deleteBtn'
+                , element counter
                 , element modal
                 ]
            ]

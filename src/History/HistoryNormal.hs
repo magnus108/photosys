@@ -30,6 +30,7 @@ import           Control.Bool
 import           Monad
 import           Env                            ( Env )
 import qualified Env
+import qualified Counter
 
 
 setup
@@ -45,11 +46,13 @@ setup window
     listBoxItem <- liftUI $ UI.listBox bListBoxItems''
                                 bSelectionItem
                                 bDisplayItemName
+    counterItem <- liftUI $ Counter.counter bListBoxItems''
 
     filterLoan  <- liftUI $ UI.entry bFilterEntryLoan
     listBoxLoan <- liftUI $ UI.listBox bListBoxLoans''
                                 bSelectionLoan
                                 bDisplayLoanTime
+    counterLoan <- liftUI $ Counter.counter bListBoxLoans''
 
     -- GUI layout
     searchItem <- liftUI $
@@ -110,8 +113,10 @@ setup window
                 #+ [ 
                  element searchItem
                 , element dropdownItem
+                , element counterItem
                 , element searchLoan
                 , element dropdownLoan
+                , element counterLoan
                 ]
             ]
 

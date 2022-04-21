@@ -26,6 +26,7 @@ import           Control.Bool
 import           Monad
 import           Env                            ( Env )
 import qualified Env
+import qualified Counter
 
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
@@ -35,6 +36,8 @@ setup win = mdo
     filterItem      <- liftUI $ UI.entry bFilterEntryItem
     listBoxItem     <- liftUI
         $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
+    counter     <- liftUI
+        $ Counter.counter bListBoxItems
 
     -- GUI layout
     searchItem <-
@@ -85,7 +88,7 @@ setup win = mdo
         #. "section is-medium"
         #+ [ UI.div
              #. "container"
-             #+ [element searchItem, element dropdownItem, element infoElem]
+             #+ [element searchItem, element dropdownItem, element counter, element infoElem]
            ]
 
     -- Events and behaviors
