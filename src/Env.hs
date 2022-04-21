@@ -14,6 +14,8 @@ import           Tab                            ( Tab )
 import qualified Tab
 import           History                        ( History )
 import qualified History
+import           HistoryHandin                  ( HistoryHandin )
+import qualified HistoryHandin
 import           Database                       ( Database
                                                 , DatabaseKey
                                                 )
@@ -25,6 +27,7 @@ data Env = Env
     , bDatabaseToken :: !(Behavior (Database Token))
     , bSelectionToken :: !(Behavior (Maybe DatabaseKey))
     , bDatabaseHistory :: !(Behavior (Database History))
+    , bDatabaseHistoryHandin :: !(Behavior (Database HistoryHandin))
     , bDatabaseTab :: !(Behavior (Database Tab))
     , bSelectionTab :: !(Behavior (Maybe DatabaseKey))
     }

@@ -25,6 +25,8 @@ import qualified Database
 import qualified MenuBox
 import qualified History.HistoryNormal         as HistoryNormal
 import qualified History.History               as History
+import qualified History.HistoryHandinNormal   as HistoryHandinNormal
+import qualified History.HistoryHandin         as HistoryHandin
 import qualified Export.Export                 as Export
 import qualified Tab.Tab                       as Tab
 
@@ -45,6 +47,7 @@ import qualified User.Delete                   as UserDelete
 
 import qualified Token.Create                  as TokenCreate
 
+import           HistoryHandin                  ( HistoryHandin(..) )
 import           History                        ( History(..) )
 import           Loan                           ( Loan(..) )
 import           User                           ( User(..) )
@@ -99,38 +102,45 @@ setup
     -> m Env
 setup window = mdo
 
-    let dataTabSelectionFile = "data/tabSelection.json"
-    let datastoreLoan        = "data/loan.json"
-    let datastoreUser        = "data/user.json"
-    let datastoreToken       = "data/token.json"
-    let datastoreTab         = "data/tab.json"
-    let datastoreItem        = "data/item.json"
-    let datastoreHistory     = "data/history.json"
-    let exportFile           = "data/export.csv"
+    let dataTabSelectionFile   = "data/tabSelection.json"
+    let datastoreLoan          = "data/loan.json"
+    let datastoreUser          = "data/user.json"
+    let datastoreToken         = "data/token.json"
+    let datastoreTab           = "data/tab.json"
+    let datastoreItem          = "data/item.json"
+    let datastoreHistory       = "data/history.json"
+    let datastoreHistoryHandIn = "data/historyHandin.json"
+    let exportFile             = "data/export.csv"
 
-    tabSelectionFile <- readJson dataTabSelectionFile :: m (Maybe Int)
-    databaseUser <- readJson datastoreUser :: m (Database User)
-    databaseToken <- readJson datastoreToken :: m (Database Token)
-    databaseTab <- readJson datastoreTab :: m (Database Tab)
-    databaseItem <- readJson datastoreItem :: m (Database Item)
-    databaseLoan <- readJson datastoreLoan :: m (Database Loan)
-    databaseHistory <- readJson datastoreHistory :: m (Database History)
+    tabSelectionFile      <- readJson dataTabSelectionFile :: m (Maybe Int)
+    databaseUser          <- readJson datastoreUser :: m (Database User)
+    databaseToken         <- readJson datastoreToken :: m (Database Token)
+    databaseTab           <- readJson datastoreTab :: m (Database Tab)
+    databaseItem          <- readJson datastoreItem :: m (Database Item)
+    databaseLoan          <- readJson datastoreLoan :: m (Database Loan)
+    databaseHistory       <- readJson datastoreHistory :: m (Database History)
+    databaseHistoryHandin <-
+        readJson datastoreHistoryHandIn :: m (Database HistoryHandin)
 
-    (export, eExport) <- Export.setup window
-    (loanCreate, eLoanCreate) <- LoanCreate.setup window
-    (loanDelete, eLoanDelete) <- LoanDelete.setup window
+    (export          , eExport          ) <- Export.setup window
+    (loanCreate      , eLoanCreate      ) <- LoanCreate.setup window
+    (loanDelete      , eLoanDelete      ) <- LoanDelete.setup window
     (loanCreateNormal, eLoanCreateNormal) <- LoanCreateNormal.setup window
     (loanDeleteNormal, eLoanDeleteNormal) <- LoanDeleteNormal.setup window
-    history <- History.setup window
-    historyNormal <- HistoryNormal.setup window
-    search <- Search.setup window
-    (tabs, tTabs, eLogout) <- Tab.setup window
-    searchNormal <- SearchNormal.setup window
-    (userCreate, eUserCreate) <- UserCreate.setup window
-    (userDelete, eUserDelete) <- UserDelete.setup window
-    (itemCreate, eItemCreate) <- ItemCreate.setup window
-    (itemDelete, eItemDelete) <- ItemDelete.setup window
-    (tokenCreate, eTokenCreate) <- TokenCreate.setup window
+    history                               <- History.setup window
+    historyNormal                         <- HistoryNormal.setup window
+
+    historyHandin                         <- HistoryHandin.setup window
+    historyHandinNormal                   <- HistoryHandinNormal.setup window
+
+    search                                <- Search.setup window
+    (tabs, tTabs, eLogout)                <- Tab.setup window
+    searchNormal                          <- SearchNormal.setup window
+    (userCreate , eUserCreate )           <- UserCreate.setup window
+    (userDelete , eUserDelete )           <- UserDelete.setup window
+    (itemCreate , eItemCreate )           <- ItemCreate.setup window
+    (itemDelete , eItemDelete )           <- ItemDelete.setup window
+    (tokenCreate, eTokenCreate)           <- TokenCreate.setup window
 
 
     let eTabs = rumors tTabs
@@ -164,6 +174,13 @@ setup window = mdo
         ]
 
 
+    bDatabaseHistoryHandin <-
+        accumB databaseHistoryHandin $ concatenate <$> unions
+            [ Database.create . HistoryHandin <$> (  filterJust $ bLookupLoan <@> eLoanDelete)
+            , Database.create . HistoryHandin <$> ( filterJust $ bLookupLoan <@> eLoanDeleteNormal)
+            ]
+
+
     let bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
         bLookupLoan = flip Database.lookup <$> bDatabaseLoan
 
@@ -191,14 +208,15 @@ setup window = mdo
         ]
 
 
-    let env = Env { bDatabaseLoan    = bDatabaseLoan
-                  , bDatabaseUser    = bDatabaseUser
-                  , bDatabaseItem    = bDatabaseItem
-                  , bDatabaseToken   = bDatabaseToken
-                  , bSelectionToken  = bTokenSelection
-                  , bDatabaseHistory = bDatabaseHistory
-                  , bDatabaseTab     = bDatabaseTab
-                  , bSelectionTab    = bTabSelection
+    let env = Env { bDatabaseLoan          = bDatabaseLoan
+                  , bDatabaseUser          = bDatabaseUser
+                  , bDatabaseItem          = bDatabaseItem
+                  , bDatabaseToken         = bDatabaseToken
+                  , bSelectionToken        = bTokenSelection
+                  , bDatabaseHistory       = bDatabaseHistory
+                  , bDatabaseHistoryHandin = bDatabaseHistoryHandin
+                  , bDatabaseTab           = bDatabaseTab
+                  , bSelectionTab          = bTabSelection
                   }
 
     notDone <- liftUI $ UI.string "Ikke færdig"
@@ -218,8 +236,10 @@ setup window = mdo
                 (10, True ) -> [tabs, export]
                 (11, True ) -> [tabs, history]
                 (12, False) -> [tabs, historyNormal]
-                (13, True ) -> [tabs, notDone]
-                (14, True ) -> [tabs, notDone]
+                (13, True ) -> [tabs, historyHandin]
+                (14, False) -> [tabs, historyHandinNormal]
+                (15, True ) -> [tabs, notDone]
+                (16, True ) -> [tabs, notDone]
                 (0 , False) -> [tabs, loanDeleteNormal]--- Hack
             else [tokenCreate]
 
@@ -255,6 +275,8 @@ setup window = mdo
     liftUI $ getBody window #+ [element content]
 
     liftUI $ onChanges bDatabaseHistory $ writeJson datastoreHistory
+
+    liftUI $ onChanges bDatabaseHistoryHandin $ writeJson datastoreHistoryHandIn
 
     liftUI $ onChanges bDatabaseLoan $ writeJson datastoreLoan
 

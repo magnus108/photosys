@@ -32,7 +32,10 @@ library
       Export.Export
       History
       History.History
+      History.HistoryHandin
+      History.HistoryHandinNormal
       History.HistoryNormal
+      HistoryHandin
       Item
       Item.Create
       Item.Delete
