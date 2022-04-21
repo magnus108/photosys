@@ -56,6 +56,7 @@ setup window = mdo
 
     createBtn   <- liftUI $ UI.button #+ [string "Lån"]
 
+    loanInfo <- liftUI $ UI.span
     -- GUI layout
     searchUser  <- liftUI $
         UI.div
@@ -114,13 +115,14 @@ setup window = mdo
         #+ [UI.div #. "control" #+ [element createBtn #. "button"]]
 
 
+
     closeBtn <- liftUI $ UI.button #. "modal-close is-large"
     modal    <- liftUI $
         UI.div
             #+ [ UI.div #. "modal-background"
                , UI.div
                #. "modal-content"
-               #+ [UI.div #. "box" #+ [string "Lån godkendt"]]
+               #+ [UI.div #. "box" #+ [string "Lån godkendt: ", element loanInfo]]
                , element closeBtn
                ]
 
@@ -165,6 +167,9 @@ setup window = mdo
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
         [True <$ eCreate, False <$ eClose]
+
+    bLastLoanItem <- stepper Nothing $ Unsafe.head <$> unions
+        [bSelectionItem <@ eCreate]
 
 
     bSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
@@ -251,6 +256,9 @@ setup window = mdo
         bSelectedTokenId :: Behavior (Maybe Int)
         bSelectedTokenId = chainedTo Token.tokenId <$> bSelectedToken
 
+        bLastLoanItemItem :: Behavior (Maybe Item)
+        bLastLoanItemItem = (=<<) <$> bLookupItem <*> bLastLoanItem
+
 
 ---------
     timer <- liftUI $ UI.timer # set UI.interval 1000
@@ -285,7 +293,7 @@ setup window = mdo
         hasItemSelected :: Behavior Bool
         hasItemSelected = isJust <$> bSelectionItem
 
-
+    liftUI $ element loanInfo # sink text ((maybe "" Item.name) <$> bLastLoanItemItem)
     liftUI $ element createBtn # sink UI.enabled (hasUserSelected <&&> hasItemSelected)
     liftUI $ element modal # sink
         (attr "class")

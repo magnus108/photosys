@@ -51,6 +51,8 @@ setup window = mdo
     counter   <- liftUI $ Counter.counter bListBoxItems
     createBtn   <- liftUI $ UI.button #+ [string "Lån"]
 
+    loanInfo <- liftUI $ UI.span
+
     -- GUI layout
     searchItem  <- liftUI $
         UI.div
@@ -90,7 +92,7 @@ setup window = mdo
             #+ [ UI.div #. "modal-background"
                 , UI.div
                 #. "modal-content"
-                #+ [UI.div #. "box" #+ [string "Lån godkendt"]]
+                #+ [UI.div #. "box" #+ [string "Lån godkendt: ", element loanInfo]]
                 , element closeBtn
                 ]
 
@@ -136,6 +138,9 @@ setup window = mdo
         <@> eFilterItem
         , Nothing <$ eCreate
         ]
+
+    bLastLoanItem <- stepper Nothing $ Unsafe.head <$> unions
+        [bSelectionItem <@ eCreate]
 
     bDatabaseLoan   <- asks Env.bDatabaseLoan
     bDatabaseUser   <- asks Env.bDatabaseUser
@@ -231,8 +236,11 @@ setup window = mdo
 
         hasItemSelected :: Behavior Bool
         hasItemSelected = isJust <$> bSelectionItem
+        bLastLoanItemItem :: Behavior (Maybe Item)
+        bLastLoanItemItem = (=<<) <$> bLookupItem <*> bLastLoanItem
 
 
+    liftUI $ element loanInfo # sink text ((maybe "" Item.name) <$> bLastLoanItemItem)
     liftUI $ element createBtn
         # sink UI.enabled (hasUserSelected <&&> hasItemSelected)
     liftUI $ element modal # sink

@@ -39,6 +39,7 @@ setup window = mdo
 
     deleteBtn <- liftUI $ UI.button #+ [string "Aflever"]
     counter <- liftUI $ Counter.counter bListBoxItems
+    loanInfo <- liftUI $ UI.span
 
     -- GUI layout
     searchItem <- liftUI $
@@ -79,7 +80,7 @@ setup window = mdo
             #+ [ UI.div #. "modal-background"
                , UI.div
                #. "modal-content"
-               #+ [UI.div #. "box" #+ [string "Aflevering godkendt"]]
+               #+ [UI.div #. "box" #+ [string "Aflevering godkendt: ", element loanInfo]]
                , element closeBtn
                ]
 
@@ -115,6 +116,9 @@ setup window = mdo
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
         [True <$ eDelete, False <$ eClose]
+
+    bLastLoanItem <- stepper Nothing $ Unsafe.head <$> unions
+        [bSelectionItem <@ eDelete]
 
 
     bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
@@ -231,6 +235,10 @@ setup window = mdo
 
         hasSelectedLoan :: Behavior Bool
         hasSelectedLoan = isJust <$> bSelectedLoan
+        bLastLoanItemItem :: Behavior (Maybe Item)
+        bLastLoanItemItem = (=<<) <$> bLookupItem <*> bLastLoanItem
+
+    liftUI $ element loanInfo # sink text ((maybe "" Item.name) <$> bLastLoanItemItem)
 
     liftUI $ element deleteBtn # sink UI.enabled hasSelectedLoan
     liftUI $ element modal # sink
