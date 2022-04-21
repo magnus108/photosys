@@ -63,7 +63,7 @@ setup window = mdo
     elem <-
         liftUI
         $  UI.mkElement "nav"
-        #. "navbar is-primary is-spaced"
+        #. "navbar is-dark is-spaced"
         #+ [ UI.div
              #. "container"
              #+ [ element list

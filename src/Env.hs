@@ -19,22 +19,7 @@ import           Database                       ( Database
                                                 )
 
 data Env = Env
-    { logoutBtn :: !Element
-    , export :: !Element
-    , loanCreate :: !Element
-    , loanDelete :: !Element
-    , loanCreateNormal :: !Element
-    , loanDeleteNormal :: !Element
-    , history :: !Element
-    , search :: !Element
-    , tabs :: !Element
-    , searchNormal :: !Element
-    , userCreate :: !Element
-    , userDelete :: !Element
-    , itemCreate :: !Element
-    , itemDelete :: !Element
-    , tokenCreate :: !Element
-    , bDatabaseLoan :: !(Behavior (Database Loan))
+    { bDatabaseLoan :: !(Behavior (Database Loan))
     , bDatabaseUser :: !(Behavior (Database User))
     , bDatabaseItem :: !(Behavior (Database Item))
     , bDatabaseToken :: !(Behavior (Database Token))
