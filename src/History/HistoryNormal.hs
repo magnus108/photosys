@@ -190,7 +190,7 @@ setup window
         bShowUser = (maybe "" User.name .) <$> bLookupUser
 
         bShowItem :: Behavior (DatabaseKey -> String)
-        bShowItem = (maybe "" Item.name .) <$> bLookupItem
+        bShowItem = (maybe "" Item.showItem .) <$> bLookupItem
 
         bShowLoan :: Behavior (DatabaseKey -> String)
         bShowLoan = (maybe "" Loan.timestamp .) <$> bLookupLoan

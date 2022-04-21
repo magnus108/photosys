@@ -101,8 +101,12 @@ setup window = mdo
     infoPrice <- liftUI $ UI.div #+ [string "Pris: ", UI.span # sink child (fmap <$> bDisplayItemPrice <*> bSelectionItem)]
     infoVendor <- liftUI $ UI.div #+ [string "Forhandler: ", UI.span # sink child (fmap <$> bDisplayItemVendor <*> bSelectionItem)]
 
+    infoInvoiceNumber <- liftUI $ UI.div #+ [string "Fatura nr: ",UI.span # sink child (fmap <$> bDisplayItemInvoiceNumber <*> bSelectionItem)]
+    infoDateOfPurchase <- liftUI $ UI.div #+ [string "Købsdato: ", UI.span # sink child (fmap <$> bDisplayItemDateOfPurchase <*> bSelectionItem)]
+    infoNote <- liftUI $ UI.div #+ [string "Note: ", UI.span # sink child (fmap <$> bDisplayItemNote <*> bSelectionItem)]
+
     infoElem <- liftUI $ UI.div # sink children bInfo
-    let info = [infoSerie, infoPrice, infoVendor]
+    let info = [infoSerie, infoPrice, infoVendor, infoInvoiceNumber, infoDateOfPurchase, infoNote]
         bInfo = (\b -> if b then info else []) <$> bHasSelectedItem
     -- sorta hack
 
@@ -205,6 +209,21 @@ setup window = mdo
         bShowItemPrice = (maybe "" Item.price .) <$> bLookupItem
         bDisplayItemPrice :: Behavior (DatabaseKey -> UI Element)
         bDisplayItemPrice = (UI.string .) <$> bShowItemPrice
+
+        bShowItemInvoiceNumber :: Behavior (DatabaseKey -> String)
+        bShowItemInvoiceNumber =  (maybe "" Item.invoiceNumber .) <$> bLookupItem
+        bDisplayItemInvoiceNumber :: Behavior (DatabaseKey -> UI Element)
+        bDisplayItemInvoiceNumber = (UI.string .) <$> bShowItemInvoiceNumber
+        
+        bShowItemDateOfPurchase :: Behavior (DatabaseKey -> String)
+        bShowItemDateOfPurchase =  (maybe "" Item.dateOfPurchase .) <$> bLookupItem
+        bDisplayItemDateOfPurchase :: Behavior (DatabaseKey -> UI Element)
+        bDisplayItemDateOfPurchase = (UI.string .) <$> bShowItemDateOfPurchase
+
+        bShowItemNote :: Behavior (DatabaseKey -> String)
+        bShowItemNote =  (maybe "" Item.note .) <$> bLookupItem
+        bDisplayItemNote :: Behavior (DatabaseKey -> UI Element)
+        bDisplayItemNote = (UI.string .) <$> bShowItemNote
 
         bShowItemVendor :: Behavior (DatabaseKey -> String)
         bShowItemVendor = (maybe "" Item.vendor .) <$> bLookupItem

@@ -148,8 +148,6 @@ setup win = mdo
         bShowItem :: Behavior (DatabaseKey -> String)
         bShowItem = (maybe "" Item.showItem .) <$> bLookupItem
 
-        bShowItem2 :: Behavior (DatabaseKey -> String)
-        bShowItem2 = (maybe "" Item.code .) <$> bLookupItem
 
         bShowItemSerie :: Behavior (DatabaseKey -> String)
         bShowItemSerie = (maybe "" Item.serie .) <$> bLookupItem
@@ -200,7 +198,7 @@ setup win = mdo
                 <$> bFilterItem
                 <*> bItemsWithLoan
                 <*> bSelectionItems
-                <*> bShowItem2
+                <*> bShowItem
                 <*> bDatabaseItem
 
 
