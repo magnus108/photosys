@@ -73,23 +73,9 @@ setup win = mdo
            , UI.span
                # sink child (fmap <$> bDisplayItemSerie <*> bSelectionItem)
            ]
-    infoPrice <-
-        liftUI
-        $  UI.div
-        #+ [ string "Pris: "
-           , UI.span
-               # sink child (fmap <$> bDisplayItemPrice <*> bSelectionItem)
-           ]
-    infoVendor <-
-        liftUI
-        $  UI.div
-        #+ [ string "Forhandler: "
-           , UI.span
-               # sink child (fmap <$> bDisplayItemVendor <*> bSelectionItem)
-           ]
 
     infoElem <- liftUI $ UI.div # sink children bInfo
-    let info  = [infoSerie, infoPrice, infoVendor]
+    let info  = [infoSerie]
         bInfo = (\b -> if b then info else []) <$> bHasSelectedItem
     -- sorta hack
 
