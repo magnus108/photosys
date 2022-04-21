@@ -132,12 +132,12 @@ setup window = mdo
 
     (eTime, hTime) <- liftIO $ newEvent
 
-    c              <- liftIO $ getCurrentTime
+    c              <- liftIO $ getZonedTime
 
     bTimer         <- stepper (show c) $ Unsafe.head <$> unions [eTime]
 
     liftUI $ onEvent eTick $ \items -> do
-        c <- liftIO $ getCurrentTime
+        c <- liftIO $ getZonedTime
         liftIO $ hTime (show c)
 
     liftUI $ UI.start timer

@@ -258,12 +258,12 @@ setup window = mdo
 
     (eTime, hTime) <- liftIO $ newEvent
 
-    c              <- liftIO $ showGregorian . utctDay <$> getCurrentTime
+    c <- liftIO $ (formatTime defaultTimeLocale "%F, %T") <$> getZonedTime
 
     bTimer         <- stepper (Just c) $ Unsafe.head <$> unions [eTime]
 
     liftUI $ onEvent eTick $ \items -> do
-        c <- liftIO $ showGregorian . utctDay <$> getCurrentTime
+        c <- liftIO $ (formatTime defaultTimeLocale "%F, %T") <$> getZonedTime
         liftIO $ hTime (Just c)
 
     liftUI $ UI.start timer
