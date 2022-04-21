@@ -28,12 +28,17 @@ listBox bitems bsel bdisplay = do
     (e :: Event a, h) <- liftIO $ newEvent
 
     let bDisplayButton =
-            (\f x -> do
-                    button <- UI.a #. "navbar-item" #+ [f x]
-                    UI.on UI.click button $ \_ -> liftIO $ h x
-                    return button
+            (\f y x ->
+                if (x `elem` y) then do
+                        button <- UI.a #. "navbar-item is-active" #+ [f x]
+                        UI.on UI.click button $ \_ -> liftIO $ h x
+                        return button
+                else do
+                        button <- UI.a #. "navbar-item" #+ [f x]
+                        UI.on UI.click button $ \_ -> liftIO $ h x
+                        return button
                 )
-                <$> bdisplay
+                <$> bdisplay <*> bsel
 
     let bElems = map <$> bDisplayButton <*> bitems
     let tiding = tidings bsel (Just <$> e)
