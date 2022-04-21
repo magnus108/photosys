@@ -27,6 +27,7 @@ import           Control.Bool
 import           Monad
 import           Env                            ( Env )
 import qualified Env
+import qualified Counter
 
 liftA4
     :: Applicative f
@@ -47,9 +48,11 @@ setup window = mdo
     -- GUI elements
     filterUser  <- liftUI $ UI.entry bFilterEntryUser
     listBoxUser <- liftUI $ UI.listBox bListBoxUsers bSelectionUser bDisplayUserName
+    counterUser <- liftUI $ Counter.counter bListBoxUsers
 
     filterItem  <- liftUI $ UI.entry bFilterEntryItem
     listBoxItem <- liftUI $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
+    counterItem <- liftUI $ Counter.counter bListBoxItems
 
     createBtn   <- liftUI $ UI.button #+ [string "Lån"]
 
@@ -128,9 +131,11 @@ setup window = mdo
              #. "container"
              #+ [ element searchUser
                 , element dropdownUser
+                , element counterUser
                 , element searchItem
                 , element dropdownItem
                 , element createBtn'
+                , element counterItem
                 , element modal
                 ]
            ]

@@ -92,7 +92,7 @@ setup window = mdo
     dataInvoiceNumber <- liftUI $
         UI.div
         #. "field"
-        #+ [ UI.label #. "label" #+ [string "fakture nr."]
+        #+ [ UI.label #. "label" #+ [string "Fakture nr."]
            , UI.div
            #. "control"
            #+ [ element elemInvoiceNumber #. "input"

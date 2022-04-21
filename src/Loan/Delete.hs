@@ -7,6 +7,7 @@ import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
+import qualified Counter
 import           Loan                           ( Loan )
 import qualified Loan
 import           User                           ( User )
@@ -34,9 +35,11 @@ setup window = mdo
     -- GUI elements
     filterUser  <- liftUI $  UI.entry bFilterEntryUser
     listBoxUser <- liftUI $  UI.listBox bListBoxUsers bSelectionUser bDisplayUserName
+    counterUser <- liftUI $ Counter.counter bListBoxUsers
 
     filterItem  <- liftUI $  UI.entry bFilterEntryItem
     listBoxItem <- liftUI $  UI.listBox bListBoxItems bSelectionItem bDisplayItemName
+    counterItem <- liftUI $ Counter.counter bListBoxItems
 
     deleteBtn   <- liftUI $  UI.button #+ [string "Aflever"]
 
@@ -115,9 +118,11 @@ setup window = mdo
              #. "container"
              #+ [ element searchUser
                 , element dropdownUser
+                , element counterUser
                 , element searchItem
                 , element dropdownItem
                 , element deleteBtn'
+                , element counterItem
                 , element modal
                 ]
            ]

@@ -25,6 +25,7 @@ import           Control.Bool
 import           Monad
 import           Env                            ( Env )
 import qualified Env
+import qualified Counter
 
 
 setup
@@ -37,6 +38,7 @@ setup window = mdo
     listBoxItem <- liftUI $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
 
     deleteBtn <- liftUI $ UI.button #+ [string "Aflever"]
+    counter <- liftUI $ Counter.counter bListBoxItems
 
     -- GUI layout
     searchItem <- liftUI $
@@ -81,7 +83,7 @@ setup window = mdo
                , element closeBtn
                ]
 
-    elem <- liftUI $ 
+    elem <- liftUI $
         UI.div
         #. "section is-medium"
         #+ [ UI.div
@@ -89,6 +91,7 @@ setup window = mdo
              #+ [ element searchItem
                 , element dropdownItem
                 , element deleteBtn'
+                , element counter
                 , element modal
                 ]
            ]
@@ -159,6 +162,9 @@ setup window = mdo
         bShowItem :: Behavior (DatabaseKey -> String)
         bShowItem = (maybe "" Item.showItem .) <$> bLookupItem
 
+        bShowItem2 :: Behavior (DatabaseKey -> String)
+        bShowItem2 = (maybe "" Item.code .) <$> bLookupItem
+
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
         bDisplayUserName = (UI.string .) <$> bShowUser
 
@@ -176,7 +182,7 @@ setup window = mdo
                 <$> bFilterItem
                 <*> bItemsWithLoan
                 <*> bSelectionItems
-                <*> bShowItem
+                <*> bShowItem2
                 <*> bDatabaseItem
 
 

@@ -25,6 +25,7 @@ import           Control.Bool
 import           Monad
 import           Env                            ( Env )
 import qualified Env
+import qualified Counter
 
 liftA4
     :: Applicative f
@@ -47,6 +48,7 @@ setup window = mdo
     filterItem  <- liftUI $ UI.entry bFilterEntryItem
     listBoxItem <- liftUI $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
 
+    counter   <- liftUI $ Counter.counter bListBoxItems
     createBtn   <- liftUI $ UI.button #+ [string "Lån"]
 
     -- GUI layout
@@ -100,6 +102,7 @@ setup window = mdo
                 #+ [ element searchItem
                 , element dropdownItem
                 , element createBtn'
+                , element counter
                 , element modal
                 ]
             ]
@@ -163,6 +166,9 @@ setup window = mdo
         bShowItem :: Behavior (DatabaseKey -> String)
         bShowItem = (maybe "" Item.showItem .) <$> bLookupItem
 
+        bShowItem2 :: Behavior (DatabaseKey -> String)
+        bShowItem2 = (maybe "" Item.code .) <$> bLookupItem
+
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
         bDisplayUserName = (UI.string .) <$> bShowUser
 
@@ -182,7 +188,7 @@ setup window = mdo
                 )
                 <$> bFilterItem
                 <*> bItemsWithLoan
-                <*> bShowItem
+                <*> bShowItem2
                 <*> bDatabaseItem
 
         bLookupToken :: Behavior (DatabaseKey -> Maybe Token)

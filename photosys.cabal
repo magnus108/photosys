@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Checkbox
+      Counter
       Database
       Env
       Export.Export
