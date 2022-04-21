@@ -1,9 +1,10 @@
 module Item where
 
-import Data.Aeson
-import qualified Data.Csv as Csv
+import           Data.Aeson
+import qualified Data.Csv                      as Csv
 
-data Item = Item { name :: String, code :: String, serie :: String, price :: String, vendor :: String}
+
+data Item = Item { name :: String, code :: String, serie :: String, price :: String, vendor :: String, invoiceNumber :: String, dateOfPurchase :: String, note :: String }
     deriving stock (Eq, Ord, Show)
     deriving stock (Generic)
 

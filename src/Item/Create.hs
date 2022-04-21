@@ -32,7 +32,7 @@ setup window = mdo
 
     -- GUI elements
     createBtn <- liftUI $ UI.button #+ [string "Opret"]
-    ((elemName, elemCode, elemSerie, elemPrice, elemVendor), tItem) <- liftUI $ dataItem bItem
+    ((elemName, elemCode, elemSerie, elemPrice, elemVendor, elemInvoiceNumber, elemDateOfPurchase, elemNote), tItem) <- liftUI $ dataItem bItem
 
     -- GUI layout
     dataName  <- liftUI $
@@ -89,6 +89,35 @@ setup window = mdo
                                                   "Fx Kamera shoppen"
               ]
            ]
+    dataInvoiceNumber <- liftUI $
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "fakture nr."]
+           , UI.div
+           #. "control"
+           #+ [ element elemInvoiceNumber #. "input"
+              ]
+           ]
+
+    dataDateOfPurchase <- liftUI $
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "Købsdato"]
+           , UI.div
+           #. "control"
+           #+ [ element elemDateOfPurchase #. "input"
+              ]
+           ]
+
+    dataNote <- liftUI $
+        UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string "Note"]
+           , UI.div
+           #. "control"
+           #+ [ element elemNote #. "input"
+              ]
+           ]
 
 
     createBtn' <- liftUI $
@@ -117,6 +146,9 @@ setup window = mdo
                 , element dataSerie
                 , element dataPrice
                 , element dataVendor
+                , element dataInvoiceNumber
+                , element dataDateOfPurchase
+                , element dataNote
                 , element createBtn'
                 , element modal
                 ]
@@ -156,17 +188,20 @@ setup window = mdo
 
 
 emptyItem :: Item
-emptyItem = Item.Item "" "" "" "" ""
+emptyItem = Item.Item "" "" "" "" "" "" "" ""
 
-dataItem :: Behavior (Maybe Item) -> UI ((Element, Element, Element, Element, Element), Tidings Item)
+dataItem :: Behavior (Maybe Item) -> UI ((Element, Element, Element, Element, Element, Element, Element, Element), Tidings Item)
 dataItem bItem = do
     entry1 <- UI.entry $ Item.name . fromMaybe emptyItem <$> bItem
     entry2 <- UI.entry $ Item.code . fromMaybe emptyItem <$> bItem
     entry3 <- UI.entry $ Item.serie . fromMaybe emptyItem <$> bItem
     entry4 <- UI.entry $ Item.price . fromMaybe emptyItem <$> bItem
     entry5 <- UI.entry $ Item.vendor . fromMaybe emptyItem <$> bItem
+    entry6 <- UI.entry $ Item.invoiceNumber . fromMaybe emptyItem <$> bItem
+    entry7 <- UI.entry $ Item.dateOfPurchase . fromMaybe emptyItem <$> bItem
+    entry8 <- UI.entry $ Item.note . fromMaybe emptyItem <$> bItem
 
     return
-        ( (getElement entry1, getElement entry2, getElement entry3, getElement entry4, getElement entry5)
-        , Item.Item <$> UI.userText entry1 <*> UI.userText entry2 <*> UI.userText entry3 <*> UI.userText entry4 <*>  UI.userText entry5
+        ( (getElement entry1, getElement entry2, getElement entry3, getElement entry4, getElement entry5, getElement entry6, getElement entry7, getElement entry8)
+        , Item.Item <$> UI.userText entry1 <*> UI.userText entry2 <*> UI.userText entry3 <*> UI.userText entry4 <*>  UI.userText entry5 <*> UI.userText entry6 <*> UI.userText entry7 <*> UI.userText entry8
         )
