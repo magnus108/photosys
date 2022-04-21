@@ -174,6 +174,9 @@ setup window
         bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
         bLookupLoan = (\x y -> fmap History.loan (lookup y x)) <$> bDatabaseHistory
 
+        bLookupHistory :: Behavior (DatabaseKey -> Maybe History)
+        bLookupHistory = flip lookup <$> bDatabaseHistory
+
         bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
         bLookupItem = flip lookup <$> bDatabaseItem
 
@@ -193,7 +196,7 @@ setup window
         bShowItem = (maybe "" Item.showItem .) <$> bLookupItem
 
         bShowLoan :: Behavior (DatabaseKey -> String)
-        bShowLoan = (maybe "" Loan.timestamp .) <$> bLookupLoan
+        bShowLoan = (maybe "" History.timestamp .) <$> bLookupHistory
 
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
         bDisplayUserName = (UI.string .) <$> bShowUser

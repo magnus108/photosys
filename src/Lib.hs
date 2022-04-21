@@ -3,6 +3,7 @@ module Lib
     ( someFunc
     )
 where
+import           Data.Time
 import           Env
 import           Monad
 import qualified Data.Text                     as T
@@ -164,20 +165,38 @@ setup window = mdo
         <@  eTokenCreate
         ]
 
+
     bDatabaseTab     <- accumB databaseTab $ concatenate <$> unions []
 
     bDatabaseExport  <- stepper [] $ Unsafe.head <$> unions [eExport]
 
-    bDatabaseHistory <- accumB databaseHistory $ concatenate <$> unions
-        [ Database.create . History <$> eLoanCreate
-        , Database.create . History <$> eLoanCreateNormal
-        ]
+---------
+    timer <- liftUI $ UI.timer # set UI.interval 1000
+    let eTick = UI.tick timer
 
+    (eTime, hTime) <- liftIO $ newEvent
+
+    c <- liftIO $ (formatTime defaultTimeLocale "%F, %T") <$> getZonedTime
+
+    bTimer         <- stepper (Just c) $ Unsafe.head <$> unions [eTime]
+
+    liftUI $ onEvent eTick $ \items -> do
+        c <- liftIO $ (formatTime defaultTimeLocale "%F, %T") <$> getZonedTime
+        liftIO $ hTime (Just c)
+
+    liftUI $ UI.start timer
+---------
+
+
+    bDatabaseHistory <- accumB databaseHistory $ concatenate <$> unions
+        [ Database.create <$> (((\x y -> History y (fromMaybe "" x)) <$> bTimer)<@> eLoanCreate)
+        , Database.create <$> (((\x y -> History y (fromMaybe "" x)) <$> bTimer)<@> eLoanCreateNormal)
+        ]
 
     bDatabaseHistoryHandin <-
         accumB databaseHistoryHandin $ concatenate <$> unions
-            [ Database.create . HistoryHandin <$> (  filterJust $ bLookupLoan <@> eLoanDelete)
-            , Database.create . HistoryHandin <$> ( filterJust $ bLookupLoan <@> eLoanDeleteNormal)
+            [ Database.create <$> (((\x y -> HistoryHandin y (fromMaybe "" x)) <$> bTimer)<@> (filterJust $ bLookupLoan <@> eLoanDelete))
+            , Database.create <$> (((\x y -> HistoryHandin y (fromMaybe "" x)) <$> bTimer)<@> (filterJust $ bLookupLoan <@> eLoanDeleteNormal))
             ]
 
 

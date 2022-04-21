@@ -29,16 +29,6 @@ import           Env                            ( Env )
 import qualified Env
 import qualified Counter
 
-liftA4
-    :: Applicative f
-    => (a -> b -> c -> d -> e)
-    -> f a
-    -> f b
-    -> f c
-    -> f d
-    -> f e
-liftA4 f a b c d = f <$> a <*> b <*> c <*> d
-
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
@@ -260,32 +250,13 @@ setup window = mdo
         bLastLoanItemItem = (=<<) <$> bLookupItem <*> bLastLoanItem
 
 
----------
-    timer <- liftUI $ UI.timer # set UI.interval 1000
-    let eTick = UI.tick timer
-
-    (eTime, hTime) <- liftIO $ newEvent
-
-    c <- liftIO $ (formatTime defaultTimeLocale "%F, %T") <$> getZonedTime
-
-    bTimer         <- stepper (Just c) $ Unsafe.head <$> unions [eTime]
-
-    liftUI $ onEvent eTick $ \items -> do
-        c <- liftIO $ (formatTime defaultTimeLocale "%F, %T") <$> getZonedTime
-        liftIO $ hTime (Just c)
-
-    liftUI $ UI.start timer
----------
-
-
 
     let bCreateLoan :: Behavior (Maybe Loan)
         bCreateLoan =
-            liftA4 Loan.Loan
+            liftA3 Loan.Loan
                 <$> bSelectionItem
                 <*> bSelectionUser
                 <*> bSelectedTokenId
-                <*> bTimer
 
         hasUserSelected :: Behavior Bool
         hasUserSelected = isJust <$> bSelectionUser

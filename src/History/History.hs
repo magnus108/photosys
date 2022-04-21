@@ -221,6 +221,9 @@ setup window
         bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
         bLookupItem = flip lookup <$> bDatabaseItem
 
+        bLookupHistory :: Behavior (DatabaseKey -> Maybe History)
+        bLookupHistory = flip lookup <$> bDatabaseHistory
+
         bSelectedUser :: Behavior (Maybe User)
         bSelectedUser = (=<<) <$> bLookupUser <*> bSelectionUser
 
@@ -237,7 +240,7 @@ setup window
         bShowItem = (maybe "" Item.name .) <$> bLookupItem
 
         bShowLoan :: Behavior (DatabaseKey -> String)
-        bShowLoan = (maybe "" Loan.timestamp .) <$> bLookupLoan
+        bShowLoan = (maybe "" History.timestamp .) <$> bLookupHistory
 
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
         bDisplayUserName = (UI.string .) <$> bShowUser

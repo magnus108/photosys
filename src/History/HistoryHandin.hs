@@ -222,6 +222,9 @@ setup window = mdo
             (\x y -> fmap HistoryHandin.loan (lookup y x))
                 <$> bDatabaseHistoryHandin
 
+        bLookupHistoryHandin :: Behavior (DatabaseKey -> Maybe HistoryHandin)
+        bLookupHistoryHandin = flip lookup <$> bDatabaseHistoryHandin
+
         bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
         bLookupItem = flip lookup <$> bDatabaseItem
 
@@ -241,7 +244,7 @@ setup window = mdo
         bShowItem = (maybe "" Item.name .) <$> bLookupItem
 
         bShowLoan :: Behavior (DatabaseKey -> String)
-        bShowLoan = (maybe "" Loan.timestamp .) <$> bLookupLoan
+        bShowLoan = (maybe "" HistoryHandin.timestamp .) <$> bLookupHistoryHandin
 
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
         bDisplayUserName = (UI.string .) <$> bShowUser

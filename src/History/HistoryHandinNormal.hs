@@ -7,6 +7,9 @@ import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
+
+import           HistoryHandin                        ( HistoryHandin )
+import qualified HistoryHandin
 import           History                        ( History )
 import qualified History
 import           Token                          ( Token )
@@ -166,10 +169,14 @@ setup window
     bDatabaseToken  <- asks Env.bDatabaseToken
     bSelectionToken <- asks Env.bSelectionToken
     bDatabaseHistory <- asks Env.bDatabaseHistory
+    bDatabaseHistoryHandin <- asks Env.bDatabaseHistoryHandin
 
 
     let bLookupUser :: Behavior (DatabaseKey -> Maybe User)
         bLookupUser = flip lookup <$> bDatabaseUser
+
+        bLookupHistoryHandin :: Behavior (DatabaseKey -> Maybe HistoryHandin)
+        bLookupHistoryHandin = flip lookup <$> bDatabaseHistoryHandin
 
         bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
         bLookupLoan = (\x y -> fmap History.loan (lookup y x)) <$> bDatabaseHistory
@@ -193,7 +200,7 @@ setup window
         bShowItem = (maybe "" Item.showItem .) <$> bLookupItem
 
         bShowLoan :: Behavior (DatabaseKey -> String)
-        bShowLoan = (maybe "" Loan.timestamp .) <$> bLookupLoan
+        bShowLoan = (maybe "" HistoryHandin.timestamp .) <$> bLookupHistoryHandin 
 
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
         bDisplayUserName = (UI.string .) <$> bShowUser
