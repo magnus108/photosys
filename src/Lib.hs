@@ -123,6 +123,8 @@ setup window = mdo
     databaseHistoryHandin <-
         readJson datastoreHistoryHandIn :: m (Database HistoryHandin)
 
+    (tokenCreate, eTokenCreate)           <- TokenCreate.setup window
+    (tabs, tTabs, eLogout)                <- Tab.setup window
     (export          , eExport          ) <- Export.setup window
     (loanCreate      , eLoanCreate      ) <- LoanCreate.setup window
     (loanDelete      , eLoanDelete      ) <- LoanDelete.setup window
@@ -135,13 +137,11 @@ setup window = mdo
     historyHandinNormal                   <- HistoryHandinNormal.setup window
 
     search                                <- Search.setup window
-    (tabs, tTabs, eLogout)                <- Tab.setup window
     searchNormal                          <- SearchNormal.setup window
     (userCreate , eUserCreate )           <- UserCreate.setup window
     (userDelete , eUserDelete )           <- UserDelete.setup window
     (itemCreate , eItemCreate )           <- ItemCreate.setup window
     (itemDelete , eItemDelete )           <- ItemDelete.setup window
-    (tokenCreate, eTokenCreate)           <- TokenCreate.setup window
 
 
     let eTabs = rumors tTabs

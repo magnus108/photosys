@@ -37,14 +37,6 @@ setup
     => Window
     -> m (Element, Tidings (Maybe DatabaseKey), Event Token)
 setup window = mdo
-    bDatabaseLoan        <- asks Env.bDatabaseLoan
-    bDatabaseUser        <- asks Env.bDatabaseUser
-    bDatabaseItem        <- asks Env.bDatabaseItem
-    bDatabaseToken       <- asks Env.bDatabaseToken
-    bSelectionToken      <- asks Env.bSelectionToken
-    bDatabaseHistory     <- asks Env.bDatabaseHistory
-    bDatabaseTab         <- asks Env.bDatabaseTab
-    bSelectionTab        <- asks Env.bSelectionTab
 
     -- GUI elements
     (bListBox, tListBox) <- liftUI
@@ -82,6 +74,15 @@ setup window = mdo
 
     -- Events and behaviors
     let eLogout = UI.click logoutBtn
+
+    bDatabaseLoan        <- asks Env.bDatabaseLoan
+    bDatabaseUser        <- asks Env.bDatabaseUser
+    bDatabaseItem        <- asks Env.bDatabaseItem
+    bDatabaseToken       <- asks Env.bDatabaseToken
+    bSelectionToken      <- asks Env.bSelectionToken
+    bDatabaseHistory     <- asks Env.bDatabaseHistory
+    bDatabaseTab         <- asks Env.bDatabaseTab
+    bSelectionTab        <- asks Env.bSelectionTab
 
     let bLookupTab :: Behavior (DatabaseKey -> Maybe Tab)
         bLookupTab = flip Database.lookup <$> bDatabaseTab
