@@ -3,7 +3,7 @@ module History where
 import Data.Aeson
 import Loan
 
-data History = History { loan :: Loan , timestamp :: String   }
+data History = History { loan :: Loan , timestamp :: String, adminUser :: Int}
     deriving stock (Eq, Ord, Show)
     deriving stock (Generic)
 

@@ -189,15 +189,16 @@ setup window = mdo
 
 
     bDatabaseHistory <- accumB databaseHistory $ concatenate <$> unions
-        [ Database.create <$> (((\x y -> History y (fromMaybe "" x)) <$> bTimer)<@> eLoanCreate)
-        , Database.create <$> (((\x y -> History y (fromMaybe "" x)) <$> bTimer)<@> eLoanCreateNormal)
+        [ Database.create <$> (((\x z y -> History y (fromMaybe "" x)(fromMaybe 999 z)) <$> bTimer <*> bSelectedTokenId)<@> eLoanCreate)
+        , Database.create <$> (((\x z y -> History y (fromMaybe "" x)(fromMaybe 999 z)) <$> bTimer <*> bSelectedTokenId)<@> eLoanCreateNormal)
         ]
 
     bDatabaseHistoryHandin <-
         accumB databaseHistoryHandin $ concatenate <$> unions
-            [ Database.create <$> (((\x y -> HistoryHandin y (fromMaybe "" x)) <$> bTimer)<@> (filterJust $ bLookupLoan <@> eLoanDelete))
-            , Database.create <$> (((\x y -> HistoryHandin y (fromMaybe "" x)) <$> bTimer)<@> (filterJust $ bLookupLoan <@> eLoanDeleteNormal))
+            [ Database.create <$> (((\x z y -> HistoryHandin y (fromMaybe "" x) (fromMaybe 999 z)) <$> bTimer <*> bSelectedTokenId)<@> (filterJust $ bLookupLoan <@> eLoanDelete))
+            , Database.create <$> (((\x z y -> HistoryHandin y (fromMaybe "" x) (fromMaybe 999 z)) <$> bTimer <*> bSelectedTokenId)<@> (filterJust $ bLookupLoan <@> eLoanDeleteNormal))
             ]
+
 
 
     let bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)

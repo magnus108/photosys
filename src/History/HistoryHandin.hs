@@ -58,6 +58,7 @@ setup window = mdo
 
     counterLoan <- liftUI $ Counter.counter bListBoxLoans''
 
+    isAdmin <- liftUI $ UI.div
     -- GUI layout
     searchUser  <-
         liftUI
@@ -153,6 +154,7 @@ setup window = mdo
                 , element searchLoan
                 , element dropdownLoan
                 , element counterLoan
+                , element isAdmin
                 ]
            ]
 
@@ -254,6 +256,13 @@ setup window = mdo
 
         bDisplayItemName :: Behavior (DatabaseKey -> UI Element)
         bDisplayItemName = (UI.string .) <$> bShowItem
+        
+        bShowAdmin :: Behavior (DatabaseKey -> Maybe Int)
+        bShowAdmin = (fmap (HistoryHandin.adminUser) .) <$> bLookupHistoryHandin
+
+        bShowAdmin2 :: Behavior (Maybe User)
+        bShowAdmin2 = (\f x y -> f =<< (x =<< y)) <$> bLookupUser <*> bShowAdmin <*> bSelectionLoan
+
 
         bListBoxLoans :: Behavior [DatabaseKey]
         bListBoxLoans =
@@ -348,4 +357,10 @@ setup window = mdo
                 <*> bLookupLoan
                 <*> bListBoxItems'
 
+    let bIsAdminGUI = fmap (\ x -> UI.string (User.name x) #. "tag is-dark is-large") <$> bShowAdmin2
+    liftUI $ element isAdmin # sink items ((\x -> catMaybes [x]) <$> bIsAdminGUI)
+
     return elem
+
+items = mkWriteAttr $ \i x -> void $ do
+    return x # set children [] #+ i

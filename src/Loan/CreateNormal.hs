@@ -199,10 +199,10 @@ setup window = mdo
 
     let bCreateLoan :: Behavior (Maybe Loan)
         bCreateLoan =
-            liftA3 Loan.Loan
+            liftA2 Loan.Loan
                 <$> bSelectionItem
                 <*> bSelectedTokenId
-                <*> bSelectedTokenId
+                -- <*> bSelectedTokenId
 
         hasUserSelected :: Behavior Bool
         hasUserSelected = isJust <$> bSelectedTokenId
