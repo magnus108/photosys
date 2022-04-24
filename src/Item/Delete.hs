@@ -38,6 +38,7 @@ setup window = mdo
     counter <- liftUI $ Counter.counter bListBoxItems
 
     deleteBtn   <- liftUI $ UI.button #+ [string "Slet"]
+    realDeleteBtn   <- liftUI $ UI.button #+ [string "Sikker på slet?"]
 
     -- GUI layout
     searchItem  <- liftUI $
@@ -79,7 +80,7 @@ setup window = mdo
             #+ [ UI.div #. "modal-background"
                , UI.div
                #. "modal-content"
-               #+ [UI.div #. "box" #+ [string "Sletning godkendt"]]
+               #+ [UI.div #. "box" #+ [ UI.div #. "field" #+ [UI.div #. "control" #+ [element realDeleteBtn #. "button"]]]]
                , element closeBtn
                ]
 
@@ -110,15 +111,16 @@ setup window = mdo
 
     let eSelectionItem = rumors $ UI.userSelection listBoxItem
         eDelete        = UI.click deleteBtn
+        eRealDelete    = UI.click realDeleteBtn
         eClose         = UI.click closeBtn
 
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
-        [True <$ eDelete, False <$ eClose]
+        [True <$ eDelete, False <$ eClose, False <$ eRealDelete]
 
     bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionItem
-        , Nothing <$ eDelete
+        , Nothing <$ eRealDelete
         , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
         <$> bSelectionItem
         <*> bShowDataItem
@@ -176,4 +178,4 @@ setup window = mdo
         (attr "class")
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 
-    return (elem, filterJust $ bSelectionItem <@ eDelete)
+    return (elem, filterJust $ bSelectionItem <@ eRealDelete)
