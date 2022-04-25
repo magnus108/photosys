@@ -3,7 +3,8 @@
   "main": "electron.js",
   "dependencies": {
     "electron": "^18.0.1",
+    "electron-packager": "^15.5.1",
     "freeport": "^1.0.5",
-    "wait-on": "^2.0.2"
+    "wait-on": "^6.0.1"
   }
 }
