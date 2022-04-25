@@ -26,6 +26,8 @@ source-repository head
 library
   exposed-modules:
       Checkbox
+      Count
+      Count.Count
       Counter
       Database
       Env

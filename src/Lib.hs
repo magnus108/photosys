@@ -41,6 +41,7 @@ import qualified Search.SearchNormal           as SearchNormal
 
 import qualified Loan.CreateNormal             as LoanCreateNormal
 import qualified Loan.DeleteNormal             as LoanDeleteNormal
+import qualified Count.Count             as Count
 
 
 import qualified User.Create                   as UserCreate
@@ -52,6 +53,7 @@ import           HistoryHandin                  ( HistoryHandin(..) )
 import           History                        ( History(..) )
 import           Loan                           ( Loan(..) )
 import           User                           ( User(..) )
+import           Count                          ( Count(..) )
 import           Token                          ( Token(..)
                                                 , isToken
                                                 , tokenId
@@ -111,6 +113,7 @@ setup window = mdo
     let datastoreItem          = "data/item.json"
     let datastoreHistory       = "data/history.json"
     let datastoreHistoryHandIn = "data/historyHandin.json"
+    let datastoreCount         = "data/count.json"
     let exportFile             = "data/export.csv"
 
     tabSelectionFile      <- readJson dataTabSelectionFile :: m (Maybe Int)
@@ -122,6 +125,7 @@ setup window = mdo
     databaseHistory       <- readJson datastoreHistory :: m (Database History)
     databaseHistoryHandin <-
         readJson datastoreHistoryHandIn :: m (Database HistoryHandin)
+    databaseCount <- readJson datastoreCount :: m (Database Count)
 
     (tokenCreate, eTokenCreate)           <- TokenCreate.setup window
     (tabs, tTabs, eLogout)                <- Tab.setup window
@@ -136,6 +140,7 @@ setup window = mdo
     historyHandin                         <- HistoryHandin.setup window
     historyHandinNormal                   <- HistoryHandinNormal.setup window
 
+    (count, eCount)                                <- Count.setup window
     search                                <- Search.setup window
     searchNormal                          <- SearchNormal.setup window
     (userCreate , eUserCreate )           <- UserCreate.setup window
@@ -145,6 +150,10 @@ setup window = mdo
 
 
     let eTabs = rumors tTabs
+
+    bDatabaseCount     <- accumB databaseCount $ concatenate <$> unions
+        [ Database.create . Count <$> eCount
+        ]
 
     bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
         [ Database.create <$> eLoanCreate
@@ -237,6 +246,7 @@ setup window = mdo
                   , bDatabaseHistoryHandin = bDatabaseHistoryHandin
                   , bDatabaseTab           = bDatabaseTab
                   , bSelectionTab          = bTabSelection
+                  , bDatabaseCount          = bDatabaseCount
                   }
 
     notDone <- liftUI $ UI.string "Ikke færdig"
@@ -258,7 +268,7 @@ setup window = mdo
                 (12, False) -> [tabs, historyNormal]
                 (13, True ) -> [tabs, historyHandin]
                 (14, False) -> [tabs, historyHandinNormal]
-                (15, True ) -> [tabs, notDone]
+                (15, True ) -> [tabs, count]
                 (16, True ) -> [tabs, notDone]
                 (0 , False) -> [tabs, loanDeleteNormal]--- Hack
             else [tokenCreate]
@@ -309,5 +319,7 @@ setup window = mdo
     liftUI $ onChanges bDatabaseExport $ writeCsv exportFile
 
     liftUI $ onChanges bTabSelection $ writeJson dataTabSelectionFile
+
+    liftUI $ onChanges bDatabaseCount $ writeJson datastoreCount
 
     return env
