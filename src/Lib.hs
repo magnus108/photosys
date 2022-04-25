@@ -140,7 +140,7 @@ setup window = mdo
     historyHandin                         <- HistoryHandin.setup window
     historyHandinNormal                   <- HistoryHandinNormal.setup window
 
-    (count, eCount)                                <- Count.setup window
+    (count, eCount, eCountDelete)                                <- Count.setup window
     search                                <- Search.setup window
     searchNormal                          <- SearchNormal.setup window
     (userCreate , eUserCreate )           <- UserCreate.setup window
@@ -153,6 +153,7 @@ setup window = mdo
 
     bDatabaseCount     <- accumB databaseCount $ concatenate <$> unions
         [ Database.create . Count <$> eCount
+        , Database.delete <$> eCountDelete
         ]
 
     bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions

@@ -35,7 +35,7 @@ import qualified Count
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
-    -> m (Element, Event DatabaseKey)
+    -> m (Element, Event DatabaseKey, Event DatabaseKey)
 setup window = mdo
     -- GUI elements
     filterItem  <- liftUI $ UI.entry bFilterEntryItem
@@ -47,6 +47,7 @@ setup window = mdo
     counterCount <- liftUI $ Counter.counter bListBoxCounts
 
     createBtn   <- liftUI $ UI.button #+ [string "Optæl"]
+    deleteBtn   <- liftUI $ UI.button #+ [string "Fjern"]
 
     -- GUI layout
     searchItem <- liftUI $
@@ -104,6 +105,11 @@ setup window = mdo
                 ]
            ]
 
+    deleteBtn' <- liftUI $
+        UI.div
+        #. "field"
+        #+ [UI.div #. "control" #+ [element deleteBtn #. "button"]]
+
     closeBtn <- liftUI $ UI.button #. "modal-close is-large"
 
     modal    <- liftUI $
@@ -116,6 +122,17 @@ setup window = mdo
                ]
 
 
+    closeBtn2 <- liftUI $ UI.button #. "modal-close is-large"
+
+    modal2    <- liftUI $
+        UI.div
+            #+ [ UI.div #. "modal-background"
+               , UI.div
+               #. "modal-content"
+               #+ [UI.div #. "box" #+ [string "Fjern godkendt"]]
+               , element closeBtn2
+               ]
+
     elem <-
         liftUI $ UI.div
         #. "section is-medium"
@@ -127,8 +144,10 @@ setup window = mdo
                 , element counterItem
                 , element searchCount
                 , element dropdownCount
+                , element deleteBtn'
                 , element counterCount
                 , element modal
+                , element modal2
                 ]
            ]
 
@@ -152,13 +171,19 @@ setup window = mdo
         eSelectionCount = rumors $ UI.userSelection listBoxCount
 
         eClose         = UI.click closeBtn
+        eClose2         = UI.click closeBtn2
         eCreate        = UI.click createBtn
+        eDelete        = UI.click deleteBtn
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
         [True <$ eCreate, False <$ eClose]
 
+    bActiveModal2 <- stepper False $ Unsafe.head <$> unions
+        [True <$ eDelete, False <$ eClose2]
+
     bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionItem
+        , Nothing <$ eCreate
         , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
         <$> bSelectionItem
         <*> bShowItem
@@ -167,6 +192,7 @@ setup window = mdo
 
     bSelectionCount <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionCount
+        , Nothing <$ eDelete
         , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
         <$> bSelectionCount
         <*> bShowCount
@@ -197,6 +223,14 @@ setup window = mdo
             (\xs ys -> filter (flip List.notElem xs) ys)
                 <$> bListBoxCountsToItem
                 <*> bListBoxItems
+        bShowCount2 :: Behavior (DatabaseKey -> Maybe DatabaseKey)
+        bShowCount2 = (fmap Count.item .) <$> bLookupCount
+
+
+        bListBoxCountsToItem :: Behavior [DatabaseKey]
+        bListBoxCountsToItem = (\p -> mapMaybe p . keys) <$> bShowCount2 <*> bDatabaseCount
+
+
 
     let bLookupCount :: Behavior (DatabaseKey -> Maybe Count)
         bLookupCount = flip lookup <$> bDatabaseCount
@@ -205,32 +239,22 @@ setup window = mdo
         bSelectedCount = (=<<) <$> bLookupCount <*> bSelectionCount
 
         bShowCount :: Behavior (DatabaseKey -> String)
-        bShowCount = (maybe "" (show . Count.item) .) <$> bLookupCount
-        
-        bShowCount2 :: Behavior (DatabaseKey -> Maybe DatabaseKey)
-        bShowCount2 = (fmap Count.item .) <$> bLookupCount
-
-        bDisplayCountName' :: Behavior (DatabaseKey -> Maybe Item)
-        bDisplayCountName' = bLookupItem
-
-        bDisplayCountName'' :: Behavior (DatabaseKey -> String )
-        bDisplayCountName'' = (maybe "" Item.showItem .) <$> bDisplayCountName'
+        bShowCount = (\f g -> maybe "" (\x -> maybe "" Item.showItem (g (Count.item x))) . f) <$> bLookupCount <*> bLookupItem
 
         bDisplayCountName :: Behavior (DatabaseKey -> UI Element)
-        bDisplayCountName = (UI.string .) <$> bDisplayCountName''
-
-
-        bListBoxCountsToItem :: Behavior [DatabaseKey]
-        bListBoxCountsToItem = (\p -> mapMaybe p . keys) <$> bShowCount2 <*> bDatabaseCount
+        bDisplayCountName = (UI.string .) <$> bShowCount
 
         bListBoxCounts :: Behavior [DatabaseKey]
-        bListBoxCounts = (\p show -> filter (p. show))
-                    <$> bFilterCount <*> bDisplayCountName'' <*> bListBoxCountsToItem
+        bListBoxCounts = (\p show -> filter (p. show) . keys)
+                    <$> bFilterCount <*> bShowCount <*> bDatabaseCount
 
 
     liftUI $ element modal # sink
         (attr "class")
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 
+    liftUI $ element modal2 # sink
+        (attr "class")
+        ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal2)
 
-    return (elem, filterJust $ bSelectionItem <@ eCreate)
+    return (elem, filterJust $ bSelectionItem <@ eCreate, filterJust $ bSelectionCount <@ eDelete)
