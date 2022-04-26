@@ -68,8 +68,7 @@ import qualified Data.ByteString               as BS
 
 someFunc :: Int -> IO ()
 someFunc port = do
-    startGUI defaultConfig { jsWindowReloadOnDisconnect = False
-                           , jsPort                     = Just port
+    startGUI defaultConfig { jsPort                     = Just port
                            , jsStatic                   = Just "static"
                            , jsCustomHTML               = Just "index.html"
                            }
@@ -94,15 +93,21 @@ writeCsv fp items =
 
 
 setup2 :: Window -> UI ()
-setup2 window = void $ mdo
-    env <- runApp env $ setup window
-    return ()
+setup2 window = void $ do
+    content <- setup3 window
+    getBody window #+ [element content]
+
+setup3 :: Window -> UI Element
+setup3 window = mdo
+    (content, env) <- runApp env $ setup window
+    return content
+
 
 setup
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
-    -> m Env
+    -> m (Element, Env)
 setup window = mdo
 
     let dataTabSelectionFile   = "data/tabSelection.json"
@@ -302,9 +307,6 @@ setup window = mdo
         children
         (maybe [tokenCreate] <$> bGui <*> bTabSelection)
 
-
-    liftUI $ getBody window #+ [element content]
-
     liftUI $ onChanges bDatabaseHistory $ writeJson datastoreHistory
 
     liftUI $ onChanges bDatabaseHistoryHandin $ writeJson datastoreHistoryHandIn
@@ -323,4 +325,4 @@ setup window = mdo
 
     liftUI $ onChanges bDatabaseCount $ writeJson datastoreCount
 
-    return env
+    return (content, env)
