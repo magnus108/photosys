@@ -93,21 +93,15 @@ writeCsv fp items =
 
 
 setup2 :: Window -> UI ()
-setup2 window = void $ do
-    content <- setup3 window
-    getBody window #+ [element content]
-
-setup3 :: Window -> UI Element
-setup3 window = mdo
-    (content, env) <- runApp env $ setup window
-    return content
-
+setup2 window = void $ mdo
+    env <- runApp env $ setup window
+    return ()
 
 setup
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
-    -> m (Element, Env)
+    -> m Env
 setup window = mdo
 
     let dataTabSelectionFile   = "data/tabSelection.json"
@@ -152,6 +146,14 @@ setup window = mdo
     (userDelete , eUserDelete )           <- UserDelete.setup window
     (itemCreate , eItemCreate )           <- ItemCreate.setup window
     (itemDelete , eItemDelete )           <- ItemDelete.setup window
+
+    notDone <- liftUI $ UI.string "Ikke færdig"
+
+    content <- liftUI $ UI.div
+    liftUI $ getBody window #+ [element content]
+
+
+
 
 
     let eTabs = rumors tTabs
@@ -255,7 +257,6 @@ setup window = mdo
                   , bDatabaseCount          = bDatabaseCount
                   }
 
-    notDone <- liftUI $ UI.string "Ikke færdig"
 
     let display y isAdmin x = if y
             then case (x, isAdmin) of
@@ -303,9 +304,11 @@ setup window = mdo
 
     let bGui = display <$> bHasToken <*> bSelectedAdmin
 
-    content <- liftUI $ UI.div # sink
+    liftUI $ element content # sink
         children
         (maybe [tokenCreate] <$> bGui <*> bTabSelection)
+
+
 
     liftUI $ onChanges bDatabaseHistory $ writeJson datastoreHistory
 
@@ -325,4 +328,4 @@ setup window = mdo
 
     liftUI $ onChanges bDatabaseCount $ writeJson datastoreCount
 
-    return (content, env)
+    return env
