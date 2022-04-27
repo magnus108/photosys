@@ -326,6 +326,7 @@ setup window = mdo
                 (14, False) -> [tabs, historyHandinNormal]
                 (15, True ) -> [tabs, count]
                 (16, True ) -> [tabs, notDone]
+                (17, False ) -> [tabs, notDone]
                 (0 , False) -> [tabs, loanDeleteNormal]--- Hack
             else [tokenCreate]
 
