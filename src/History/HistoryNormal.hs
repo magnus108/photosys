@@ -14,6 +14,8 @@ import qualified Token
 
 import           Loan                           ( Loan )
 import qualified Loan
+import           Time                           ( Time )
+import qualified Time
 import           User                           ( User )
 import qualified User
 import           Item                           ( Item )
@@ -196,7 +198,7 @@ setup window
         bShowItem = (maybe "" Item.showItem .) <$> bLookupItem
 
         bShowLoan :: Behavior (DatabaseKey -> String)
-        bShowLoan = (maybe "" History.timestamp .) <$> bLookupHistory
+        bShowLoan = (maybe "" (Time.time . History.timestamp) .) <$> bLookupHistory
 
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
         bDisplayUserName = (UI.string .) <$> bShowUser

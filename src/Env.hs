@@ -10,7 +10,7 @@ import           User                           ( User )
 import qualified User
 import           Item                           ( Item )
 import qualified Item
-import           Count                           ( Count )
+import           Count                          ( Count )
 import qualified Count
 import           Tab                            ( Tab )
 import qualified Tab
@@ -18,6 +18,8 @@ import           History                        ( History )
 import qualified History
 import           HistoryHandin                  ( HistoryHandin )
 import qualified HistoryHandin
+import           Time                           ( Time )
+import qualified Time
 import           Database                       ( Database
                                                 , DatabaseKey
                                                 )
@@ -33,4 +35,5 @@ data Env = Env
     , bDatabaseTab :: !(Behavior (Database Tab))
     , bSelectionTab :: !(Behavior (Maybe DatabaseKey))
     , bDatabaseCount :: !(Behavior (Database Count))
+    , bDatabaseTime :: !(Behavior (Database Time))
     }

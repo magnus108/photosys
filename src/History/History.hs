@@ -7,6 +7,8 @@ import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
+import           Time                           ( Time )
+import qualified Time
 import           History                        ( History )
 import qualified History
 import           Token                          ( Token )
@@ -37,112 +39,113 @@ setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
     -> m Element
-setup window
-    = mdo
+setup window = mdo
 
     -- GUI elements
     filterUser  <- liftUI $ UI.entry bFilterEntryUser
-    listBoxUser <- liftUI $ UI.listBox bListBoxUsers''
-                                bSelectionUser
-                                bDisplayUserName
+    listBoxUser <- liftUI
+        $ UI.listBox bListBoxUsers'' bSelectionUser bDisplayUserName
     counterUser <- liftUI $ Counter.counter bListBoxUsers''
 
     filterItem  <- liftUI $ UI.entry bFilterEntryItem
-    listBoxItem <- liftUI $ UI.listBox bListBoxItems''
-                                bSelectionItem
-                                bDisplayItemName
+    listBoxItem <- liftUI
+        $ UI.listBox bListBoxItems'' bSelectionItem bDisplayItemName
     counterItem <- liftUI $ Counter.counter bListBoxItems''
 
     filterLoan  <- liftUI $ UI.entry bFilterEntryLoan
-    listBoxLoan <- liftUI $ UI.listBox bListBoxLoans''
-                                bSelectionLoan
-                                bDisplayLoanTime
+    listBoxLoan <- liftUI
+        $ UI.listBox bListBoxLoans'' bSelectionLoan bDisplayLoanTime
 
     counterLoan <- liftUI $ Counter.counter bListBoxLoans''
-    isAdmin <- liftUI $ UI.div
+    isAdmin     <- liftUI $ UI.div
 
     -- GUI layout
-    searchUser <- liftUI $
-        UI.div
+    searchUser  <-
+        liftUI
+        $  UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Søg"]
-            , UI.div
-            #. "control"
-            #+ [ element filterUser #. "input" # set (attr "placeholder")
+           , UI.div
+           #. "control"
+           #+ [ element filterUser #. "input" # set (attr "placeholder")
                                                     "Fx Anders Andersen"
-                ]
-            ]
+              ]
+           ]
 
-    dropdownUser <- liftUI $
-        UI.div
+    dropdownUser <-
+        liftUI
+        $  UI.div
         #. "field"
         #+ [ UI.div
-                #. "control is-expanded"
-                #+ [ UI.div
-                    #. "select is-multiple is-fullwidth"
-                    #+ [ element listBoxUser # set (attr "size") "5" # set
-                            (attr "multiple")
-                            ""
-                        ]
+             #. "control is-expanded"
+             #+ [ UI.div
+                  #. "select is-multiple is-fullwidth"
+                  #+ [ element listBoxUser # set (attr "size") "5" # set
+                           (attr "multiple")
+                           ""
+                     ]
                 ]
-            ]
+           ]
 
-    searchItem <- liftUI $
-        UI.div
+    searchItem <-
+        liftUI
+        $  UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Søg"]
-            , UI.div
-            #. "control"
-            #+ [ element filterItem #. "input" # set (attr "placeholder")
+           , UI.div
+           #. "control"
+           #+ [ element filterItem #. "input" # set (attr "placeholder")
                                                     "Fx Kamera"
-                ]
-            ]
+              ]
+           ]
 
-    dropdownItem <- liftUI $
-        UI.div
+    dropdownItem <-
+        liftUI
+        $  UI.div
         #. "field"
         #+ [ UI.div
-                #. "control is-expanded"
-                #+ [ UI.div
-                    #. "select is-multiple is-fullwidth"
-                    #+ [ element listBoxItem # set (attr "size") "5" # set
-                            (attr "multiple")
-                            ""
-                        ]
+             #. "control is-expanded"
+             #+ [ UI.div
+                  #. "select is-multiple is-fullwidth"
+                  #+ [ element listBoxItem # set (attr "size") "5" # set
+                           (attr "multiple")
+                           ""
+                     ]
                 ]
-            ]
+           ]
 
-    searchLoan <- liftUI $
-        UI.div
+    searchLoan <-
+        liftUI
+        $  UI.div
         #. "field"
         #+ [ UI.label #. "label" #+ [string "Søg"]
-            , UI.div
-            #. "control"
-            #+ [ element filterLoan #. "input" # set (attr "placeholder")
-                                                    "Dato"
-                ]
-            ]
+           , UI.div
+           #. "control"
+           #+ [element filterLoan #. "input" # set (attr "placeholder") "Dato"]
+           ]
 
-    dropdownLoan <- liftUI $
-        UI.div
+    dropdownLoan <-
+        liftUI
+        $  UI.div
         #. "field"
         #+ [ UI.div
-                #. "control is-expanded"
-                #+ [ UI.div
-                    #. "select is-multiple is-fullwidth"
-                    #+ [ element listBoxLoan # set (attr "size") "5" # set
-                            (attr "multiple")
-                            ""
-                        ]
+             #. "control is-expanded"
+             #+ [ UI.div
+                  #. "select is-multiple is-fullwidth"
+                  #+ [ element listBoxLoan # set (attr "size") "5" # set
+                           (attr "multiple")
+                           ""
+                     ]
                 ]
-            ]
+           ]
 
-    elem <- liftUI $
-        UI.div
+    elem <-
+        liftUI
+        $  UI.div
         #. "section is-medium"
         #+ [ UI.div
-                #. "container"
-                #+ [ element searchUser
+             #. "container"
+             #+ [ element searchUser
                 , element dropdownUser
                 , element counterUser
                 , element searchItem
@@ -153,7 +156,7 @@ setup window
                 , element counterLoan
                 , element isAdmin
                 ]
-            ]
+           ]
 
 
     -- Events and behaviors
@@ -162,8 +165,7 @@ setup window
     bFilterEntryLoan <- stepper "" . rumors $ UI.userText filterLoan
 
     let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
-        isInfixOf needle haystack =
-            any (isPrefixOf needle) (tails haystack)
+        isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
 
     let tFilterUser = isInfixOf <$> UI.userText filterUser
         bFilterUser = facts tFilterUser
@@ -206,11 +208,11 @@ setup window
         <@> eFilterLoan
         ]
 
-    bDatabaseLoan   <- asks Env.bDatabaseLoan
-    bDatabaseUser   <- asks Env.bDatabaseUser
-    bDatabaseItem   <- asks Env.bDatabaseItem
-    bDatabaseToken  <- asks Env.bDatabaseToken
-    bSelectionToken <- asks Env.bSelectionToken
+    bDatabaseLoan    <- asks Env.bDatabaseLoan
+    bDatabaseUser    <- asks Env.bDatabaseUser
+    bDatabaseItem    <- asks Env.bDatabaseItem
+    bDatabaseToken   <- asks Env.bDatabaseToken
+    bSelectionToken  <- asks Env.bSelectionToken
     bDatabaseHistory <- asks Env.bDatabaseHistory
 
 
@@ -218,7 +220,8 @@ setup window
         bLookupUser = flip lookup <$> bDatabaseUser
 
         bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
-        bLookupLoan = (\x y -> fmap History.loan (lookup y x)) <$> bDatabaseHistory
+        bLookupLoan =
+            (\x y -> fmap History.loan (lookup y x)) <$> bDatabaseHistory
 
         bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
         bLookupItem = flip lookup <$> bDatabaseItem
@@ -242,13 +245,17 @@ setup window
         bShowItem = (maybe "" Item.name .) <$> bLookupItem
 
         bShowLoan :: Behavior (DatabaseKey -> String)
-        bShowLoan = (maybe "" History.timestamp .) <$> bLookupHistory
+        bShowLoan = (maybe "" (Time.time . History.timestamp) .) <$> bLookupHistory
 
         bShowAdmin :: Behavior (DatabaseKey -> Maybe Int)
         bShowAdmin = (fmap (History.adminUser) .) <$> bLookupHistory
 
         bShowAdmin2 :: Behavior (Maybe User)
-        bShowAdmin2 = (\f x y -> f =<< (x =<< y)) <$> bLookupUser <*> bShowAdmin <*> bSelectionLoan
+        bShowAdmin2 =
+            (\f x y -> f =<< (x =<< y))
+                <$> bLookupUser
+                <*> bShowAdmin
+                <*> bSelectionLoan
 
 
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
@@ -270,10 +277,9 @@ setup window
         bListBoxLoans' :: Behavior [DatabaseKey]
         bListBoxLoans' =
             (\mi lookup -> filter
-                    ( (\ml -> fromMaybe
-                            True
-                            (liftA2 (\l i -> Loan.item l == i) ml mi)
-                        )
+                    ( (\ml ->
+                          fromMaybe True (liftA2 (\l i -> Loan.item l == i) ml mi)
+                      )
                     . lookup
                     )
                 )
@@ -284,10 +290,9 @@ setup window
         bListBoxLoans'' :: Behavior [DatabaseKey]
         bListBoxLoans'' =
             (\mu lookup -> filter
-                    ( (\ml -> fromMaybe
-                            True
-                            (liftA2 (\l u -> Loan.user l == u) ml mu)
-                        )
+                    ( (\ml ->
+                          fromMaybe True (liftA2 (\l u -> Loan.user l == u) ml mu)
+                      )
                     . lookup
                     )
                 )
@@ -355,8 +360,11 @@ setup window
                 <*> bLookupLoan
                 <*> bListBoxItems'
 
-    let bIsAdminGUI = fmap (\ x -> UI.string (User.name x) #. "tag is-dark is-large") <$> bShowAdmin2
-    liftUI $ element isAdmin # sink items ((\x -> catMaybes [x]) <$> bIsAdminGUI)
+    let bIsAdminGUI =
+            fmap (\x -> UI.string (User.name x) #. "tag is-dark is-large")
+                <$> bShowAdmin2
+    liftUI $ element isAdmin # sink items
+                                    ((\x -> catMaybes [x]) <$> bIsAdminGUI)
 
     return elem
 

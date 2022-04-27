@@ -54,6 +54,8 @@ library
       Search.SearchNormal
       Tab
       Tab.Tab
+      Time
+      Timer
       Token
       Token.Create
       User

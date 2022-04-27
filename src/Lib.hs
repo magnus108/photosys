@@ -3,7 +3,6 @@ module Lib
     ( someFunc
     )
 where
-import           Data.Time
 import           Env
 import           Monad
 import qualified Data.Text                     as T
@@ -24,6 +23,7 @@ import           Database                       ( Database
 import qualified Database
 
 import qualified MenuBox
+import qualified Timer
 import qualified History.HistoryNormal         as HistoryNormal
 import qualified History.History               as History
 import qualified History.HistoryHandinNormal   as HistoryHandinNormal
@@ -54,6 +54,7 @@ import           History                        ( History(..) )
 import           Loan                           ( Loan(..) )
 import           User                           ( User(..) )
 import           Count                          ( Count(..) )
+import           Time                           ( Time(..) )
 import           Token                          ( Token(..)
                                                 , isToken
                                                 , tokenId
@@ -113,6 +114,7 @@ setup window = mdo
     let datastoreHistory       = "data/history.json"
     let datastoreHistoryHandIn = "data/historyHandin.json"
     let datastoreCount         = "data/count.json"
+    let datastoreTime          = "data/time.json"
     let exportFile             = "data/export.csv"
 
     tabSelectionFile      <- readJson dataTabSelectionFile :: m (Maybe Int)
@@ -125,6 +127,7 @@ setup window = mdo
     databaseHistoryHandin <-
         readJson datastoreHistoryHandIn :: m (Database HistoryHandin)
     databaseCount <- readJson datastoreCount :: m (Database Count)
+    databaseTime <- readJson datastoreTime :: m (Database Time)
 
 -------------------------------------------------------------------------------
 
@@ -149,6 +152,7 @@ setup window = mdo
     (userDelete, eUserDelete)             <- UserDelete.setup window
     (itemCreate, eItemCreate)             <- ItemCreate.setup window
     (itemDelete, eItemDelete)             <- ItemDelete.setup window
+    (eTime)                               <- Timer.setup window
 
     notDone                               <- liftUI $ UI.string "Ikke færdig"
     content                               <- liftUI $ UI.div
@@ -156,31 +160,16 @@ setup window = mdo
     liftUI $ getBody window #+ [element content]
 
 -------------------------------------------------------------------------------
-    (eTime, hTime) <- liftIO $ newEvent
-
-    timer <- liftUI $ UI.timer # set UI.interval 1000
-    let eTick = UI.tick timer
-
-    liftUI $ onEvent eTick $ \items -> do
-        c <- liftIO $ (formatTime defaultTimeLocale "%F, %T") <$> getZonedTime
-        liftIO $ hTime (Just c)
-
-    liftUI $ UI.start timer
-    -- return eTime
--------------------------------------------------------------------------------
-    c <- liftIO $ (formatTime defaultTimeLocale "%F, %T") <$> getZonedTime
-    bTimer <- stepper (Just c) $ Unsafe.head <$> unions [eTime]
-
-
     let eTabs = rumors tTabs
+-------------------------------------------------------------------------------
 
-    bDatabaseCount <-
-        accumB databaseCount
-        $   concatenate
-        <$> unions
-                [ Database.create . Count <$> eCount
-                , Database.delete <$> eCountDelete
-                ]
+    bTimeSelection <- stepper (Just 0) UI.never
+    bDatabaseTime  <- accumB databaseTime $ concatenate <$> unions
+        [filterJust $ Database.update' <$> bTimeSelection <@> eTime]
+
+
+    bDatabaseCount <- accumB databaseCount $ concatenate <$> unions
+        [Database.create . Count <$> eCount, Database.delete <$> eCountDelete]
 
     bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
         [ Database.create <$> eLoanCreate
@@ -209,15 +198,15 @@ setup window = mdo
 
     bDatabaseHistory <- accumB databaseHistory $ concatenate <$> unions
         [ Database.create
-            <$> (   (   (\x z y -> History y (fromMaybe "" x) (fromMaybe 999 z))
-                    <$> bTimer
+            <$> (   (   (\x z y -> History y (fromMaybe (Time "") x) (fromMaybe 999 z))
+                    <$> bSelectedTime
                     <*> bSelectedTokenId
                     )
                 <@> eLoanCreate
                 )
         , Database.create
-            <$> (   (   (\x z y -> History y (fromMaybe "" x) (fromMaybe 999 z))
-                    <$> bTimer
+            <$> (   (   (\x z y -> History y (fromMaybe (Time "") x) (fromMaybe 999 z))
+                    <$> bSelectedTime
                     <*> bSelectedTokenId
                     )
                 <@> eLoanCreateNormal
@@ -228,18 +217,18 @@ setup window = mdo
         accumB databaseHistoryHandin $ concatenate <$> unions
             [ Database.create
                 <$> (   (   (\x z y ->
-                                HistoryHandin y (fromMaybe "" x) (fromMaybe 999 z)
+                                HistoryHandin y (fromMaybe (Time "") x) (fromMaybe 999 z)
                             )
-                        <$> bTimer
+                        <$> bSelectedTime
                         <*> bSelectedTokenId
                         )
                     <@> (filterJust $ bLookupLoan <@> eLoanDelete)
                     )
             , Database.create
                 <$> (   (   (\x z y ->
-                                HistoryHandin y (fromMaybe "" x) (fromMaybe 999 z)
+                                HistoryHandin y (fromMaybe (Time "") x) (fromMaybe 999 z)
                             )
-                        <$> bTimer
+                        <$> bSelectedTime
                         <*> bSelectedTokenId
                         )
                     <@> (filterJust $ bLookupLoan <@> eLoanDeleteNormal)
@@ -282,12 +271,16 @@ setup window = mdo
                   , bDatabaseTab           = bDatabaseTab
                   , bSelectionTab          = bTabSelection
                   , bDatabaseCount         = bDatabaseCount
+                  , bDatabaseTime          = bDatabaseTime
                   }
 
 -------------------------------------------------------------------------------
 
     let bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
         bLookupLoan = flip Database.lookup <$> bDatabaseLoan
+
+        bLookupTime :: Behavior (DatabaseKey -> Maybe Time)
+        bLookupTime = flip Database.lookup <$> bDatabaseTime
 
         bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
         bLookupToken = flip Database.lookup <$> bDatabaseToken
@@ -303,6 +296,9 @@ setup window = mdo
 
         bSelectedUser :: Behavior (Maybe User)
         bSelectedUser = (=<<) <$> bLookupUser <*> bSelectedTokenId
+
+        bSelectedTime :: Behavior (Maybe Time)
+        bSelectedTime = (=<<) <$> bLookupTime <*> bTimeSelection
 
         bSelectedAdmin :: Behavior Bool
         bSelectedAdmin = (maybe False User.admin) <$> bSelectedUser
@@ -358,5 +354,6 @@ setup window = mdo
     liftUI $ onChanges bTabSelection $ writeJson dataTabSelectionFile
 
     liftUI $ onChanges bDatabaseCount $ writeJson datastoreCount
+    liftUI $ onChanges bDatabaseTime $ writeJson datastoreTime
 
     return env

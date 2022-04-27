@@ -7,6 +7,8 @@ import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
+import           Time                           ( Time )
+import qualified Time
 import           HistoryHandin                  ( HistoryHandin )
 import qualified HistoryHandin
 import           History                        ( History )
@@ -58,7 +60,7 @@ setup window = mdo
 
     counterLoan <- liftUI $ Counter.counter bListBoxLoans''
 
-    isAdmin <- liftUI $ UI.div
+    isAdmin     <- liftUI $ UI.div
     -- GUI layout
     searchUser  <-
         liftUI
@@ -246,7 +248,8 @@ setup window = mdo
         bShowItem = (maybe "" Item.name .) <$> bLookupItem
 
         bShowLoan :: Behavior (DatabaseKey -> String)
-        bShowLoan = (maybe "" HistoryHandin.timestamp .) <$> bLookupHistoryHandin
+        bShowLoan =
+            (maybe "" (Time.time . HistoryHandin.timestamp) .) <$> bLookupHistoryHandin
 
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
         bDisplayUserName = (UI.string .) <$> bShowUser
@@ -256,12 +259,17 @@ setup window = mdo
 
         bDisplayItemName :: Behavior (DatabaseKey -> UI Element)
         bDisplayItemName = (UI.string .) <$> bShowItem
-        
+
         bShowAdmin :: Behavior (DatabaseKey -> Maybe Int)
-        bShowAdmin = (fmap (HistoryHandin.adminUser) .) <$> bLookupHistoryHandin
+        bShowAdmin =
+            (fmap (HistoryHandin.adminUser) .) <$> bLookupHistoryHandin
 
         bShowAdmin2 :: Behavior (Maybe User)
-        bShowAdmin2 = (\f x y -> f =<< (x =<< y)) <$> bLookupUser <*> bShowAdmin <*> bSelectionLoan
+        bShowAdmin2 =
+            (\f x y -> f =<< (x =<< y))
+                <$> bLookupUser
+                <*> bShowAdmin
+                <*> bSelectionLoan
 
 
         bListBoxLoans :: Behavior [DatabaseKey]
@@ -357,8 +365,11 @@ setup window = mdo
                 <*> bLookupLoan
                 <*> bListBoxItems'
 
-    let bIsAdminGUI = fmap (\ x -> UI.string (User.name x) #. "tag is-dark is-large") <$> bShowAdmin2
-    liftUI $ element isAdmin # sink items ((\x -> catMaybes [x]) <$> bIsAdminGUI)
+    let bIsAdminGUI =
+            fmap (\x -> UI.string (User.name x) #. "tag is-dark is-large")
+                <$> bShowAdmin2
+    liftUI $ element isAdmin # sink items
+                                    ((\x -> catMaybes [x]) <$> bIsAdminGUI)
 
     return elem
 
