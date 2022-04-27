@@ -29,11 +29,11 @@ data Env = Env
     , bDatabaseUser :: !(Behavior (Database User))
     , bDatabaseItem :: !(Behavior (Database Item))
     , bDatabaseToken :: !(Behavior (Database Token))
-    , bSelectionToken :: !(Behavior (Maybe DatabaseKey))
     , bDatabaseHistory :: !(Behavior (Database History))
     , bDatabaseHistoryHandin :: !(Behavior (Database HistoryHandin))
     , bDatabaseTab :: !(Behavior (Database Tab))
-    , bSelectionTab :: !(Behavior (Maybe DatabaseKey))
     , bDatabaseCount :: !(Behavior (Database Count))
     , bDatabaseTime :: !(Behavior (Database Time))
+    , bSelectionToken :: !(Behavior (Maybe DatabaseKey))
+    , bSelectionTab :: !(Behavior (Maybe DatabaseKey))
     }

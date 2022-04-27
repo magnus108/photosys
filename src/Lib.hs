@@ -131,7 +131,6 @@ setup window = mdo
 
 -------------------------------------------------------------------------------
 
-
     (tokenCreate, eTokenCreate)           <- TokenCreate.setup window
     (tabs, tTabs, eLogout)                <- Tab.setup window
     (export          , eExport          ) <- Export.setup window
@@ -194,7 +193,6 @@ setup window = mdo
     bDatabaseTab     <- accumB databaseTab $ concatenate <$> unions []
 
     bDatabaseExport  <- stepper [] $ Unsafe.head <$> unions [eExport]
-
 
     bDatabaseHistory <- accumB databaseHistory $ concatenate <$> unions
         [ Database.create
