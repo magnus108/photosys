@@ -50,6 +50,7 @@ library
       Login
       MenuBox
       Monad
+      Repair
       Search.Search
       Search.SearchNormal
       Tab
