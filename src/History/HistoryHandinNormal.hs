@@ -180,7 +180,7 @@ setup window = mdo
 
         bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
         bLookupLoan =
-            (\x y -> fmap History.loan (lookup y x)) <$> bDatabaseHistory
+            (\x y -> fmap HistoryHandin.loan (lookup y x)) <$> bDatabaseHistoryHandin
 
         bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
         bLookupItem = flip lookup <$> bDatabaseItem
@@ -218,7 +218,7 @@ setup window = mdo
             (\p show -> filter (p . show) . keys)
                 <$> bFilterLoan
                 <*> bShowLoan
-                <*> bDatabaseHistory
+                <*> bDatabaseHistoryHandin
 
         bListBoxLoans' :: Behavior [DatabaseKey]
         bListBoxLoans' =
