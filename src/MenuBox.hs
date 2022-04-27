@@ -22,7 +22,7 @@ listBox
     :: forall a . Ord a => Behavior [a]
     -> Behavior (Maybe a)
     -> Behavior (a -> UI Element)
-    -> UI (Behavior [UI Element], Tidings (Maybe a))
+    -> UI (Behavior [UI Element], Tidings (Maybe a)) -- could be wrong
 listBox bitems bsel bdisplay = do
 
     (e :: Event a, h) <- liftIO $ newEvent

@@ -41,7 +41,7 @@ import qualified Search.SearchNormal           as SearchNormal
 
 import qualified Loan.CreateNormal             as LoanCreateNormal
 import qualified Loan.DeleteNormal             as LoanDeleteNormal
-import qualified Count.Count             as Count
+import qualified Count.Count                   as Count
 
 
 import qualified User.Create                   as UserCreate
@@ -68,9 +68,9 @@ import qualified Data.ByteString               as BS
 
 someFunc :: Int -> IO ()
 someFunc port = do
-    startGUI defaultConfig { jsPort                     = Just port
-                           , jsStatic                   = Just "static"
-                           , jsCustomHTML               = Just "index.html"
+    startGUI defaultConfig { jsPort       = Just port
+                           , jsStatic     = Just "static"
+                           , jsCustomHTML = Just "index.html"
                            }
         $ setup2
 
@@ -126,6 +126,9 @@ setup window = mdo
         readJson datastoreHistoryHandIn :: m (Database HistoryHandin)
     databaseCount <- readJson datastoreCount :: m (Database Count)
 
+-------------------------------------------------------------------------------
+
+
     (tokenCreate, eTokenCreate)           <- TokenCreate.setup window
     (tabs, tTabs, eLogout)                <- Tab.setup window
     (export          , eExport          ) <- Export.setup window
@@ -139,29 +142,45 @@ setup window = mdo
     historyHandin                         <- HistoryHandin.setup window
     historyHandinNormal                   <- HistoryHandinNormal.setup window
 
-    (count, eCount, eCountDelete)                                <- Count.setup window
+    (count, eCount, eCountDelete)         <- Count.setup window
     search                                <- Search.setup window
     searchNormal                          <- SearchNormal.setup window
-    (userCreate , eUserCreate )           <- UserCreate.setup window
-    (userDelete , eUserDelete )           <- UserDelete.setup window
-    (itemCreate , eItemCreate )           <- ItemCreate.setup window
-    (itemDelete , eItemDelete )           <- ItemDelete.setup window
+    (userCreate, eUserCreate)             <- UserCreate.setup window
+    (userDelete, eUserDelete)             <- UserDelete.setup window
+    (itemCreate, eItemCreate)             <- ItemCreate.setup window
+    (itemDelete, eItemDelete)             <- ItemDelete.setup window
 
-    notDone <- liftUI $ UI.string "Ikke færdig"
+    notDone                               <- liftUI $ UI.string "Ikke færdig"
+    content                               <- liftUI $ UI.div
 
-    content <- liftUI $ UI.div
     liftUI $ getBody window #+ [element content]
 
+-------------------------------------------------------------------------------
+    (eTime, hTime) <- liftIO $ newEvent
 
+    timer <- liftUI $ UI.timer # set UI.interval 1000
+    let eTick = UI.tick timer
 
+    liftUI $ onEvent eTick $ \items -> do
+        c <- liftIO $ (formatTime defaultTimeLocale "%F, %T") <$> getZonedTime
+        liftIO $ hTime (Just c)
+
+    liftUI $ UI.start timer
+    -- return eTime
+-------------------------------------------------------------------------------
+    c <- liftIO $ (formatTime defaultTimeLocale "%F, %T") <$> getZonedTime
+    bTimer <- stepper (Just c) $ Unsafe.head <$> unions [eTime]
 
 
     let eTabs = rumors tTabs
 
-    bDatabaseCount     <- accumB databaseCount $ concatenate <$> unions
-        [ Database.create . Count <$> eCount
-        , Database.delete <$> eCountDelete
-        ]
+    bDatabaseCount <-
+        accumB databaseCount
+        $   concatenate
+        <$> unions
+                [ Database.create . Count <$> eCount
+                , Database.delete <$> eCountDelete
+                ]
 
     bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
         [ Database.create <$> eLoanCreate
@@ -187,39 +206,46 @@ setup window = mdo
 
     bDatabaseExport  <- stepper [] $ Unsafe.head <$> unions [eExport]
 
----------
-    timer <- liftUI $ UI.timer # set UI.interval 1000
-    let eTick = UI.tick timer
-
-    (eTime, hTime) <- liftIO $ newEvent
-
-    c <- liftIO $ (formatTime defaultTimeLocale "%F, %T") <$> getZonedTime
-
-    bTimer         <- stepper (Just c) $ Unsafe.head <$> unions [eTime]
-
-    liftUI $ onEvent eTick $ \items -> do
-        c <- liftIO $ (formatTime defaultTimeLocale "%F, %T") <$> getZonedTime
-        liftIO $ hTime (Just c)
-
-    liftUI $ UI.start timer
----------
-
 
     bDatabaseHistory <- accumB databaseHistory $ concatenate <$> unions
-        [ Database.create <$> (((\x z y -> History y (fromMaybe "" x)(fromMaybe 999 z)) <$> bTimer <*> bSelectedTokenId)<@> eLoanCreate)
-        , Database.create <$> (((\x z y -> History y (fromMaybe "" x)(fromMaybe 999 z)) <$> bTimer <*> bSelectedTokenId)<@> eLoanCreateNormal)
+        [ Database.create
+            <$> (   (   (\x z y -> History y (fromMaybe "" x) (fromMaybe 999 z))
+                    <$> bTimer
+                    <*> bSelectedTokenId
+                    )
+                <@> eLoanCreate
+                )
+        , Database.create
+            <$> (   (   (\x z y -> History y (fromMaybe "" x) (fromMaybe 999 z))
+                    <$> bTimer
+                    <*> bSelectedTokenId
+                    )
+                <@> eLoanCreateNormal
+                )
         ]
 
     bDatabaseHistoryHandin <-
         accumB databaseHistoryHandin $ concatenate <$> unions
-            [ Database.create <$> (((\x z y -> HistoryHandin y (fromMaybe "" x) (fromMaybe 999 z)) <$> bTimer <*> bSelectedTokenId)<@> (filterJust $ bLookupLoan <@> eLoanDelete))
-            , Database.create <$> (((\x z y -> HistoryHandin y (fromMaybe "" x) (fromMaybe 999 z)) <$> bTimer <*> bSelectedTokenId)<@> (filterJust $ bLookupLoan <@> eLoanDeleteNormal))
+            [ Database.create
+                <$> (   (   (\x z y ->
+                                HistoryHandin y (fromMaybe "" x) (fromMaybe 999 z)
+                            )
+                        <$> bTimer
+                        <*> bSelectedTokenId
+                        )
+                    <@> (filterJust $ bLookupLoan <@> eLoanDelete)
+                    )
+            , Database.create
+                <$> (   (   (\x z y ->
+                                HistoryHandin y (fromMaybe "" x) (fromMaybe 999 z)
+                            )
+                        <$> bTimer
+                        <*> bSelectedTokenId
+                        )
+                    <@> (filterJust $ bLookupLoan <@> eLoanDeleteNormal)
+                    )
             ]
 
-
-
-    let bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
-        bLookupLoan = flip Database.lookup <$> bDatabaseLoan
 
     bDatabaseUser <- accumB databaseUser $ concatenate <$> unions
         [ Database.create
@@ -244,6 +270,7 @@ setup window = mdo
         , filterJust $ Database.update' <$> bTokenSelection <@> eLogout
         ]
 
+-------------------------------------------------------------------------------
 
     let env = Env { bDatabaseLoan          = bDatabaseLoan
                   , bDatabaseUser          = bDatabaseUser
@@ -254,34 +281,15 @@ setup window = mdo
                   , bDatabaseHistoryHandin = bDatabaseHistoryHandin
                   , bDatabaseTab           = bDatabaseTab
                   , bSelectionTab          = bTabSelection
-                  , bDatabaseCount          = bDatabaseCount
+                  , bDatabaseCount         = bDatabaseCount
                   }
 
+-------------------------------------------------------------------------------
 
-    let display y isAdmin x = if y
-            then case (x, isAdmin) of
-                (0 , True ) -> [tabs, loanCreate]
-                (1 , True ) -> [tabs, loanDelete]
-                (2 , True ) -> [tabs, itemCreate]
-                (3 , True ) -> [tabs, itemDelete]
-                (4 , True ) -> [tabs, userCreate]
-                (5 , True ) -> [tabs, userDelete]
-                (6 , False) -> [tabs, loanCreateNormal]
-                (7 , False) -> [tabs, loanDeleteNormal]
-                (8 , True ) -> [tabs, search]
-                (9 , False) -> [tabs, searchNormal]
-                (10, True ) -> [tabs, export]
-                (11, True ) -> [tabs, history]
-                (12, False) -> [tabs, historyNormal]
-                (13, True ) -> [tabs, historyHandin]
-                (14, False) -> [tabs, historyHandinNormal]
-                (15, True ) -> [tabs, count]
-                (16, True ) -> [tabs, notDone]
-                (0 , False) -> [tabs, loanDeleteNormal]--- Hack
-            else [tokenCreate]
+    let bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
+        bLookupLoan = flip Database.lookup <$> bDatabaseLoan
 
-
-    let bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
+        bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
         bLookupToken = flip Database.lookup <$> bDatabaseToken
 
         bSelectedToken :: Behavior (Maybe Token)
@@ -304,11 +312,34 @@ setup window = mdo
 
     let bGui = display <$> bHasToken <*> bSelectedAdmin
 
+-------------------------------------------------------------------------------
+    let display y isAdmin x = if y
+            then case (x, isAdmin) of
+                (0 , True ) -> [tabs, loanCreate]
+                (1 , True ) -> [tabs, loanDelete]
+                (2 , True ) -> [tabs, itemCreate]
+                (3 , True ) -> [tabs, itemDelete]
+                (4 , True ) -> [tabs, userCreate]
+                (5 , True ) -> [tabs, userDelete]
+                (6 , False) -> [tabs, loanCreateNormal]
+                (7 , False) -> [tabs, loanDeleteNormal]
+                (8 , True ) -> [tabs, search]
+                (9 , False) -> [tabs, searchNormal]
+                (10, True ) -> [tabs, export]
+                (11, True ) -> [tabs, history]
+                (12, False) -> [tabs, historyNormal]
+                (13, True ) -> [tabs, historyHandin]
+                (14, False) -> [tabs, historyHandinNormal]
+                (15, True ) -> [tabs, count]
+                (16, True ) -> [tabs, notDone]
+                (0 , False) -> [tabs, loanDeleteNormal]--- Hack
+            else [tokenCreate]
+
+--------------------------------------------------------------------------------
     liftUI $ element content # sink
         children
         (maybe [tokenCreate] <$> bGui <*> bTabSelection)
-
-
+--------------------------------------------------------------------------------
 
     liftUI $ onChanges bDatabaseHistory $ writeJson datastoreHistory
 
