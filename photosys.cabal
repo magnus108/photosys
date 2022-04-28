@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      Behaviors
       Checkbox
       Count
       Count.Count

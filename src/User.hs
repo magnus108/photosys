@@ -1,6 +1,7 @@
 module User where
 
-import Data.Aeson
+import           Data.Aeson
+
 
 data User = User { name :: String, password :: String, admin :: Bool }
     deriving stock (Eq, Ord, Show)

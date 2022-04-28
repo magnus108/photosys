@@ -27,6 +27,7 @@ import           Env                            ( Env )
 import qualified Env
 import qualified Counter
 
+import Behaviors 
 
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
@@ -140,18 +141,14 @@ setup window = mdo
     bSelectionToken <- asks Env.bSelectionToken
 
 
+    bLookupUser <- lookupUser
+    bLookupLoan <- lookupLoan
+    bLookupItem <- lookupItem
+    bLookupToken <- lookupToken
 
-    let bLookupUser :: Behavior (DatabaseKey -> Maybe User)
-        bLookupUser = flip lookup <$> bDatabaseUser
 
-        bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
-        bLookupLoan = flip lookup <$> bDatabaseLoan
-
-        bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
+    let bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
         bLoanItem = (fmap Loan.item .) <$> bLookupLoan
-
-        bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
-        bLookupItem = flip lookup <$> bDatabaseItem
 
         bSelectedItem :: Behavior (Maybe Item)
         bSelectedItem = (=<<) <$> bLookupItem <*> bSelectionItem
@@ -187,9 +184,6 @@ setup window = mdo
                 <*> bShowItem2
                 <*> bDatabaseItem
 
-        bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
-        bLookupToken = flip lookup <$> bDatabaseToken
-
         bSelectedToken :: Behavior (Maybe Token)
         bSelectedToken = (=<<) <$> bLookupToken <*> bSelectionToken
 
@@ -214,8 +208,10 @@ setup window = mdo
 
 
     liftUI $ element loanInfo # sink text ((maybe "" Item.name) <$> bLastLoanItemItem)
+
     liftUI $ element createBtn
         # sink UI.enabled (hasUserSelected <&&> hasItemSelected)
+
     liftUI $ element modal # sink
         (attr "class")
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
