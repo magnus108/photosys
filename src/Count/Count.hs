@@ -58,8 +58,8 @@ setup window = mdo
     (deleteBtn, deleteBtnView) <- mkButton "Fjern"
 
     -- GUI layout
-    modal <- liftUI $ Modal.modal "Optælling godkendt" bActiveModal
-    modal2 <- liftUI $ Modal.modal "Fjern godkendt" bActiveModal2
+    modal <- liftUI $ Modal.modal (UI.string "Optælling godkendt") bActiveModal
+    modal2 <- liftUI $ Modal.modal (UI.string "Fjern godkendt") bActiveModal2
 
     elem <- mkContainer
         [ element searchItem

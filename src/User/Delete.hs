@@ -29,7 +29,8 @@ import qualified Env
 import qualified Counter
 import           Behaviors
 import           Layout
-
+import           Utils
+import qualified Modal
 
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
@@ -41,34 +42,15 @@ setup window = mdo
     (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers
                                              bSelectionUser
                                              bDisplayUserName
-    (deleteBtn, deleteBtnView) <- mkButton "Slet"
+    (deleteBtn, deleteBtnView)         <- mkButton "Slet"
 
-    counter                    <- liftUI $ Counter.counter bListBoxUsers
-    realDeleteBtn <- liftUI $ UI.button #+ [string "Sikker på slet?"]
+    counter                            <- liftUI $ Counter.counter bListBoxUsers
+    (realDeleteBtn, realDeleteBtnView) <- mkButton "Sikker på slet?"
 
     -- GUI layout
-    closeBtn                   <- liftUI $ UI.button #. "modal-close is-large"
+    modal <- liftUI $ Modal.modal (element realDeleteBtnView) bActiveModal
 
-    modal                      <-
-        liftUI
-        $  UI.div
-        #+ [ UI.div #. "modal-background"
-           , UI.div
-           #. "modal-content"
-           #+ [ UI.div
-                #. "box"
-                #+ [ UI.div
-                     #. "field"
-                     #+ [ UI.div
-                          #. "control"
-                          #+ [element realDeleteBtn #. "button"]
-                        ]
-                   ]
-              ]
-           , element closeBtn
-           ]
-
-    elem <- mkContainer
+    elem                               <- mkContainer
         [ element searchUser
         , element dropdownUser
         , element deleteBtnView
@@ -80,11 +62,6 @@ setup window = mdo
     -- Events and behaviors
     bFilterEntryUser <- stepper "" . rumors $ UI.userText filterUser
 
-
-
-    let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
-        isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
-
     let tFilterUser = isInfixOf <$> UI.userText filterUser
         bFilterUser = facts tFilterUser
         eFilterUser = rumors tFilterUser
@@ -92,11 +69,12 @@ setup window = mdo
     let eSelectionUser = rumors $ UI.userSelection listBoxUser
         eDelete        = UI.click deleteBtn
         eRealDelete    = UI.click realDeleteBtn
-        eClose         = UI.click closeBtn
+
+        eModal         = rumors $ Modal.state modal
 
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
-        [True <$ eDelete, False <$ eClose, False <$ eRealDelete]
+        [True <$ eDelete, False <$ eModal, False <$ eRealDelete]
 
     bSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionUser
@@ -175,8 +153,5 @@ setup window = mdo
         UI.enabled
         (bHasSelectedUser <&&> isSelectedCurrentUser)
 
-    liftUI $ element modal # sink
-        (attr "class")
-        ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 
     return (elem, filterJust $ bSelectionUser <@ eRealDelete)

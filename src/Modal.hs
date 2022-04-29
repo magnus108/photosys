@@ -28,14 +28,14 @@ state :: Modal -> Tidings Bool
 state = _stateModal
 
 
-modal :: String -> Behavior Bool -> UI Modal
-modal info bState = do
+modal :: UI Element -> Behavior Bool -> UI Modal
+modal elem bState = do
     closeBtn                   <- UI.button #. "modal-close is-large"
     _elementModal <- UI.div
         #+ [ UI.div #. "modal-background"
            , UI.div
            #. "modal-content"
-           #+ [UI.div #. "box" #+ [string info]]
+           #+ [UI.div #. "box" #+ [elem]]
            , element closeBtn
            ]
 

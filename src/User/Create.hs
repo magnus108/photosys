@@ -45,7 +45,7 @@ setup window = mdo
                             (element elemPassword # set UI.type_ "password")
     dataAdmin <- mkCheckbox "Admin" (element elemAdmin)
 
-    modal     <- liftUI $ Modal.modal "Opret godkendt" bActiveModal
+    modal     <- liftUI $ Modal.modal (UI.string "Opret godkendt") bActiveModal
 
     elem      <- mkContainer
         [ element dataName
