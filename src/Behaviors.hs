@@ -94,3 +94,11 @@ selectedItem
 selectedItem bSelection = do
     bLookup    <- lookupItem
     return $ (=<<) <$> bLookup <*> bSelection
+
+selectedTime
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => Behavior (Maybe DatabaseKey) -> m (Behavior (Maybe Time))
+selectedTime bSelection = do
+    bLookup    <- lookupTime
+    return $ (=<<) <$> bLookup <*> bSelection

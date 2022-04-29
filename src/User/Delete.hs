@@ -27,6 +27,8 @@ import           Monad
 import           Env                            ( Env )
 import qualified Env
 import qualified Counter
+import           Behaviors
+import           Layout
 
 
 setup
@@ -35,46 +37,14 @@ setup
     -> m (Element, Event DatabaseKey)
 setup window = mdo
     -- GUI elements
-    filterUser  <- liftUI $ UI.entry bFilterEntryUser
-    listBoxUser <- liftUI $ UI.listBox bListBoxUsers bSelectionUser bDisplayUserName
-    counter <- liftUI $ Counter.counter bListBoxUsers
+    (filterUser, searchUser) <- mkSearch bFilterEntryUser
+    (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers bSelectionUser bDisplayUserName
+    (deleteBtn, deleteBtnView) <- mkButton "Slet"
 
-    deleteBtn   <- liftUI $ UI.button #+ [string "Slet"]
+    counter <- liftUI $ Counter.counter bListBoxUsers
     realDeleteBtn   <- liftUI $ UI.button #+ [string "Sikker på slet?"]
 
     -- GUI layout
-    searchUser  <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-            , UI.div
-            #. "control"
-            #+ [ element filterUser #. "input" # set (attr "placeholder")
-                                                    "Fx Anders Andersen"
-                ]
-            ]
-
-    dropdownUser <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.div
-                #. "control is-expanded"
-                #+ [ UI.div
-                    #. "select is-multiple is-fullwidth"
-                    #+ [ element listBoxUser # set (attr "size") "5" # set
-                            (attr "multiple")
-                            ""
-                        ]
-                ]
-            ]
-
-
-    deleteBtn' <- liftUI $
-        UI.div
-        #. "field"
-        #+ [UI.div #. "control" #+ [element deleteBtn #. "button"]]
-
-
     closeBtn <- liftUI $ UI.button #. "modal-close is-large"
 
     modal    <- liftUI $
@@ -93,7 +63,7 @@ setup window = mdo
                 #. "container"
                 #+ [ element searchUser
                 , element dropdownUser
-                , element deleteBtn'
+                , element deleteBtnView
                 , element counter
                 , element modal
                 ]
@@ -139,14 +109,12 @@ setup window = mdo
     bDatabaseHistory                   <- asks Env.bDatabaseHistory
 
 
+    bLookupLoan <- lookupLoan
+    bLookupUser <- lookupUser
+    bSelectedToken <- selectedToken
 
-    let bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
-        bLookupLoan = flip lookup <$> bDatabaseLoan
 
-        bLookupUser :: Behavior (DatabaseKey -> Maybe User)
-        bLookupUser = flip lookup <$> bDatabaseUser
-
-        bShowDataUser :: Behavior (DatabaseKey -> String)
+    let bShowDataUser :: Behavior (DatabaseKey -> String)
         bShowDataUser = (maybe "" User.name .) <$> bLookupUser
 
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
@@ -186,11 +154,6 @@ setup window = mdo
                 <$> bSelectionUser
                 <*> bListBoxUsers
 
-        bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
-        bLookupToken = flip lookup <$> bDatabaseToken
-
-        bSelectedToken :: Behavior (Maybe Token)
-        bSelectedToken = (=<<) <$> bLookupToken <*> bSelectionToken
 
         bSelectedTokenId :: Behavior (Maybe Int)
         bSelectedTokenId = chainedTo Token.tokenId <$> bSelectedToken
