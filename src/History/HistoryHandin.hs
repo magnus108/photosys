@@ -35,6 +35,7 @@ import           Monad
 import           Env                            ( Env )
 import qualified Env
 import qualified Counter
+import Layout
 
 
 setup
@@ -44,110 +45,24 @@ setup
 setup window = mdo
 
     -- GUI elements
-    filterUser  <- liftUI $ UI.entry bFilterEntryUser
-    listBoxUser <- liftUI
-        $ UI.listBox bListBoxUsers'' bSelectionUser bDisplayUserName
+    (filterUser, searchUser) <- mkSearch bFilterEntryUser
+    (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers'' bSelectionUser bDisplayUserName
     counterUser <- liftUI $ Counter.counter bListBoxUsers''
 
-    filterItem  <- liftUI $ UI.entry bFilterEntryItem
-    listBoxItem <- liftUI
-        $ UI.listBox bListBoxItems'' bSelectionItem bDisplayItemName
+    (filterItem, searchItem) <- mkSearch bFilterEntryItem
+    (listBoxItem, dropdownItem) <- mkListBox bListBoxItems'' bSelectionItem bDisplayItemName
     counterItem <- liftUI $ Counter.counter bListBoxItems''
 
-    filterLoan  <- liftUI $ UI.entry bFilterEntryLoan
-    listBoxLoan <- liftUI
-        $ UI.listBox bListBoxLoans'' bSelectionLoan bDisplayLoanTime
-
+    (filterLoan, searchLoan) <- mkSearch bFilterEntryLoan
+    (listBoxLoan, dropdownLoan) <- mkListBox bListBoxLoans'' bSelectionLoan bDisplayLoanTime
     counterLoan <- liftUI $ Counter.counter bListBoxLoans''
 
     isAdmin     <- liftUI $ UI.div
+
     -- GUI layout
-    searchUser  <-
-        liftUI
-        $  UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-           , UI.div
-           #. "control"
-           #+ [ element filterUser #. "input" # set (attr "placeholder")
-                                                    "Fx Anders Andersen"
-              ]
-           ]
 
-    dropdownUser <-
-        liftUI
-        $  UI.div
-        #. "field"
-        #+ [ UI.div
-             #. "control is-expanded"
-             #+ [ UI.div
-                  #. "select is-multiple is-fullwidth"
-                  #+ [ element listBoxUser # set (attr "size") "5" # set
-                           (attr "multiple")
-                           ""
-                     ]
-                ]
-           ]
-
-    searchItem <-
-        liftUI
-        $  UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-           , UI.div
-           #. "control"
-           #+ [ element filterItem #. "input" # set (attr "placeholder")
-                                                    "Fx Kamera"
-              ]
-           ]
-
-    dropdownItem <-
-        liftUI
-        $  UI.div
-        #. "field"
-        #+ [ UI.div
-             #. "control is-expanded"
-             #+ [ UI.div
-                  #. "select is-multiple is-fullwidth"
-                  #+ [ element listBoxItem # set (attr "size") "5" # set
-                           (attr "multiple")
-                           ""
-                     ]
-                ]
-           ]
-
-    searchLoan <-
-        liftUI
-        $  UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-           , UI.div
-           #. "control"
-           #+ [element filterLoan #. "input" # set (attr "placeholder") "Dato"]
-           ]
-
-    dropdownLoan <-
-        liftUI
-        $  UI.div
-        #. "field"
-        #+ [ UI.div
-             #. "control is-expanded"
-             #+ [ UI.div
-                  #. "select is-multiple is-fullwidth"
-                  #+ [ element listBoxLoan # set (attr "size") "5" # set
-                           (attr "multiple")
-                           ""
-                     ]
-                ]
-           ]
-
-    elem <-
-        liftUI
-        $  UI.div
-        #. "section is-medium"
-        #+ [ UI.div
-             #. "container"
-             #+ [ element searchUser
+    elem <- mkContainer
+             [ element searchUser
                 , element dropdownUser
                 , element counterUser
                 , element searchItem
@@ -158,7 +73,6 @@ setup window = mdo
                 , element counterLoan
                 , element isAdmin
                 ]
-           ]
 
 
     -- Events and behaviors
