@@ -20,22 +20,45 @@ mkButton title = liftUI $ do
         #+ [UI.div #. "control" #+ [element button #. "button"]]
     return (button, view)
 
+mkCheckbox
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => String
+    -> UI Element
+    -> m Element
+mkCheckbox label elem =
+    liftUI
+        $  UI.div
+        #. "field"
+        #+ [ UI.label #. "label" #+ [string label]
+           , UI.div #. "control" #+ [elem #. "checkbox"]
+           ]
+
+
 mkSearch
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Behavior String
     -> m (UI.TextEntry, Element)
-mkSearch bFilterItem = liftUI $ do
+mkSearch bFilterItem = do
     filter <- liftUI $ UI.entry bFilterItem
-    view   <-
+    view   <- mkInput "Søg" $ element filter
+    return (filter, view)
+
+mkInput
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => String
+    -> UI Element
+    -> m Element
+mkInput label elem = liftUI $ do
+    view <-
         UI.div
         #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-           , UI.div
-           #. "control"
-           #+ [element filter #. "input" # set (attr "placeholder") "Fx Kamera"]
+        #+ [ UI.label #. "label" #+ [string label]
+           , UI.div #. "control" #+ [elem #. "input"]
            ]
-    return (filter, view)
+    return view
 
 
 mkListBox

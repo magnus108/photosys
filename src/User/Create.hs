@@ -23,6 +23,7 @@ import qualified Checkbox
 import           Monad
 import           Env                            ( Env )
 import qualified Env
+import           Layout
 
 
 setup
@@ -33,61 +34,36 @@ setup window = mdo
 
     -- GUI elements
     ((elemName, elemPassword, elemAdmin), tUser) <- liftUI $ dataItem bUser
-    createBtn <- liftUI $ UI.button #+ [string "Opret"]
+    (createBtn                          , createBtnView) <- mkButton "Opret"
 
     -- GUI layout
-    dataName  <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Name"]
-           , UI.div
-           #. "control"
-           #+ [ element elemName #. "input" # set (attr "placeholder")
-                                                  "Fx Anders Andersen"
-              ]
-           ]
+    dataName <- mkInput "Name" (element elemName # set (attr "placeholder") "Fx Anders Andersen")
+    dataPassword <- mkInput "Password" (element elemPassword # set UI.type_ "password")
+    dataAdmin <- mkCheckbox "Admin" (element elemAdmin)
 
-    dataPassword <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Password"]
-           , UI.div
-           #. "control"
-           #+ [element elemPassword #. "input" # set UI.type_ "password"]
-           ]
-
-    dataAdmin <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Admin"]
-           , UI.div #. "control" #+ [element elemAdmin #. "checkbox"]
-           ]
-
-    createBtn' <- liftUI $
-        UI.div
-        #. "field"
-        #+ [UI.div #. "control" #+ [element createBtn #. "button"]]
 
 
     closeBtn <- liftUI $ UI.button #. "modal-close is-large"
-    modal    <- liftUI $
-        UI.div
-            #+ [ UI.div #. "modal-background"
-               , UI.div
-               #. "modal-content"
-               #+ [UI.div #. "box" #+ [string "Opret godkendt"]]
-               , element closeBtn
-               ]
+    modal    <-
+        liftUI
+        $  UI.div
+        #+ [ UI.div #. "modal-background"
+           , UI.div
+           #. "modal-content"
+           #+ [UI.div #. "box" #+ [string "Opret godkendt"]]
+           , element closeBtn
+           ]
 
-    elem <- liftUI $
-        UI.div
+    elem <-
+        liftUI
+        $  UI.div
         #. "section is-medium"
         #+ [ UI.div
              #. "container"
              #+ [ element dataName
                 , element dataPassword
                 , element dataAdmin
-                , element createBtn'
+                , element createBtnView
                 , element modal
                 ]
            ]
