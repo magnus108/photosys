@@ -8,9 +8,18 @@ import           User
 import           Loan
 import           Item                           ( Item )
 import qualified Item
+import           Time                           ( Time )
+import qualified Time
 import           Token
 import           Env
 
+lookupTime
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (DatabaseKey -> Maybe Time))
+lookupTime = do
+    bDatabase <- asks Env.bDatabaseTime
+    return $ flip lookup <$> bDatabase
 
 lookupUser
     :: forall m
