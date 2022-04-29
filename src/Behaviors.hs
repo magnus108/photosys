@@ -6,7 +6,8 @@ import           Database
 import           Monad
 import           User
 import           Loan
-import           Item
+import           Item                           ( Item )
+import qualified Item
 import           Token
 import           Env
 
@@ -43,3 +44,44 @@ lookupToken
 lookupToken = do
     bDatabase <- asks Env.bDatabaseToken
     return $ flip lookup <$> bDatabase
+
+showUser
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (DatabaseKey -> String))
+showUser = do
+    bLookup <- lookupUser
+    return $ (maybe "" User.name .) <$> bLookup
+
+showItem
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (DatabaseKey -> String))
+showItem = do
+    bLookup <- lookupItem
+    return $ (maybe "" Item.showItem .) <$> bLookup
+
+showItemCode
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (DatabaseKey -> String))
+showItemCode = do
+    bLookup <- lookupItem
+    return $ (maybe "" Item.code .) <$> bLookup
+
+selectedToken
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (Maybe Token))
+selectedToken = do
+    bSelection <- asks Env.bSelectionToken
+    bLookup    <- lookupToken
+    return $ (=<<) <$> bLookup <*> bSelection
+
+selectedItem
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => Behavior (Maybe DatabaseKey) -> m (Behavior (Maybe Item))
+selectedItem bSelection = do
+    bLookup    <- lookupItem
+    return $ (=<<) <$> bLookup <*> bSelection

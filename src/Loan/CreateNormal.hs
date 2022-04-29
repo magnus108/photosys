@@ -27,7 +27,8 @@ import           Env                            ( Env )
 import qualified Env
 import qualified Counter
 
-import Behaviors 
+import           Behaviors
+import           Layout
 
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
@@ -37,77 +38,45 @@ setup window = mdo
 
 
     -- GUI elements
-    filterItem  <- liftUI $ UI.entry bFilterEntryItem
-    listBoxItem <- liftUI $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
+    (filterItem, searchItem) <- mkSearch bFilterEntryItem
+    (listBoxItem, dropdownItem) <- mkListBox bListBoxItems bSelectionItem bDisplayItemName
+    (createBtn, createBtnView) <- mkButton "Lån"
 
-    counter   <- liftUI $ Counter.counter bListBoxItems
-    createBtn   <- liftUI $ UI.button #+ [string "Lån"]
-
-    loanInfo <- liftUI $ UI.span
+    counter    <- liftUI $ Counter.counter bListBoxItems
+    loanInfo   <- liftUI $ UI.span
 
     -- GUI layout
-    searchItem  <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-            , UI.div
-            #. "control"
-            #+ [ element filterItem #. "input" # set (attr "placeholder")
-                                                    "Fx Kamera"
-                ]
-            ]
-
-    dropdownItem <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.div
-                #. "control is-expanded"
-                #+ [ UI.div
-                    #. "select is-multiple is-fullwidth"
-                    #+ [ element listBoxItem # set (attr "size") "5" # set
-                            (attr "multiple")
-                            ""
-                        ]
-                ]
-            ]
-
-
-    createBtn' <- liftUI $
-        UI.div
-        #. "field"
-        #+ [UI.div #. "control" #+ [element createBtn #. "button"]]
-
-
     closeBtn <- liftUI $ UI.button #. "modal-close is-large"
-    modal    <- liftUI $
-        UI.div
-            #+ [ UI.div #. "modal-background"
-                , UI.div
-                #. "modal-content"
-                #+ [UI.div #. "box" #+ [string "Lån godkendt: ", element loanInfo]]
-                , element closeBtn
-                ]
+    modal    <-
+        liftUI
+        $  UI.div
+        #+ [ UI.div #. "modal-background"
+           , UI.div
+           #. "modal-content"
+           #+ [UI.div #. "box" #+ [string "Lån godkendt: ", element loanInfo]]
+           , element closeBtn
+           ]
 
-    elem <- liftUI $
-        UI.div
+    elem <-
+        liftUI
+        $  UI.div
         #. "section is-medium"
         #+ [ UI.div
-                #. "container"
-                #+ [ element searchItem
+             #. "container"
+             #+ [ element searchItem
                 , element dropdownItem
-                , element createBtn'
+                , element createBtnView
                 , element counter
                 , element modal
                 ]
-            ]
+           ]
 
 
     -- Events and behaviors
     bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
 
     let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
-        isInfixOf needle haystack =
-            any (isPrefixOf needle) (tails haystack)
+        isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
 
     let tFilterItem = isInfixOf <$> UI.userText filterItem
         bFilterItem = facts tFilterItem
@@ -121,6 +90,9 @@ setup window = mdo
     bActiveModal <- stepper False $ Unsafe.head <$> unions
         [True <$ eCreate, False <$ eClose]
 
+    bLastLoanItem <- stepper Nothing $ Unsafe.head <$> unions
+        [bSelectionItem <@ eCreate]
+
 
     bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionItem
@@ -131,9 +103,6 @@ setup window = mdo
         , Nothing <$ eCreate
         ]
 
-    bLastLoanItem <- stepper Nothing $ Unsafe.head <$> unions
-        [bSelectionItem <@ eCreate]
-
     bDatabaseLoan   <- asks Env.bDatabaseLoan
     bDatabaseUser   <- asks Env.bDatabaseUser
     bDatabaseItem   <- asks Env.bDatabaseItem
@@ -141,26 +110,20 @@ setup window = mdo
     bSelectionToken <- asks Env.bSelectionToken
 
 
-    bLookupUser <- lookupUser
-    bLookupLoan <- lookupLoan
-    bLookupItem <- lookupItem
-    bLookupToken <- lookupToken
+    bLookupUser     <- lookupUser
+    bLookupLoan     <- lookupLoan
+    bLookupItem     <- lookupItem
+    bLookupToken    <- lookupToken
+    bShowUser       <- showUser
+    bSelectedToken  <- selectedToken
+    bShowItem       <- showItem
+    bShowItemCode   <- showItemCode
 
+    --- Forkert men okay
+    bSelectedItem   <- selectedItem bSelectionItem
 
     let bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
         bLoanItem = (fmap Loan.item .) <$> bLookupLoan
-
-        bSelectedItem :: Behavior (Maybe Item)
-        bSelectedItem = (=<<) <$> bLookupItem <*> bSelectionItem
-
-        bShowUser :: Behavior (DatabaseKey -> String)
-        bShowUser = (maybe "" User.name .) <$> bLookupUser
-
-        bShowItem :: Behavior (DatabaseKey -> String)
-        bShowItem = (maybe "" Item.showItem .) <$> bLookupItem
-
-        bShowItem2 :: Behavior (DatabaseKey -> String)
-        bShowItem2 = (maybe "" Item.code .) <$> bLookupItem
 
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
         bDisplayUserName = (UI.string .) <$> bShowUser
@@ -170,9 +133,7 @@ setup window = mdo
 
         bItemsWithLoan :: Behavior [DatabaseKey]
         bItemsWithLoan =
-            (\f -> catMaybes . fmap f . keys)
-                <$> bLoanItem
-                <*> bDatabaseLoan
+            (\f -> catMaybes . fmap f . keys) <$> bLoanItem <*> bDatabaseLoan
 
         bListBoxItems :: Behavior [DatabaseKey]
         bListBoxItems =
@@ -181,36 +142,34 @@ setup window = mdo
                 )
                 <$> bFilterItem
                 <*> bItemsWithLoan
-                <*> bShowItem2
+                <*> bShowItemCode
                 <*> bDatabaseItem
 
-        bSelectedToken :: Behavior (Maybe Token)
-        bSelectedToken = (=<<) <$> bLookupToken <*> bSelectionToken
 
         bSelectedTokenId :: Behavior (Maybe Int)
         bSelectedTokenId = chainedTo Token.tokenId <$> bSelectedToken
 
 
     let bCreateLoan :: Behavior (Maybe Loan)
-        bCreateLoan =
-            liftA2 Loan.Loan
-                <$> bSelectionItem
-                <*> bSelectedTokenId
-                -- <*> bSelectedTokenId
+        bCreateLoan = liftA2 Loan.Loan <$> bSelectionItem <*> bSelectedTokenId
+        -- <*> bSelectedTokenId
 
         hasUserSelected :: Behavior Bool
         hasUserSelected = isJust <$> bSelectedTokenId
 
         hasItemSelected :: Behavior Bool
         hasItemSelected = isJust <$> bSelectionItem
+
         bLastLoanItemItem :: Behavior (Maybe Item)
         bLastLoanItemItem = (=<<) <$> bLookupItem <*> bLastLoanItem
 
 
-    liftUI $ element loanInfo # sink text ((maybe "" Item.name) <$> bLastLoanItemItem)
+    liftUI $ element loanInfo # sink
+        text
+        ((maybe "" Item.name) <$> bLastLoanItemItem)
 
-    liftUI $ element createBtn
-        # sink UI.enabled (hasUserSelected <&&> hasItemSelected)
+    liftUI $ element createBtn # sink UI.enabled
+                                      (hasUserSelected <&&> hasItemSelected)
 
     liftUI $ element modal # sink
         (attr "class")

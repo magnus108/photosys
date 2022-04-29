@@ -42,6 +42,7 @@ library
       Item
       Item.Create
       Item.Delete
+      Layout
       Lib
       Loan
       Loan.Create
