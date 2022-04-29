@@ -26,10 +26,13 @@ source-repository head
 library
   exposed-modules:
       Behaviors
+      Changes
       Checkbox
+      Config
       Count
       Count.Count
       Counter
+      Data
       Database
       Env
       Export.Export

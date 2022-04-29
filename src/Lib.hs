@@ -3,6 +3,9 @@ module Lib
     ( someFunc
     )
 where
+import           Changes
+import           Config
+import           Data
 import           Env
 import           Monad
 import qualified Data.Text                     as T
@@ -71,7 +74,7 @@ import qualified Data.ByteString               as BS
 
 someFunc :: Int -> IO ()
 someFunc port = do
--------------------------------------------------------------------------------
+
     let config = Config { dataTabSelectionFile   = "data/tabSelection.json"
                         , datastoreLoan          = "data/loan.json"
                         , datastoreUser          = "data/user.json"
@@ -84,7 +87,6 @@ someFunc port = do
                         , datastoreTime          = "data/time.json"
                         , exportFile             = "data/export.csv"
                         }
--------------------------------------------------------------------------------
 
     startGUI defaultConfig { jsPort       = Just port
                            , jsStatic     = Just "static"
@@ -94,39 +96,10 @@ someFunc port = do
 
 
 
-readJson :: (MonadIO m, FromJSON a) => FilePath -> m a
-readJson fp = liftIO $ Unsafe.fromJust . decode . fromStrict <$> BS.readFile fp
-
-writeJson :: (MonadIO m, ToJSON a) => FilePath -> a -> m ()
-writeJson fp items = liftIO $ BS.writeFile fp $ toStrict $ encode items
-
-writeCsv
-    :: (MonadIO m, Csv.DefaultOrdered a, Csv.ToNamedRecord a)
-    => FilePath
-    -> [a]
-    -> m ()
-writeCsv fp items =
-    liftIO $ BS.writeFile fp $ toStrict $ Csv.encodeDefaultOrderedByName items
-
-
-
-data Config = Config
-    { dataTabSelectionFile :: FilePath
-                     ,datastoreLoan     :: FilePath
-                     ,datastoreUser      :: FilePath
-                     ,datastoreToken      :: FilePath
-                     ,datastoreTab         :: FilePath
-                     ,datastoreItem         :: FilePath
-                     ,datastoreHistory       :: FilePath
-                     ,datastoreHistoryHandIn  :: FilePath
-                     ,datastoreCount          :: FilePath
-                     ,datastoreTime          :: FilePath
-                     ,exportFile              :: FilePath
-    }
 
 
 setup2 :: Config -> Window -> UI ()
-setup2 config@Config{..} window = void $ mdo
+setup2 config@Config {..} window = void $ mdo
 
     env <- runApp env $ setup config window
 
@@ -149,7 +122,6 @@ setup
     -> Window
     -> m Env
 setup Config {..} window = mdo
-
 
     tabSelectionFile      <- readJson dataTabSelectionFile :: m (Maybe Int)
     databaseUser          <- readJson datastoreUser :: m (Database User)
@@ -381,75 +353,3 @@ setup Config {..} window = mdo
     return env
 
 
-changesCount
-    :: forall m
-     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => FilePath
-    -> m ()
-changesCount path = do
-    bDatabase <- asks Env.bDatabaseCount
-    liftUI $ onChanges bDatabase $ writeJson path
-
-
-changesHistory
-    :: forall m
-     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => FilePath
-    -> m ()
-changesHistory path = do
-    bDatabase <- asks Env.bDatabaseHistory
-    liftUI $ onChanges bDatabase $ writeJson path
-
-changesHistoryHandin
-    :: forall m
-     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => FilePath
-    -> m ()
-changesHistoryHandin path = do
-    bDatabase <- asks Env.bDatabaseHistoryHandin
-    liftUI $ onChanges bDatabase $ writeJson path
-
-changesUser
-    :: forall m
-     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => FilePath
-    -> m ()
-changesUser path = do
-    bDatabase <- asks Env.bDatabaseUser
-    liftUI $ onChanges bDatabase $ writeJson path
-
-changesTime
-    :: forall m
-     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => FilePath
-    -> m ()
-changesTime path = do
-    bDatabase <- asks Env.bDatabaseTime
-    liftUI $ onChanges bDatabase $ writeJson path
-
-changesLoan
-    :: forall m
-     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => FilePath
-    -> m ()
-changesLoan path = do
-    bDatabase <- asks Env.bDatabaseLoan
-    liftUI $ onChanges bDatabase $ writeJson path
-
-changesItem
-    :: forall m
-     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => FilePath
-    -> m ()
-changesItem path = do
-    bDatabase <- asks Env.bDatabaseItem
-    liftUI $ onChanges bDatabase $ writeJson path
-
-changesToken
-    :: forall m
-     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => FilePath
-    -> m ()
-changesToken path = do
-    bDatabase <- asks Env.bDatabaseToken
-    liftUI $ onChanges bDatabase $ writeJson path
