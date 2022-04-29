@@ -92,11 +92,9 @@ setup window = mdo
     bSelectionToken  <- asks Env.bSelectionToken
     bDatabaseHistory <- asks Env.bDatabaseHistory
 
-
     bLookupLoan      <- lookupLoan
     bLookupUser      <- lookupUser
     bSelectedToken   <- selectedToken
-
 
     let bShowDataUser :: Behavior (DatabaseKey -> String)
         bShowDataUser = (maybe "" User.name .) <$> bLookupUser
