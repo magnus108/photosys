@@ -32,7 +32,6 @@ library
       Count
       Count.Count
       Counter
-      Data
       Database
       Env
       Export.Export
@@ -68,7 +67,8 @@ library
       User
       User.Create
       User.Delete
-      Utils
+      Utils.Data
+      Utils.Utils
   other-modules:
       Paths_photosys
   hs-source-dirs:

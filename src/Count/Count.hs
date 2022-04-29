@@ -1,7 +1,7 @@
 {-# LANGUAGE RecursiveDo #-}
 module Count.Count where
 
-import Utils
+import           Utils.Utils
 import           Data.Time
 
 import qualified Graphics.UI.Threepenny        as UI
@@ -124,6 +124,7 @@ setup window = mdo
     bDatabaseItem  <- asks Env.bDatabaseItem
 
     bLookupItem    <- lookupItem
+    bLookupCount   <- lookupCount
 
     let bSelectedItem :: Behavior (Maybe Item)
         bSelectedItem = (=<<) <$> bLookupItem <*> bSelectionItem
@@ -156,10 +157,8 @@ setup window = mdo
 
 
 
-    let bLookupCount :: Behavior (DatabaseKey -> Maybe Count)
-        bLookupCount = flip lookup <$> bDatabaseCount
 
-        bSelectedCount :: Behavior (Maybe Count)
+    let bSelectedCount :: Behavior (Maybe Count)
         bSelectedCount = (=<<) <$> bLookupCount <*> bSelectionCount
 
         bShowCount :: Behavior (DatabaseKey -> String)

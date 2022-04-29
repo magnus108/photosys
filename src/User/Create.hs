@@ -33,11 +33,9 @@ setup
     -> m (Element, Event User)
 setup window = mdo
 
-    -- GUI elements
     ((elemName, elemPassword, elemAdmin), tUser) <- liftUI $ dataItem bUser
     (createBtn                          , createBtnView) <- mkButton "Opret"
 
-    -- GUI layout
     dataName <- mkInput
         "Name"
         (element elemName # set (attr "placeholder") "Fx Anders Andersen")

@@ -1,4 +1,4 @@
-module Data where
+module Utils.Data where
 
 import qualified Data.ByteString               as BS
 import qualified Relude.Unsafe                 as Unsafe

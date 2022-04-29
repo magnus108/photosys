@@ -10,6 +10,8 @@ import           Item                           ( Item )
 import qualified Item
 import           Time                           ( Time )
 import qualified Time
+import           Count                          ( Count )
+import qualified Count
 import           Token
 import           Env
 
@@ -54,6 +56,14 @@ lookupToken = do
     bDatabase <- asks Env.bDatabaseToken
     return $ flip lookup <$> bDatabase
 
+lookupCount
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (DatabaseKey -> Maybe Count))
+lookupCount = do
+    bDatabase <- asks Env.bDatabaseCount
+    return $ flip lookup <$> bDatabase
+
 showUser
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
@@ -90,15 +100,17 @@ selectedToken = do
 selectedItem
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => Behavior (Maybe DatabaseKey) -> m (Behavior (Maybe Item))
+    => Behavior (Maybe DatabaseKey)
+    -> m (Behavior (Maybe Item))
 selectedItem bSelection = do
-    bLookup    <- lookupItem
+    bLookup <- lookupItem
     return $ (=<<) <$> bLookup <*> bSelection
 
 selectedTime
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => Behavior (Maybe DatabaseKey) -> m (Behavior (Maybe Time))
+    => Behavior (Maybe DatabaseKey)
+    -> m (Behavior (Maybe Time))
 selectedTime bSelection = do
-    bLookup    <- lookupTime
+    bLookup <- lookupTime
     return $ (=<<) <$> bLookup <*> bSelection

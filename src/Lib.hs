@@ -5,7 +5,7 @@ module Lib
 where
 import           Changes
 import           Config
-import           Data
+import           Utils.Data
 import           Env
 import           Monad
 import qualified Data.Text                     as T

@@ -1,4 +1,4 @@
-module Utils where
+module Utils.Utils where
 
 
 isInfixOf :: (Eq a) => [a] -> [a] -> Bool

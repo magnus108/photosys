@@ -1,6 +1,6 @@
 module Changes where
 
-import           Data
+import           Utils.Data
 import           Env
 import           Monad
 import           Graphics.UI.Threepenny.Core

@@ -29,7 +29,7 @@ import qualified Env
 import qualified Counter
 import           Behaviors
 import           Layout
-import           Utils
+import           Utils.Utils
 import qualified Modal
 
 setup
