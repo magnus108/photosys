@@ -12,7 +12,9 @@ import           Data.Aeson
 
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
-                                         hiding ( delete )
+                                         hiding ( delete
+                                                , Config
+                                                )
 
 import           Item
 
@@ -69,11 +71,26 @@ import qualified Data.ByteString               as BS
 
 someFunc :: Int -> IO ()
 someFunc port = do
+-------------------------------------------------------------------------------
+    let config = Config { dataTabSelectionFile   = "data/tabSelection.json"
+                        , datastoreLoan          = "data/loan.json"
+                        , datastoreUser          = "data/user.json"
+                        , datastoreToken         = "data/token.json"
+                        , datastoreTab           = "data/tab.json"
+                        , datastoreItem          = "data/item.json"
+                        , datastoreHistory       = "data/history.json"
+                        , datastoreHistoryHandIn = "data/historyHandin.json"
+                        , datastoreCount         = "data/count.json"
+                        , datastoreTime          = "data/time.json"
+                        , exportFile             = "data/export.csv"
+                        }
+-------------------------------------------------------------------------------
+
     startGUI defaultConfig { jsPort       = Just port
                            , jsStatic     = Just "static"
                            , jsCustomHTML = Just "index.html"
                            }
-        $ setup2
+        $ setup2 config
 
 
 
@@ -93,29 +110,46 @@ writeCsv fp items =
 
 
 
-setup2 :: Window -> UI ()
-setup2 window = void $ mdo
-    env <- runApp env $ setup window
+data Config = Config
+    { dataTabSelectionFile :: FilePath
+                     ,datastoreLoan     :: FilePath
+                     ,datastoreUser      :: FilePath
+                     ,datastoreToken      :: FilePath
+                     ,datastoreTab         :: FilePath
+                     ,datastoreItem         :: FilePath
+                     ,datastoreHistory       :: FilePath
+                     ,datastoreHistoryHandIn  :: FilePath
+                     ,datastoreCount          :: FilePath
+                     ,datastoreTime          :: FilePath
+                     ,exportFile              :: FilePath
+    }
+
+
+setup2 :: Config -> Window -> UI ()
+setup2 config@Config{..} window = void $ mdo
+
+    env <- runApp env $ setup config window
+
+    runApp env $ do
+        changesHistory datastoreHistory
+        changesHistoryHandin datastoreHistoryHandIn
+        changesLoan datastoreLoan
+        changesUser datastoreUser
+        changesItem datastoreItem
+        changesToken datastoreToken
+        changesCount datastoreCount
+        changesTime datastoreTime
+
     return ()
 
 setup
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => Window
+    => Config
+    -> Window
     -> m Env
-setup window = mdo
+setup Config {..} window = mdo
 
-    let dataTabSelectionFile   = "data/tabSelection.json"
-    let datastoreLoan          = "data/loan.json"
-    let datastoreUser          = "data/user.json"
-    let datastoreToken         = "data/token.json"
-    let datastoreTab           = "data/tab.json"
-    let datastoreItem          = "data/item.json"
-    let datastoreHistory       = "data/history.json"
-    let datastoreHistoryHandIn = "data/historyHandin.json"
-    let datastoreCount         = "data/count.json"
-    let datastoreTime          = "data/time.json"
-    let exportFile             = "data/export.csv"
 
     tabSelectionFile      <- readJson dataTabSelectionFile :: m (Maybe Int)
     databaseUser          <- readJson datastoreUser :: m (Database User)
@@ -196,17 +230,19 @@ setup window = mdo
 
     bDatabaseHistory <- accumB databaseHistory $ concatenate <$> unions
         [ Database.create
-            <$> (   (   (\x z y -> History y (fromMaybe (Time "") x) (fromMaybe 999 z))
-                    <$> bSelectedTime
-                    <*> bSelectedTokenId
-                    )
+            <$> (((\x z y -> History y (fromMaybe (Time "") x) (fromMaybe 999 z)
+                  )
+                 <$> bSelectedTime
+                 <*> bSelectedTokenId
+                 )
                 <@> eLoanCreate
                 )
         , Database.create
-            <$> (   (   (\x z y -> History y (fromMaybe (Time "") x) (fromMaybe 999 z))
-                    <$> bSelectedTime
-                    <*> bSelectedTokenId
-                    )
+            <$> (((\x z y -> History y (fromMaybe (Time "") x) (fromMaybe 999 z)
+                  )
+                 <$> bSelectedTime
+                 <*> bSelectedTokenId
+                 )
                 <@> eLoanCreateNormal
                 )
         ]
@@ -214,8 +250,9 @@ setup window = mdo
     bDatabaseHistoryHandin <-
         accumB databaseHistoryHandin $ concatenate <$> unions
             [ Database.create
-                <$> (   (   (\x z y ->
-                                HistoryHandin y (fromMaybe (Time "") x) (fromMaybe 999 z)
+                <$> (   (   (\x z y -> HistoryHandin y
+                                                     (fromMaybe (Time "") x)
+                                                     (fromMaybe 999 z)
                             )
                         <$> bSelectedTime
                         <*> bSelectedTokenId
@@ -223,8 +260,9 @@ setup window = mdo
                     <@> (filterJust $ bLookupLoan <@> eLoanDelete)
                     )
             , Database.create
-                <$> (   (   (\x z y ->
-                                HistoryHandin y (fromMaybe (Time "") x) (fromMaybe 999 z)
+                <$> (   (   (\x z y -> HistoryHandin y
+                                                     (fromMaybe (Time "") x)
+                                                     (fromMaybe 999 z)
                             )
                         <$> bSelectedTime
                         <*> bSelectedTokenId
@@ -326,7 +364,7 @@ setup window = mdo
                 (14, False) -> [tabs, historyHandinNormal]
                 (15, True ) -> [tabs, count]
                 (16, True ) -> [tabs, notDone]
-                (17, False ) -> [tabs, notDone]
+                (17, False) -> [tabs, notDone]
                 (0 , False) -> [tabs, loanDeleteNormal]--- Hack
             else [tokenCreate]
 
@@ -336,14 +374,6 @@ setup window = mdo
         (maybe [tokenCreate] <$> bGui <*> bTabSelection)
 --------------------------------------------------------------------------------
 
-    changesHistory datastoreHistory
-    changesHistoryHandin datastoreHistoryHandIn
-    changesLoan datastoreLoan
-    changesUser datastoreUser
-    changesItem datastoreItem
-    changesToken datastoreToken
-    changesCount datastoreCount
-    changesTime datastoreTime
 
     liftUI $ onChanges bTabSelection $ writeJson dataTabSelectionFile
     liftUI $ onChanges bDatabaseExport $ writeCsv exportFile
@@ -354,7 +384,8 @@ setup window = mdo
 changesCount
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => FilePath -> m ()
+    => FilePath
+    -> m ()
 changesCount path = do
     bDatabase <- asks Env.bDatabaseCount
     liftUI $ onChanges bDatabase $ writeJson path
@@ -363,7 +394,8 @@ changesCount path = do
 changesHistory
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => FilePath -> m ()
+    => FilePath
+    -> m ()
 changesHistory path = do
     bDatabase <- asks Env.bDatabaseHistory
     liftUI $ onChanges bDatabase $ writeJson path
@@ -371,7 +403,8 @@ changesHistory path = do
 changesHistoryHandin
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => FilePath -> m ()
+    => FilePath
+    -> m ()
 changesHistoryHandin path = do
     bDatabase <- asks Env.bDatabaseHistoryHandin
     liftUI $ onChanges bDatabase $ writeJson path
@@ -379,7 +412,8 @@ changesHistoryHandin path = do
 changesUser
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => FilePath -> m ()
+    => FilePath
+    -> m ()
 changesUser path = do
     bDatabase <- asks Env.bDatabaseUser
     liftUI $ onChanges bDatabase $ writeJson path
@@ -387,7 +421,8 @@ changesUser path = do
 changesTime
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => FilePath -> m ()
+    => FilePath
+    -> m ()
 changesTime path = do
     bDatabase <- asks Env.bDatabaseTime
     liftUI $ onChanges bDatabase $ writeJson path
@@ -395,7 +430,8 @@ changesTime path = do
 changesLoan
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => FilePath -> m ()
+    => FilePath
+    -> m ()
 changesLoan path = do
     bDatabase <- asks Env.bDatabaseLoan
     liftUI $ onChanges bDatabase $ writeJson path
@@ -403,7 +439,8 @@ changesLoan path = do
 changesItem
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => FilePath -> m ()
+    => FilePath
+    -> m ()
 changesItem path = do
     bDatabase <- asks Env.bDatabaseItem
     liftUI $ onChanges bDatabase $ writeJson path
@@ -411,7 +448,8 @@ changesItem path = do
 changesToken
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => FilePath -> m ()
+    => FilePath
+    -> m ()
 changesToken path = do
     bDatabase <- asks Env.bDatabaseToken
     liftUI $ onChanges bDatabase $ writeJson path
