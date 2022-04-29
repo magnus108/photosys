@@ -24,6 +24,8 @@ import           Control.Bool
 import           Monad
 import           Env                            ( Env )
 import qualified Env
+import           Layout
+import           Behaviors
 
 
 setup
@@ -33,99 +35,46 @@ setup
 setup window = mdo
 
     -- GUI elements
-    filterUser  <- liftUI $  UI.entry bFilterEntryUser
-    listBoxUser <- liftUI $  UI.listBox bListBoxUsers bSelectionUser bDisplayUserName
+    (filterUser , searchUser  ) <- mkSearch bFilterEntryUser
+    (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers
+                                             bSelectionUser
+                                             bDisplayUserName
     counterUser <- liftUI $ Counter.counter bListBoxUsers
 
-    filterItem  <- liftUI $  UI.entry bFilterEntryItem
-    listBoxItem <- liftUI $  UI.listBox bListBoxItems bSelectionItem bDisplayItemName
+    (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
+    (listBoxItem, dropdownItem) <- mkListBox bListBoxItems
+                                             bSelectionItem
+                                             bDisplayItemName
     counterItem <- liftUI $ Counter.counter bListBoxItems
 
-    loanInfo <- liftUI $ UI.span
-    deleteBtn   <- liftUI $  UI.button #+ [string "Aflever"]
+
+    loanInfo    <- liftUI $ UI.span
+    (deleteBtn, deleteBtnView) <- mkButton "Aflever"
 
     -- GUI layout
-    searchUser  <- liftUI $ 
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-           , UI.div
-           #. "control"
-           #+ [ element filterUser #. "input" # set (attr "placeholder")
-                                                    "Fx Anders Andersen"
-              ]
-           ]
-
-    dropdownUser <- liftUI $ 
-        UI.div
-        #. "field"
-        #+ [ UI.div
-             #. "control is-expanded"
-             #+ [ UI.div
-                  #. "select is-multiple is-fullwidth"
-                  #+ [ element listBoxUser # set (attr "size") "5" # set
-                           (attr "multiple")
-                           ""
-                     ]
-                ]
-           ]
-
-    searchItem <- liftUI $ 
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-           , UI.div
-           #. "control"
-           #+ [ element filterItem #. "input" # set (attr "placeholder")
-                                                    "Fx Kamera"
-              ]
-           ]
-
-    dropdownItem <- liftUI $ 
-        UI.div
-        #. "field"
-        #+ [ UI.div
-             #. "control is-expanded"
-             #+ [ UI.div
-                  #. "select is-multiple is-fullwidth"
-                  #+ [ element listBoxItem # set (attr "size") "5" # set
-                           (attr "multiple")
-                           ""
-                     ]
-                ]
-           ]
-
-
-    deleteBtn' <- liftUI $ 
-        UI.div
-        #. "field"
-        #+ [UI.div #. "control" #+ [element deleteBtn #. "button"]]
-
-
     closeBtn <- liftUI $ UI.button #. "modal-close is-large"
-    modal    <- liftUI $ 
-        UI.div
-            #+ [ UI.div #. "modal-background"
-               , UI.div
-               #. "modal-content"
-               #+ [UI.div #. "box" #+ [string "Aflevering godkendt: ", element loanInfo]]
-               , element closeBtn
-               ]
+    modal    <-
+        liftUI
+        $  UI.div
+        #+ [ UI.div #. "modal-background"
+           , UI.div
+           #. "modal-content"
+           #+ [ UI.div
+                #. "box"
+                #+ [string "Aflevering godkendt: ", element loanInfo]
+              ]
+           , element closeBtn
+           ]
 
-    elem <- liftUI $
-        UI.div
-        #. "section is-medium"
-        #+ [ UI.div
-             #. "container"
-             #+ [ element searchUser
+    elem <- mkContainer
+             [ element searchUser
                 , element dropdownUser
                 , element counterUser
                 , element searchItem
                 , element dropdownItem
-                , element deleteBtn'
+                , element deleteBtnView
                 , element counterItem
                 , element modal
-                ]
            ]
 
 
@@ -183,20 +132,15 @@ setup window = mdo
     bSelectionToken <- asks Env.bSelectionToken
 
 
-    let bLookupUser :: Behavior (DatabaseKey -> Maybe User)
-        bLookupUser = flip lookup <$> bDatabaseUser
+    bLookupUser     <- lookupUser
+    bLookupItem     <- lookupItem
+    bLookupLoan     <- lookupLoan
 
-        bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
-        bLookupLoan = flip lookup <$> bDatabaseLoan
-
-        bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
+    let bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
         bLoanItem = (fmap Loan.item .) <$> bLookupLoan
 
         bLoanUser :: Behavior (DatabaseKey -> Maybe Int)
         bLoanUser = (fmap Loan.user .) <$> bLookupLoan
-
-        bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
-        bLookupItem = flip lookup <$> bDatabaseItem
 
         bSelectedUser :: Behavior (Maybe User)
         bSelectedUser = (=<<) <$> bLookupUser <*> bSelectionUser
@@ -303,7 +247,9 @@ setup window = mdo
         bLastLoanItemItem :: Behavior (Maybe Item)
         bLastLoanItemItem = (=<<) <$> bLookupItem <*> bLastLoanItem
 
-    liftUI $ element loanInfo # sink text ((maybe "" Item.name) <$> bLastLoanItemItem)
+    liftUI $ element loanInfo # sink
+        text
+        ((maybe "" Item.name) <$> bLastLoanItemItem)
     liftUI $ element deleteBtn # sink UI.enabled hasSelectedLoan
     liftUI $ element modal # sink
         (attr "class")

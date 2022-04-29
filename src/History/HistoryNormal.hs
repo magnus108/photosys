@@ -33,94 +33,34 @@ import           Monad
 import           Env                            ( Env )
 import qualified Env
 import qualified Counter
+import           Layout
 
 
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
     -> m Element
-setup window
-    = mdo
+setup window = mdo
 
     -- GUI elements
 
-    filterItem  <- liftUI $ UI.entry bFilterEntryItem
-    listBoxItem <- liftUI $ UI.listBox bListBoxItems''
-                                bSelectionItem
-                                bDisplayItemName
+    (filterItem, searchItem) <- mkSearch bFilterEntryItem
+    (listBoxItem, dropdownItem) <- mkListBox bListBoxItems'' bSelectionItem bDisplayItemName
     counterItem <- liftUI $ Counter.counter bListBoxItems''
 
-    filterLoan  <- liftUI $ UI.entry bFilterEntryLoan
-    listBoxLoan <- liftUI $ UI.listBox bListBoxLoans''
-                                bSelectionLoan
-                                bDisplayLoanTime
+    (filterLoan, searchLoan) <- mkSearch bFilterEntryLoan
+    (listBoxLoan, dropdownLoan) <- mkListBox bListBoxLoans'' bSelectionLoan bDisplayLoanTime
     counterLoan <- liftUI $ Counter.counter bListBoxLoans''
 
     -- GUI layout
-    searchItem <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-            , UI.div
-            #. "control"
-            #+ [ element filterItem #. "input" # set (attr "placeholder")
-                                                    "Fx Kamera"
-                ]
-            ]
-
-    dropdownItem <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.div
-                #. "control is-expanded"
-                #+ [ UI.div
-                    #. "select is-multiple is-fullwidth"
-                    #+ [ element listBoxItem # set (attr "size") "5" # set
-                            (attr "multiple")
-                            ""
-                        ]
-                ]
-            ]
-
-    searchLoan <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-            , UI.div
-            #. "control"
-            #+ [ element filterLoan #. "input" # set (attr "placeholder")
-                                                    "Dato"
-                ]
-            ]
-
-    dropdownLoan <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.div
-                #. "control is-expanded"
-                #+ [ UI.div
-                    #. "select is-multiple is-fullwidth"
-                    #+ [ element listBoxLoan # set (attr "size") "5" # set
-                            (attr "multiple")
-                            ""
-                        ]
-                ]
-            ]
-
-    elem <- liftUI $
-        UI.div
-        #. "section is-medium"
-        #+ [ UI.div
-                #. "container"
-                #+ [ 
-                 element searchItem
-                , element dropdownItem
-                , element counterItem
-                , element searchLoan
-                , element dropdownLoan
-                , element counterLoan
-                ]
-            ]
+    elem <- mkContainer
+        [ element searchItem
+        , element dropdownItem
+        , element counterItem
+        , element searchLoan
+        , element dropdownLoan
+        , element counterLoan
+        ]
 
 
     -- Events and behaviors
@@ -128,8 +68,7 @@ setup window
     bFilterEntryLoan <- stepper "" . rumors $ UI.userText filterLoan
 
     let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
-        isInfixOf needle haystack =
-            any (isPrefixOf needle) (tails haystack)
+        isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
 
 
     let tFilterItem = isInfixOf <$> UI.userText filterItem
@@ -162,11 +101,11 @@ setup window
         <@> eFilterLoan
         ]
 
-    bDatabaseLoan   <- asks Env.bDatabaseLoan
-    bDatabaseUser   <- asks Env.bDatabaseUser
-    bDatabaseItem   <- asks Env.bDatabaseItem
-    bDatabaseToken  <- asks Env.bDatabaseToken
-    bSelectionToken <- asks Env.bSelectionToken
+    bDatabaseLoan    <- asks Env.bDatabaseLoan
+    bDatabaseUser    <- asks Env.bDatabaseUser
+    bDatabaseItem    <- asks Env.bDatabaseItem
+    bDatabaseToken   <- asks Env.bDatabaseToken
+    bSelectionToken  <- asks Env.bSelectionToken
     bDatabaseHistory <- asks Env.bDatabaseHistory
 
 
@@ -174,7 +113,8 @@ setup window
         bLookupUser = flip lookup <$> bDatabaseUser
 
         bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
-        bLookupLoan = (\x y -> fmap History.loan (lookup y x)) <$> bDatabaseHistory
+        bLookupLoan =
+            (\x y -> fmap History.loan (lookup y x)) <$> bDatabaseHistory
 
         bLookupHistory :: Behavior (DatabaseKey -> Maybe History)
         bLookupHistory = flip lookup <$> bDatabaseHistory
@@ -198,7 +138,8 @@ setup window
         bShowItem = (maybe "" Item.showItem .) <$> bLookupItem
 
         bShowLoan :: Behavior (DatabaseKey -> String)
-        bShowLoan = (maybe "" (Time.time . History.timestamp) .) <$> bLookupHistory
+        bShowLoan =
+            (maybe "" (Time.time . History.timestamp) .) <$> bLookupHistory
 
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
         bDisplayUserName = (UI.string .) <$> bShowUser
@@ -219,10 +160,9 @@ setup window
         bListBoxLoans' :: Behavior [DatabaseKey]
         bListBoxLoans' =
             (\mi lookup -> filter
-                    ( (\ml -> fromMaybe
-                            True
-                            (liftA2 (\l i -> Loan.item l == i) ml mi)
-                        )
+                    ( (\ml ->
+                          fromMaybe True (liftA2 (\l i -> Loan.item l == i) ml mi)
+                      )
                     . lookup
                     )
                 )
@@ -233,10 +173,9 @@ setup window
         bListBoxLoans'' :: Behavior [DatabaseKey]
         bListBoxLoans'' =
             (\mu lookup -> filter
-                    ( (\ml -> fromMaybe
-                            True
-                            (liftA2 (\l u -> Loan.user l == u) ml mu)
-                        )
+                    ( (\ml ->
+                          fromMaybe True (liftA2 (\l u -> Loan.user l == u) ml mu)
+                      )
                     . lookup
                     )
                 )

@@ -37,37 +37,44 @@ setup
     -> m (Element, Event DatabaseKey)
 setup window = mdo
     -- GUI elements
-    (filterUser, searchUser) <- mkSearch bFilterEntryUser
-    (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers bSelectionUser bDisplayUserName
+    (filterUser , searchUser  ) <- mkSearch bFilterEntryUser
+    (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers
+                                             bSelectionUser
+                                             bDisplayUserName
     (deleteBtn, deleteBtnView) <- mkButton "Slet"
 
-    counter <- liftUI $ Counter.counter bListBoxUsers
-    realDeleteBtn   <- liftUI $ UI.button #+ [string "Sikker på slet?"]
+    counter                    <- liftUI $ Counter.counter bListBoxUsers
+    realDeleteBtn <- liftUI $ UI.button #+ [string "Sikker på slet?"]
 
     -- GUI layout
-    closeBtn <- liftUI $ UI.button #. "modal-close is-large"
+    closeBtn                   <- liftUI $ UI.button #. "modal-close is-large"
 
-    modal    <- liftUI $
-        UI.div
-            #+ [ UI.div #. "modal-background"
-                , UI.div
-                #. "modal-content"
-                #+ [UI.div #. "box" #+ [ UI.div #. "field" #+ [UI.div #. "control" #+ [element realDeleteBtn #. "button"]]]]
-                , element closeBtn
-                ]
+    modal                      <-
+        liftUI
+        $  UI.div
+        #+ [ UI.div #. "modal-background"
+           , UI.div
+           #. "modal-content"
+           #+ [ UI.div
+                #. "box"
+                #+ [ UI.div
+                     #. "field"
+                     #+ [ UI.div
+                          #. "control"
+                          #+ [element realDeleteBtn #. "button"]
+                        ]
+                   ]
+              ]
+           , element closeBtn
+           ]
 
-    elem <- liftUI $
-        UI.div
-        #. "section is-medium"
-        #+ [ UI.div
-                #. "container"
-                #+ [ element searchUser
-                , element dropdownUser
-                , element deleteBtnView
-                , element counter
-                , element modal
-                ]
-            ]
+    elem <- mkContainer
+        [ element searchUser
+        , element dropdownUser
+        , element deleteBtnView
+        , element counter
+        , element modal
+        ]
 
 
     -- Events and behaviors
@@ -76,8 +83,7 @@ setup window = mdo
 
 
     let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
-        isInfixOf needle haystack =
-            any (isPrefixOf needle) (tails haystack)
+        isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
 
     let tFilterUser = isInfixOf <$> UI.userText filterUser
         bFilterUser = facts tFilterUser
@@ -85,7 +91,7 @@ setup window = mdo
 
     let eSelectionUser = rumors $ UI.userSelection listBoxUser
         eDelete        = UI.click deleteBtn
-        eRealDelete        = UI.click realDeleteBtn
+        eRealDelete    = UI.click realDeleteBtn
         eClose         = UI.click closeBtn
 
 
@@ -101,17 +107,17 @@ setup window = mdo
         <@> eFilterUser
         ]
 
-    bDatabaseLoan                      <- asks Env.bDatabaseLoan
-    bDatabaseUser                      <- asks Env.bDatabaseUser
-    bDatabaseItem                      <- asks Env.bDatabaseItem
-    bDatabaseToken                     <- asks Env.bDatabaseToken
-    bSelectionToken                    <- asks Env.bSelectionToken
-    bDatabaseHistory                   <- asks Env.bDatabaseHistory
+    bDatabaseLoan    <- asks Env.bDatabaseLoan
+    bDatabaseUser    <- asks Env.bDatabaseUser
+    bDatabaseItem    <- asks Env.bDatabaseItem
+    bDatabaseToken   <- asks Env.bDatabaseToken
+    bSelectionToken  <- asks Env.bSelectionToken
+    bDatabaseHistory <- asks Env.bDatabaseHistory
 
 
-    bLookupLoan <- lookupLoan
-    bLookupUser <- lookupUser
-    bSelectedToken <- selectedToken
+    bLookupLoan      <- lookupLoan
+    bLookupUser      <- lookupUser
+    bSelectedToken   <- selectedToken
 
 
     let bShowDataUser :: Behavior (DatabaseKey -> String)
@@ -126,7 +132,10 @@ setup window = mdo
         bListBoxUsers :: Behavior [DatabaseKey]
         bListBoxUsers =
             (\p q show f ->
-                    filter (f . Just)  . filter (flip List.notElem q) . filter (p . show) . keys
+                    filter (f . Just)
+                        . filter (flip List.notElem q)
+                        . filter (p . show)
+                        . keys
                 )
                 <$> bFilterUser
                 <*> bUsersWithLoan
@@ -140,9 +149,7 @@ setup window = mdo
 
         bUsersWithLoan :: Behavior [DatabaseKey]
         bUsersWithLoan =
-            (\f -> catMaybes . fmap f . keys)
-                <$> bLoanUser
-                <*> bDatabaseLoan
+            (\f -> catMaybes . fmap f . keys) <$> bLoanUser <*> bDatabaseLoan
 
 
     let bHasSelectedUser :: Behavior Bool
@@ -159,15 +166,14 @@ setup window = mdo
         bSelectedTokenId = chainedTo Token.tokenId <$> bSelectedToken
 
         isSelectedCurrentUser' :: Behavior (Maybe Int -> Bool)
-        isSelectedCurrentUser' =
-            (/=) <$> bSelectedTokenId
+        isSelectedCurrentUser' = (/=) <$> bSelectedTokenId
 
         isSelectedCurrentUser :: Behavior Bool
-        isSelectedCurrentUser =
-            (/=) <$> bSelectedTokenId <*> bSelectionUser
+        isSelectedCurrentUser = (/=) <$> bSelectedTokenId <*> bSelectionUser
 
-    liftUI $ element deleteBtn
-        # sink UI.enabled (bHasSelectedUser <&&> isSelectedCurrentUser)
+    liftUI $ element deleteBtn # sink
+        UI.enabled
+        (bHasSelectedUser <&&> isSelectedCurrentUser)
 
     liftUI $ element modal # sink
         (attr "class")

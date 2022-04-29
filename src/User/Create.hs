@@ -37,14 +37,17 @@ setup window = mdo
     (createBtn                          , createBtnView) <- mkButton "Opret"
 
     -- GUI layout
-    dataName <- mkInput "Name" (element elemName # set (attr "placeholder") "Fx Anders Andersen")
-    dataPassword <- mkInput "Password" (element elemPassword # set UI.type_ "password")
+    dataName <- mkInput
+        "Name"
+        (element elemName # set (attr "placeholder") "Fx Anders Andersen")
+    dataPassword <- mkInput "Password"
+                            (element elemPassword # set UI.type_ "password")
     dataAdmin <- mkCheckbox "Admin" (element elemAdmin)
 
 
 
-    closeBtn <- liftUI $ UI.button #. "modal-close is-large"
-    modal    <-
+    closeBtn  <- liftUI $ UI.button #. "modal-close is-large"
+    modal     <-
         liftUI
         $  UI.div
         #+ [ UI.div #. "modal-background"
@@ -54,19 +57,13 @@ setup window = mdo
            , element closeBtn
            ]
 
-    elem <-
-        liftUI
-        $  UI.div
-        #. "section is-medium"
-        #+ [ UI.div
-             #. "container"
-             #+ [ element dataName
-                , element dataPassword
-                , element dataAdmin
-                , element createBtnView
-                , element modal
-                ]
-           ]
+    elem <- mkContainer
+        [ element dataName
+        , element dataPassword
+        , element dataAdmin
+        , element createBtnView
+        , element modal
+        ]
 
     -- Events and behaviors
     let eCreate = UI.click createBtn

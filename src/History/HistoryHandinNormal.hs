@@ -36,6 +36,8 @@ import           Monad
 import           Env                            ( Env )
 import qualified Env
 import qualified Counter
+import           Layout
+import           Behaviors
 
 
 setup
@@ -45,84 +47,26 @@ setup
 setup window = mdo
 
     -- GUI elements
+    (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
+    (listBoxItem, dropdownItem) <- mkListBox bListBoxItems''
+                                             bSelectionItem
+                                             bDisplayItemName
+    counterItem                 <- liftUI $ Counter.counter bListBoxItems''
 
-    filterItem  <- liftUI $ UI.entry bFilterEntryItem
-    listBoxItem <- liftUI
-        $ UI.listBox bListBoxItems'' bSelectionItem bDisplayItemName
-    counterItem <- liftUI $ Counter.counter bListBoxItems''
-
-    filterLoan  <- liftUI $ UI.entry bFilterEntryLoan
-    listBoxLoan <- liftUI
-        $ UI.listBox bListBoxLoans'' bSelectionLoan bDisplayLoanTime
+    (filterLoan , searchLoan  ) <- mkSearch bFilterEntryLoan
+    (listBoxLoan, dropdownLoan) <- mkListBox bListBoxLoans''
+                                             bSelectionLoan
+                                             bDisplayLoanTime
     counterLoan <- liftUI $ Counter.counter bListBoxLoans''
 
     -- GUI layout
-    searchItem  <-
-        liftUI
-        $  UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-           , UI.div
-           #. "control"
-           #+ [ element filterItem #. "input" # set (attr "placeholder")
-                                                    "Fx Kamera"
-              ]
-           ]
-
-    dropdownItem <-
-        liftUI
-        $  UI.div
-        #. "field"
-        #+ [ UI.div
-             #. "control is-expanded"
-             #+ [ UI.div
-                  #. "select is-multiple is-fullwidth"
-                  #+ [ element listBoxItem # set (attr "size") "5" # set
-                           (attr "multiple")
-                           ""
-                     ]
-                ]
-           ]
-
-    searchLoan <-
-        liftUI
-        $  UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-           , UI.div
-           #. "control"
-           #+ [element filterLoan #. "input" # set (attr "placeholder") "Dato"]
-           ]
-
-    dropdownLoan <-
-        liftUI
-        $  UI.div
-        #. "field"
-        #+ [ UI.div
-             #. "control is-expanded"
-             #+ [ UI.div
-                  #. "select is-multiple is-fullwidth"
-                  #+ [ element listBoxLoan # set (attr "size") "5" # set
-                           (attr "multiple")
-                           ""
-                     ]
-                ]
-           ]
-
-    elem <-
-        liftUI
-        $  UI.div
-        #. "section is-medium"
-        #+ [ UI.div
-             #. "container"
-             #+ [ element searchItem
-                , element dropdownItem
-                , element counterItem
-                , element searchLoan
-                , element dropdownLoan
-                , element counterLoan
-                ]
-           ]
+    elem        <- mkContainer
+        [ element searchItem
+        , element dropdownItem
+        , element counterItem
+        , element searchLoan
+        , element dropdownLoan
+        ]
 
 
     -- Events and behaviors
@@ -172,15 +116,15 @@ setup window = mdo
     bDatabaseHistoryHandin <- asks Env.bDatabaseHistoryHandin
 
 
-    let bLookupUser :: Behavior (DatabaseKey -> Maybe User)
-        bLookupUser = flip lookup <$> bDatabaseUser
+    bLookupUser            <- lookupUser
 
-        bLookupHistoryHandin :: Behavior (DatabaseKey -> Maybe HistoryHandin)
+    let bLookupHistoryHandin :: Behavior (DatabaseKey -> Maybe HistoryHandin)
         bLookupHistoryHandin = flip lookup <$> bDatabaseHistoryHandin
 
         bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
         bLookupLoan =
-            (\x y -> fmap HistoryHandin.loan (lookup y x)) <$> bDatabaseHistoryHandin
+            (\x y -> fmap HistoryHandin.loan (lookup y x))
+                <$> bDatabaseHistoryHandin
 
         bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
         bLookupItem = flip lookup <$> bDatabaseItem
@@ -202,7 +146,8 @@ setup window = mdo
 
         bShowLoan :: Behavior (DatabaseKey -> String)
         bShowLoan =
-            (maybe "" (Time.time . HistoryHandin.timestamp) .) <$> bLookupHistoryHandin
+            (maybe "" (Time.time . HistoryHandin.timestamp) .)
+                <$> bLookupHistoryHandin
 
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
         bDisplayUserName = (UI.string .) <$> bShowUser

@@ -26,6 +26,8 @@ import           Monad
 import           Env                            ( Env )
 import qualified Env
 import qualified Counter
+import           Layout
+import           Behaviors
 
 
 setup
@@ -34,46 +36,16 @@ setup
     -> m (Element, Event DatabaseKey)
 setup window = mdo
     -- GUI elements
-    filterItem  <- liftUI $ UI.entry bFilterEntryItem
-    listBoxItem <- liftUI $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
+    (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
+    (listBoxItem, dropdownItem) <- mkListBox bListBoxItems
+                                             bSelectionItem
+                                             bDisplayItemName
 
-    deleteBtn <- liftUI $ UI.button #+ [string "Aflever"]
+    (deleteBtn, deleteBtnView) <- mkButton "Aflever"
     counter <- liftUI $ Counter.counter bListBoxItems
     loanInfo <- liftUI $ UI.span
 
     -- GUI layout
-    searchItem <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-           , UI.div
-           #. "control"
-           #+ [ element filterItem #. "input" # set (attr "placeholder")
-                                                    "Fx Kamera"
-              ]
-           ]
-
-    dropdownItem <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.div
-             #. "control is-expanded"
-             #+ [ UI.div
-                  #. "select is-multiple is-fullwidth"
-                  #+ [ element listBoxItem # set (attr "size") "5" # set
-                           (attr "multiple")
-                           ""
-                     ]
-                ]
-           ]
-
-
-    deleteBtn' <- liftUI $
-        UI.div
-        #. "field"
-        #+ [UI.div #. "control" #+ [element deleteBtn #. "button"]]
-
-
     closeBtn <- liftUI $ UI.button #. "modal-close is-large"
     modal    <- liftUI $ 
         UI.div
@@ -84,17 +56,11 @@ setup window = mdo
                , element closeBtn
                ]
 
-    elem <- liftUI $
-        UI.div
-        #. "section is-medium"
-        #+ [ UI.div
-             #. "container"
-             #+ [ element searchItem
+    elem <- mkContainer [ element searchItem
                 , element dropdownItem
-                , element deleteBtn'
+                , element deleteBtnView
                 , element counter
                 , element modal
-                ]
            ]
 
 
@@ -139,13 +105,10 @@ setup window = mdo
 
     let bSelectionUser = bSelectedTokenId
 
-    let bLookupUser :: Behavior (DatabaseKey -> Maybe User)
-        bLookupUser = flip lookup <$> bDatabaseUser
+    bLookupUser <- lookupUser
+    bLookupLoan <- lookupLoan
 
-        bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
-        bLookupLoan = flip lookup <$> bDatabaseLoan
-
-        bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
+    let bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
         bLoanItem = (fmap Loan.item .) <$> bLookupLoan
 
         bLoanUser :: Behavior (DatabaseKey -> Maybe Int)

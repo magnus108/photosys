@@ -28,6 +28,8 @@ import           Monad
 import           Env                            ( Env )
 import qualified Env
 import qualified Counter
+import           Layout
+import           Behaviors
 
 
 setup
@@ -36,101 +38,92 @@ setup
     -> m Element
 setup window = mdo
     -- GUI elements
-    filterUser  <- liftUI $ UI.entry bFilterEntryUser
-    listBoxUser <- liftUI $ UI.listBox bListBoxUsers bSelectionUser bDisplayUserName
-    counterUser <- liftUI $ Counter.counter bListBoxUsers
+    (filterUser , searchUser  ) <- mkSearch bFilterEntryUser
+    (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers
+                                             bSelectionUser
+                                             bDisplayUserName
+    counterUser                 <- liftUI $ Counter.counter bListBoxUsers
 
-    filterItem  <- liftUI $ UI.entry bFilterEntryItem
-    listBoxItem <- liftUI $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
+    (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
+    (listBoxItem, dropdownItem) <- mkListBox bListBoxItems
+                                             bSelectionItem
+                                             bDisplayItemName
     counterItem <- liftUI $ Counter.counter bListBoxItems
 
-    -- GUI layout
-    searchUser  <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-           , UI.div
-           #. "control"
-           #+ [ element filterUser #. "input" # set (attr "placeholder")
-                                                    "Fx Anders Andersen"
-              ]
-           ]
-
-    dropdownUser <- liftUI $ 
-        UI.div
-        #. "field"
-        #+ [ UI.div
-             #. "control is-expanded"
-             #+ [ UI.div
-                  #. "select is-multiple is-fullwidth"
-                  #+ [ element listBoxUser # set (attr "size") "5" # set
-                           (attr "multiple")
-                           ""
-                     ]
-                ]
-           ]
-
-    searchItem <- liftUI $ 
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-           , UI.div
-           #. "control"
-           #+ [ element filterItem #. "input" # set (attr "placeholder")
-                                                    "Fx Kamera"
-              ]
-           ]
-
-    dropdownItem <- liftUI $ 
-        UI.div
-        #. "field"
-        #+ [ UI.div
-             #. "control is-expanded"
-             #+ [ UI.div
-                  #. "select is-multiple is-fullwidth"
-                  #+ [ element listBoxItem # set (attr "size") "5" # set
-                           (attr "multiple")
-                           ""
-                     ]
-                ]
-           ]
-
-
     -- sorta hack
-    infoSerie <- liftUI $ UI.div #+ [string "Serie: ",UI.span # sink child (fmap <$> bDisplayItemSerie <*> bSelectionItem)]
-    infoPrice <- liftUI $ UI.div #+ [string "Pris: ", UI.span # sink child (fmap <$> bDisplayItemPrice <*> bSelectionItem)]
-    infoVendor <- liftUI $ UI.div #+ [string "Forhandler: ", UI.span # sink child (fmap <$> bDisplayItemVendor <*> bSelectionItem)]
+    infoSerie   <-
+        liftUI
+        $  UI.div
+        #+ [ string "Serie: "
+           , UI.span
+               # sink child (fmap <$> bDisplayItemSerie <*> bSelectionItem)
+           ]
+    infoPrice <-
+        liftUI
+        $  UI.div
+        #+ [ string "Pris: "
+           , UI.span
+               # sink child (fmap <$> bDisplayItemPrice <*> bSelectionItem)
+           ]
+    infoVendor <-
+        liftUI
+        $  UI.div
+        #+ [ string "Forhandler: "
+           , UI.span
+               # sink child (fmap <$> bDisplayItemVendor <*> bSelectionItem)
+           ]
 
-    infoInvoiceNumber <- liftUI $ UI.div #+ [string "Fatura nr: ",UI.span # sink child (fmap <$> bDisplayItemInvoiceNumber <*> bSelectionItem)]
-    infoDateOfPurchase <- liftUI $ UI.div #+ [string "Købsdato: ", UI.span # sink child (fmap <$> bDisplayItemDateOfPurchase <*> bSelectionItem)]
-    infoNote <- liftUI $ UI.div #+ [string "Note: ", UI.span # sink child (fmap <$> bDisplayItemNote <*> bSelectionItem)]
+    infoInvoiceNumber <-
+        liftUI
+        $  UI.div
+        #+ [ string "Fatura nr: "
+           , UI.span # sink
+               child
+               (fmap <$> bDisplayItemInvoiceNumber <*> bSelectionItem)
+           ]
+    infoDateOfPurchase <-
+        liftUI
+        $  UI.div
+        #+ [ string "Købsdato: "
+           , UI.span # sink
+               child
+               (fmap <$> bDisplayItemDateOfPurchase <*> bSelectionItem)
+           ]
+    infoNote <-
+        liftUI
+        $  UI.div
+        #+ [ string "Note: "
+           , UI.span # sink child (fmap <$> bDisplayItemNote <*> bSelectionItem)
+           ]
 
     infoElem <- liftUI $ UI.div # sink children bInfo
-    let info = [infoSerie, infoPrice, infoVendor, infoInvoiceNumber, infoDateOfPurchase, infoNote]
+    let info =
+            [ infoSerie
+            , infoPrice
+            , infoVendor
+            , infoInvoiceNumber
+            , infoDateOfPurchase
+            , infoNote
+            ]
         bInfo = (\b -> if b then info else []) <$> bHasSelectedItem
     -- sorta hack
 
-    elem <-
-        liftUI $ UI.div
-        #. "section is-medium"
-        #+ [ UI.div
-             #. "container"
-             #+ [ element searchUser
-                , element dropdownUser
-                , element counterUser
-                , element searchItem
-                , element dropdownItem
-                , element counterItem
-                , element infoElem
-                ]
-           ]
+    elem <- mkContainer
+        [ element searchUser
+        , element dropdownUser
+        , element counterUser
+        , element searchItem
+        , element dropdownItem
+        , element counterItem
+        , element infoElem
+        ]
 
 
     -- Events and behaviors
     bFilterEntryUser <- stepper "" . rumors $ UI.userText filterUser
     bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
 
-    
+
     let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
         isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
 
@@ -163,23 +156,19 @@ setup window = mdo
         <@> eFilterItem
         ]
 
-    bDatabaseLoan   <- asks Env.bDatabaseLoan
-    bDatabaseUser   <- asks Env.bDatabaseUser
-    bDatabaseItem   <- asks Env.bDatabaseItem
-    bDatabaseToken  <- asks Env.bDatabaseToken
-    bSelectionToken <- asks Env.bSelectionToken
+    bDatabaseLoan    <- asks Env.bDatabaseLoan
+    bDatabaseUser    <- asks Env.bDatabaseUser
+    bDatabaseItem    <- asks Env.bDatabaseItem
+    bDatabaseToken   <- asks Env.bDatabaseToken
+    bSelectionToken  <- asks Env.bSelectionToken
     bDatabaseHistory <- asks Env.bDatabaseHistory
 
 
+    bLookupUser <- lookupUser
+    bLookupLoan <- lookupLoan
 
 
-    let bLookupUser :: Behavior (DatabaseKey -> Maybe User)
-        bLookupUser = flip lookup <$> bDatabaseUser
-
-        bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
-        bLookupLoan = flip lookup <$> bDatabaseLoan
-
-        bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
+    let bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
         bLoanItem = (fmap Loan.item .) <$> bLookupLoan
 
         bLoanUser :: Behavior (DatabaseKey -> Maybe Int)
@@ -202,7 +191,7 @@ setup window = mdo
 
         bShowItemSerie :: Behavior (DatabaseKey -> String)
         bShowItemSerie = (maybe "" Item.serie .) <$> bLookupItem
-        bDisplayItemSerie:: Behavior (DatabaseKey -> UI Element)
+        bDisplayItemSerie :: Behavior (DatabaseKey -> UI Element)
         bDisplayItemSerie = (UI.string .) <$> bShowItemSerie
 
         bShowItemPrice :: Behavior (DatabaseKey -> String)
@@ -211,24 +200,26 @@ setup window = mdo
         bDisplayItemPrice = (UI.string .) <$> bShowItemPrice
 
         bShowItemInvoiceNumber :: Behavior (DatabaseKey -> String)
-        bShowItemInvoiceNumber =  (maybe "" Item.invoiceNumber .) <$> bLookupItem
+        bShowItemInvoiceNumber =
+            (maybe "" Item.invoiceNumber .) <$> bLookupItem
         bDisplayItemInvoiceNumber :: Behavior (DatabaseKey -> UI Element)
         bDisplayItemInvoiceNumber = (UI.string .) <$> bShowItemInvoiceNumber
-        
+
         bShowItemDateOfPurchase :: Behavior (DatabaseKey -> String)
-        bShowItemDateOfPurchase =  (maybe "" Item.dateOfPurchase .) <$> bLookupItem
+        bShowItemDateOfPurchase =
+            (maybe "" Item.dateOfPurchase .) <$> bLookupItem
         bDisplayItemDateOfPurchase :: Behavior (DatabaseKey -> UI Element)
         bDisplayItemDateOfPurchase = (UI.string .) <$> bShowItemDateOfPurchase
 
         bShowItemNote :: Behavior (DatabaseKey -> String)
-        bShowItemNote =  (maybe "" Item.note .) <$> bLookupItem
+        bShowItemNote = (maybe "" Item.note .) <$> bLookupItem
         bDisplayItemNote :: Behavior (DatabaseKey -> UI Element)
         bDisplayItemNote = (UI.string .) <$> bShowItemNote
 
         bShowItemVendor :: Behavior (DatabaseKey -> String)
         bShowItemVendor = (maybe "" Item.vendor .) <$> bLookupItem
         bDisplayItemVendor :: Behavior (DatabaseKey -> UI Element)
-        bDisplayItemVendor= (UI.string .) <$> bShowItemVendor
+        bDisplayItemVendor = (UI.string .) <$> bShowItemVendor
 
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
         bDisplayUserName = (UI.string .) <$> bShowUser
@@ -318,10 +309,13 @@ setup window = mdo
                 <*> bDatabaseLoan
 
     let bHasSelectedItem :: Behavior Bool
-        bHasSelectedItem = (\x xs -> case x of
-                                       Nothing -> False
-                                       Just y -> List.elem y xs
-                           ) <$> bSelectionItem <*> bListBoxItems
+        bHasSelectedItem =
+            (\x xs -> case x of
+                    Nothing -> False
+                    Just y  -> List.elem y xs
+                )
+                <$> bSelectionItem
+                <*> bListBoxItems
 
     return elem
 

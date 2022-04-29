@@ -28,6 +28,8 @@ import           Monad
 import           Env                            ( Env )
 import qualified Env
 import qualified Counter
+import           Behaviors
+import           Layout
 
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
@@ -36,101 +38,43 @@ setup
 setup window = mdo
 
     -- GUI elements
-    filterUser  <- liftUI $ UI.entry bFilterEntryUser
-    listBoxUser <- liftUI $ UI.listBox bListBoxUsers bSelectionUser bDisplayUserName
-    counterUser <- liftUI $ Counter.counter bListBoxUsers
+    (filterUser , searchUser  ) <- mkSearch bFilterEntryUser
+    (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers
+                                             bSelectionUser
+                                             bDisplayUserName
+    counterUser                 <- liftUI $ Counter.counter bListBoxUsers
 
-    filterItem  <- liftUI $ UI.entry bFilterEntryItem
-    listBoxItem <- liftUI $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
-    counterItem <- liftUI $ Counter.counter bListBoxItems
+    (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
+    (listBoxItem, dropdownItem) <- mkListBox bListBoxItems
+                                             bSelectionItem
+                                             bDisplayItemName
+    counterItem                <- liftUI $ Counter.counter bListBoxItems
 
-    createBtn   <- liftUI $ UI.button #+ [string "Lån"]
+    (createBtn, createBtnView) <- mkButton "Lån"
 
-    loanInfo <- liftUI $ UI.span
+    loanInfo                   <- liftUI $ UI.span
     -- GUI layout
-    searchUser  <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
+    closeBtn                   <- liftUI $ UI.button #. "modal-close is-large"
+    modal                      <-
+        liftUI
+        $  UI.div
+        #+ [ UI.div #. "modal-background"
            , UI.div
-           #. "control"
-           #+ [ element filterUser #. "input" # set (attr "placeholder")
-                                                    "Fx Anders Andersen"
-              ]
+           #. "modal-content"
+           #+ [UI.div #. "box" #+ [string "Lån godkendt: ", element loanInfo]]
+           , element closeBtn
            ]
 
-    dropdownUser <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.div
-             #. "control is-expanded"
-             #+ [ UI.div
-                  #. "select is-multiple is-fullwidth"
-                  #+ [ element listBoxUser # set (attr "size") "5" # set
-                           (attr "multiple")
-                           ""
-                     ]
-                ]
-           ]
-
-    searchItem <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-           , UI.div
-           #. "control"
-           #+ [ element filterItem #. "input" # set (attr "placeholder")
-                                                    "Fx Kamera"
-              ]
-           ]
-
-    dropdownItem <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.div
-             #. "control is-expanded"
-             #+ [ UI.div
-                  #. "select is-multiple is-fullwidth"
-                  #+ [ element listBoxItem # set (attr "size") "5" # set
-                           (attr "multiple")
-                           ""
-                     ]
-                ]
-           ]
-
-
-    createBtn' <- liftUI $
-        UI.div
-        #. "field"
-        #+ [UI.div #. "control" #+ [element createBtn #. "button"]]
-
-
-
-    closeBtn <- liftUI $ UI.button #. "modal-close is-large"
-    modal    <- liftUI $
-        UI.div
-            #+ [ UI.div #. "modal-background"
-               , UI.div
-               #. "modal-content"
-               #+ [UI.div #. "box" #+ [string "Lån godkendt: ", element loanInfo]]
-               , element closeBtn
-               ]
-
-    elem <- liftUI $
-        UI.div
-        #. "section is-medium"
-        #+ [ UI.div
-             #. "container"
-             #+ [ element searchUser
-                , element dropdownUser
-                , element counterUser
-                , element searchItem
-                , element dropdownItem
-                , element createBtn'
-                , element counterItem
-                , element modal
-                ]
-           ]
+    elem <- mkContainer
+        [ element searchUser
+        , element dropdownUser
+        , element counterUser
+        , element searchItem
+        , element dropdownItem
+        , element createBtnView
+        , element counterItem
+        , element modal
+        ]
 
 
     -- Events and behaviors
@@ -185,17 +129,12 @@ setup window = mdo
     bDatabaseToken  <- asks Env.bDatabaseToken
     bSelectionToken <- asks Env.bSelectionToken
 
-    let bLookupUser :: Behavior (DatabaseKey -> Maybe User)
-        bLookupUser = flip lookup <$> bDatabaseUser
+    bLookupUser <- lookupUser
+    bLookupItem <- lookupItem
+    bLookupLoan <- lookupLoan
 
-        bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
-        bLookupLoan = flip lookup <$> bDatabaseLoan
-
-        bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
+    let bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
         bLoanItem = (fmap Loan.item .) <$> bLookupLoan
-
-        bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
-        bLookupItem = flip lookup <$> bDatabaseItem
 
         bSelectedUser :: Behavior (Maybe User)
         bSelectedUser = (=<<) <$> bLookupUser <*> bSelectionUser
@@ -252,11 +191,8 @@ setup window = mdo
 
 
     let bCreateLoan :: Behavior (Maybe Loan)
-        bCreateLoan =
-            liftA2 Loan.Loan
-                <$> bSelectionItem
-                <*> bSelectionUser
-                -- <*> bSelectedTokenId
+        bCreateLoan = liftA2 Loan.Loan <$> bSelectionItem <*> bSelectionUser
+            -- <*> bSelectedTokenId
 
         hasUserSelected :: Behavior Bool
         hasUserSelected = isJust <$> bSelectionUser
@@ -264,8 +200,11 @@ setup window = mdo
         hasItemSelected :: Behavior Bool
         hasItemSelected = isJust <$> bSelectionItem
 
-    liftUI $ element loanInfo # sink text ((maybe "" Item.name) <$> bLastLoanItemItem)
-    liftUI $ element createBtn # sink UI.enabled (hasUserSelected <&&> hasItemSelected)
+    liftUI $ element loanInfo # sink
+        text
+        ((maybe "" Item.name) <$> bLastLoanItemItem)
+    liftUI $ element createBtn # sink UI.enabled
+                                      (hasUserSelected <&&> hasItemSelected)
     liftUI $ element modal # sink
         (attr "class")
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)

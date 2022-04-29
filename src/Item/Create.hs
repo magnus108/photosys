@@ -22,6 +22,8 @@ import           Control.Bool
 import           Monad
 import           Env                            ( Env )
 import qualified Env
+import           Layout
+import           Behaviors
 
 
 setup
@@ -31,7 +33,7 @@ setup
 setup window = mdo
 
     -- GUI elements
-    createBtn <- liftUI $ UI.button #+ [string "Opret"]
+    (createBtn, createBtnView) <- mkButton "Opret"
     ((elemName, elemCode, elemSerie, elemPrice, elemVendor, elemInvoiceNumber, elemDateOfPurchase, elemNote), tItem) <- liftUI $ dataItem bItem
 
     -- GUI layout
@@ -136,12 +138,8 @@ setup window = mdo
                , element closeBtn
                ]
 
-    elem <- liftUI $ 
-        UI.div
-        #. "section is-medium"
-        #+ [ UI.div
-             #. "container"
-             #+ [ element dataName
+    elem <- mkContainer
+             [ element dataName
                 , element dataCode
                 , element dataSerie
                 , element dataPrice
@@ -151,7 +149,6 @@ setup window = mdo
                 , element dataNote
                 , element createBtn'
                 , element modal
-                ]
            ]
 
 
