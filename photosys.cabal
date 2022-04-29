@@ -54,6 +54,7 @@ library
       Loan.DeleteNormal
       Login
       MenuBox
+      Modal
       Monad
       Repair
       Search.Search
@@ -67,6 +68,7 @@ library
       User
       User.Create
       User.Delete
+      Utils
   other-modules:
       Paths_photosys
   hs-source-dirs:

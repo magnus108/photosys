@@ -1,6 +1,7 @@
 {-# LANGUAGE RecursiveDo #-}
 module Count.Count where
 
+import Utils
 import           Data.Time
 
 import qualified Graphics.UI.Threepenny        as UI
@@ -33,6 +34,7 @@ import qualified Count
 
 import           Layout
 import           Behaviors
+import qualified Modal
 
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
@@ -50,36 +52,14 @@ setup window = mdo
     (listBoxCount, dropdownCount) <- mkListBox bListBoxCounts
                                                bSelectionCount
                                                bDisplayCountName
-    counterCount               <- liftUI $ Counter.counter bListBoxCounts
+    counterCount <- liftUI $ Counter.counter bListBoxCounts
 
     (createBtn, createBtnView) <- mkButton "Optæl"
     (deleteBtn, deleteBtnView) <- mkButton "Fjern"
 
     -- GUI layout
-    closeBtn                   <- liftUI $ UI.button #. "modal-close is-large"
-
-    modal                      <-
-        liftUI
-        $  UI.div
-        #+ [ UI.div #. "modal-background"
-           , UI.div
-           #. "modal-content"
-           #+ [UI.div #. "box" #+ [string "Optælling godkendt"]]
-           , element closeBtn
-           ]
-
-
-    closeBtn2 <- liftUI $ UI.button #. "modal-close is-large"
-
-    modal2    <-
-        liftUI
-        $  UI.div
-        #+ [ UI.div #. "modal-background"
-           , UI.div
-           #. "modal-content"
-           #+ [UI.div #. "box" #+ [string "Fjern godkendt"]]
-           , element closeBtn2
-           ]
+    modal <- liftUI $ Modal.modal "Optælling godkendt" bActiveModal
+    modal2 <- liftUI $ Modal.modal "Fjern godkendt" bActiveModal2
 
     elem <- mkContainer
         [ element searchItem
@@ -99,9 +79,6 @@ setup window = mdo
     bFilterEntryCount <- stepper "" . rumors $ UI.userText filterCount
 
 
-    let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
-        isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
-
     let tFilterItem = isInfixOf <$> UI.userText filterItem
         bFilterItem = facts tFilterItem
         eFilterItem = rumors tFilterItem
@@ -113,16 +90,17 @@ setup window = mdo
         eSelectionItem  = rumors $ UI.userSelection listBoxItem
         eSelectionCount = rumors $ UI.userSelection listBoxCount
 
-        eClose          = UI.click closeBtn
-        eClose2         = UI.click closeBtn2
         eCreate         = UI.click createBtn
         eDelete         = UI.click deleteBtn
 
+        eModal          = rumors $ Modal.state modal
+        eModal2         = rumors $ Modal.state modal2
+
     bActiveModal <- stepper False $ Unsafe.head <$> unions
-        [True <$ eCreate, False <$ eClose]
+        [True <$ eCreate, eModal]
 
     bActiveModal2 <- stepper False $ Unsafe.head <$> unions
-        [True <$ eDelete, False <$ eClose2]
+        [True <$ eDelete, eModal2]
 
     bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionItem
@@ -202,14 +180,6 @@ setup window = mdo
                 <*> bShowCount
                 <*> bDatabaseCount
 
-
-    liftUI $ element modal # sink
-        (attr "class")
-        ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
-
-    liftUI $ element modal2 # sink
-        (attr "class")
-        ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal2)
 
     return
         ( elem

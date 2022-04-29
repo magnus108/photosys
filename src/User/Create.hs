@@ -25,6 +25,7 @@ import           Env                            ( Env )
 import qualified Env
 import           Layout
 
+import qualified Modal
 
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
@@ -44,20 +45,9 @@ setup window = mdo
                             (element elemPassword # set UI.type_ "password")
     dataAdmin <- mkCheckbox "Admin" (element elemAdmin)
 
+    modal     <- liftUI $ Modal.modal "Opret godkendt" bActiveModal
 
-
-    closeBtn  <- liftUI $ UI.button #. "modal-close is-large"
-    modal     <-
-        liftUI
-        $  UI.div
-        #+ [ UI.div #. "modal-background"
-           , UI.div
-           #. "modal-content"
-           #+ [UI.div #. "box" #+ [string "Opret godkendt"]]
-           , element closeBtn
-           ]
-
-    elem <- mkContainer
+    elem      <- mkContainer
         [ element dataName
         , element dataPassword
         , element dataAdmin
@@ -67,22 +57,17 @@ setup window = mdo
 
     -- Events and behaviors
     let eCreate = UI.click createBtn
-        eClose  = UI.click closeBtn
+        eModal  = rumors $ Modal.state modal
         eUserIn = rumors tUser
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
-        [True <$ eCreate, False <$ eClose]
-
+        [True <$ eCreate, eModal]
 
     bUser <- stepper Nothing $ Unsafe.head <$> unions
         [Just <$> eUserIn, Just emptyUser <$ eCreate]
 
     let bNotEmpty = isJust <$> bUser
     liftUI $ element createBtn # sink UI.enabled bNotEmpty
-
-    liftUI $ element modal # sink
-        (attr "class")
-        ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 
     return (elem, filterJust $ bUser <@ eCreate)
 
