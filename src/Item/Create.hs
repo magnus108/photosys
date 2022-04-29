@@ -34,122 +34,57 @@ setup window = mdo
 
     -- GUI elements
     (createBtn, createBtnView) <- mkButton "Opret"
-    ((elemName, elemCode, elemSerie, elemPrice, elemVendor, elemInvoiceNumber, elemDateOfPurchase, elemNote), tItem) <- liftUI $ dataItem bItem
+    ((elemName, elemCode, elemSerie, elemPrice, elemVendor, elemInvoiceNumber, elemDateOfPurchase, elemNote), tItem) <-
+        liftUI $ dataItem bItem
 
     -- GUI layout
-    dataName  <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Name"]
+    dataName <- mkInput
+        "Name"
+        (element elemName # set (attr "placeholder") "Fx Kamera 1")
+
+    dataCode <- mkInput
+        "Code"
+        (element elemCode # set (attr "placeholder") "Fx ABCDE")
+    dataSerie <- mkInput
+        "Serie"
+        (element elemSerie # set (attr "placeholder") "Fx 13")
+
+    dataPrice <- mkInput
+        "Pris"
+        (element elemPrice # set (attr "placeholder") "Fx 10.000")
+    dataVendor <- mkInput
+        "Forhandler"
+        (element elemVendor # set (attr "placeholder") "Fx Kamera shoppen")
+    dataInvoiceNumber  <- mkInput "Fakture nr." (element elemInvoiceNumber)
+
+    dataDateOfPurchase <- mkInput "Købsdato" (element elemDateOfPurchase)
+
+    dataNote           <- mkInput "Note" (element elemNote)
+
+
+    closeBtn           <- liftUI $ UI.button #. "modal-close is-large"
+    modal              <-
+        liftUI
+        $  UI.div
+        #+ [ UI.div #. "modal-background"
            , UI.div
-           #. "control"
-           #+ [ element elemName #. "input" # set (attr "placeholder")
-                                                  "Fx Kamera 1"
-              ]
+           #. "modal-content"
+           #+ [UI.div #. "box" #+ [string "Opret godkendt"]]
+           , element closeBtn
            ]
-
-    dataCode <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Code"]
-           , UI.div
-           #. "control"
-           #+ [ element elemCode #. "input" # set (attr "placeholder")
-                                                  "Fx ABCDE"
-              ]
-           ]
-
-    dataSerie <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Serie"]
-           , UI.div
-           #. "control"
-           #+ [ element elemSerie #. "input" # set (attr "placeholder")
-                                                  "Fx 13"
-              ]
-           ]
-
-    dataPrice <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Pris"]
-           , UI.div
-           #. "control"
-           #+ [ element elemPrice #. "input" # set (attr "placeholder")
-                                                  "Fx 10.000"
-              ]
-           ]
-
-    dataVendor <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Forhandler"]
-           , UI.div
-           #. "control"
-           #+ [ element elemVendor #. "input" # set (attr "placeholder")
-                                                  "Fx Kamera shoppen"
-              ]
-           ]
-    dataInvoiceNumber <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Fakture nr."]
-           , UI.div
-           #. "control"
-           #+ [ element elemInvoiceNumber #. "input"
-              ]
-           ]
-
-    dataDateOfPurchase <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Købsdato"]
-           , UI.div
-           #. "control"
-           #+ [ element elemDateOfPurchase #. "input"
-              ]
-           ]
-
-    dataNote <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Note"]
-           , UI.div
-           #. "control"
-           #+ [ element elemNote #. "input"
-              ]
-           ]
-
-
-    createBtn' <- liftUI $
-        UI.div
-        #. "field"
-        #+ [UI.div #. "control" #+ [element createBtn #. "button"]]
-
-
-    closeBtn <- liftUI $ UI.button #. "modal-close is-large"
-    modal    <- liftUI $ 
-        UI.div
-            #+ [ UI.div #. "modal-background"
-               , UI.div
-               #. "modal-content"
-               #+ [UI.div #. "box" #+ [string "Opret godkendt"]]
-               , element closeBtn
-               ]
 
     elem <- mkContainer
-             [ element dataName
-                , element dataCode
-                , element dataSerie
-                , element dataPrice
-                , element dataVendor
-                , element dataInvoiceNumber
-                , element dataDateOfPurchase
-                , element dataNote
-                , element createBtn'
-                , element modal
-           ]
+        [ element dataName
+        , element dataCode
+        , element dataSerie
+        , element dataPrice
+        , element dataVendor
+        , element dataInvoiceNumber
+        , element dataDateOfPurchase
+        , element dataNote
+        , element createBtnView
+        , element modal
+        ]
 
 
     -- Events and behaviors
@@ -162,16 +97,14 @@ setup window = mdo
 
 
     bItem <- stepper Nothing $ Unsafe.head <$> unions
-        [ Just <$> eItemIn
-        , Just emptyItem <$ eCreate
-        ]
+        [Just <$> eItemIn, Just emptyItem <$ eCreate]
 
-    bDatabaseLoan                      <- asks Env.bDatabaseLoan
-    bDatabaseUser                      <- asks Env.bDatabaseUser
-    bDatabaseItem                      <- asks Env.bDatabaseItem
-    bDatabaseToken                     <- asks Env.bDatabaseToken
-    bSelectionToken                    <- asks Env.bSelectionToken
-    bDatabaseHistory                   <- asks Env.bDatabaseHistory
+    bDatabaseLoan    <- asks Env.bDatabaseLoan
+    bDatabaseUser    <- asks Env.bDatabaseUser
+    bDatabaseItem    <- asks Env.bDatabaseItem
+    bDatabaseToken   <- asks Env.bDatabaseToken
+    bSelectionToken  <- asks Env.bSelectionToken
+    bDatabaseHistory <- asks Env.bDatabaseHistory
 
 
     let bNotEmpty = isJust <$> bItem
@@ -187,7 +120,20 @@ setup window = mdo
 emptyItem :: Item
 emptyItem = Item.Item "" "" "" "" "" "" "" ""
 
-dataItem :: Behavior (Maybe Item) -> UI ((Element, Element, Element, Element, Element, Element, Element, Element), Tidings Item)
+dataItem
+    :: Behavior (Maybe Item)
+    -> UI
+           ( ( Element
+             , Element
+             , Element
+             , Element
+             , Element
+             , Element
+             , Element
+             , Element
+             )
+           , Tidings Item
+           )
 dataItem bItem = do
     entry1 <- UI.entry $ Item.name . fromMaybe emptyItem <$> bItem
     entry2 <- UI.entry $ Item.code . fromMaybe emptyItem <$> bItem
@@ -199,6 +145,22 @@ dataItem bItem = do
     entry8 <- UI.entry $ Item.note . fromMaybe emptyItem <$> bItem
 
     return
-        ( (getElement entry1, getElement entry2, getElement entry3, getElement entry4, getElement entry5, getElement entry6, getElement entry7, getElement entry8)
-        , Item.Item <$> UI.userText entry1 <*> UI.userText entry2 <*> UI.userText entry3 <*> UI.userText entry4 <*>  UI.userText entry5 <*> UI.userText entry6 <*> UI.userText entry7 <*> UI.userText entry8
+        ( ( getElement entry1
+          , getElement entry2
+          , getElement entry3
+          , getElement entry4
+          , getElement entry5
+          , getElement entry6
+          , getElement entry7
+          , getElement entry8
+          )
+        , Item.Item
+        <$> UI.userText entry1
+        <*> UI.userText entry2
+        <*> UI.userText entry3
+        <*> UI.userText entry4
+        <*> UI.userText entry5
+        <*> UI.userText entry6
+        <*> UI.userText entry7
+        <*> UI.userText entry8
         )
