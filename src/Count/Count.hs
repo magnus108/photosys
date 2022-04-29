@@ -28,9 +28,11 @@ import           Monad
 import           Env                            ( Env )
 import qualified Env
 import qualified Counter
-import           Count                           ( Count )
+import           Count                          ( Count )
 import qualified Count
 
+import           Layout
+import           Behaviors
 
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
@@ -38,124 +40,65 @@ setup
     -> m (Element, Event DatabaseKey, Event DatabaseKey)
 setup window = mdo
     -- GUI elements
-    filterItem  <- liftUI $ UI.entry bFilterEntryItem
-    listBoxItem <- liftUI $ UI.listBox bListBoxItems' bSelectionItem bDisplayItemName
-    counterItem <- liftUI $ Counter.counter bListBoxItems'
-    
-    filterCount <- liftUI $ UI.entry bFilterEntryCount
-    listBoxCount <- liftUI $ UI.listBox bListBoxCounts bSelectionCount bDisplayCountName
-    counterCount <- liftUI $ Counter.counter bListBoxCounts
+    (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
+    (listBoxItem, dropdownItem) <- mkListBox bListBoxItems'
+                                             bSelectionItem
+                                             bDisplayItemName
+    counterItem                   <- liftUI $ Counter.counter bListBoxItems'
 
-    createBtn   <- liftUI $ UI.button #+ [string "Optæl"]
-    deleteBtn   <- liftUI $ UI.button #+ [string "Fjern"]
+    (filterCount , searchCount  ) <- mkSearch bFilterEntryCount
+    (listBoxCount, dropdownCount) <- mkListBox bListBoxCounts
+                                               bSelectionCount
+                                               bDisplayCountName
+    counterCount               <- liftUI $ Counter.counter bListBoxCounts
+
+    (createBtn, createBtnView) <- mkButton "Optæl"
+    (deleteBtn, deleteBtnView) <- mkButton "Fjern"
 
     -- GUI layout
-    searchItem <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
+    closeBtn                   <- liftUI $ UI.button #. "modal-close is-large"
+
+    modal                      <-
+        liftUI
+        $  UI.div
+        #+ [ UI.div #. "modal-background"
            , UI.div
-           #. "control"
-           #+ [ element filterItem #. "input" # set (attr "placeholder")
-                                                    "Fx Kamera"
-              ]
+           #. "modal-content"
+           #+ [UI.div #. "box" #+ [string "Optælling godkendt"]]
+           , element closeBtn
            ]
-
-    dropdownItem <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.div
-             #. "control is-expanded"
-             #+ [ UI.div
-                  #. "select is-multiple is-fullwidth"
-                  #+ [ element listBoxItem # set (attr "size") "5" # set
-                           (attr "multiple")
-                           ""
-                     ]
-                ]
-           ]
-
-    createBtn' <- liftUI $
-        UI.div
-        #. "field"
-        #+ [UI.div #. "control" #+ [element createBtn #. "button"]]
-
-    searchCount <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.label #. "label" #+ [string "Søg"]
-           , UI.div
-           #. "control"
-           #+ [ element filterCount #. "input" # set (attr "placeholder")
-                                                    "Fx Kamera"
-              ]
-           ]
-
-    dropdownCount <- liftUI $
-        UI.div
-        #. "field"
-        #+ [ UI.div
-             #. "control is-expanded"
-             #+ [ UI.div
-                  #. "select is-multiple is-fullwidth"
-                  #+ [ element listBoxCount # set (attr "size") "5" # set
-                           (attr "multiple")
-                           ""
-                     ]
-                ]
-           ]
-
-    deleteBtn' <- liftUI $
-        UI.div
-        #. "field"
-        #+ [UI.div #. "control" #+ [element deleteBtn #. "button"]]
-
-    closeBtn <- liftUI $ UI.button #. "modal-close is-large"
-
-    modal    <- liftUI $
-        UI.div
-            #+ [ UI.div #. "modal-background"
-               , UI.div
-               #. "modal-content"
-               #+ [UI.div #. "box" #+ [string "Optælling godkendt"]]
-               , element closeBtn
-               ]
 
 
     closeBtn2 <- liftUI $ UI.button #. "modal-close is-large"
 
-    modal2    <- liftUI $
-        UI.div
-            #+ [ UI.div #. "modal-background"
-               , UI.div
-               #. "modal-content"
-               #+ [UI.div #. "box" #+ [string "Fjern godkendt"]]
-               , element closeBtn2
-               ]
-
-    elem <-
-        liftUI $ UI.div
-        #. "section is-medium"
-        #+ [ UI.div
-             #. "container"
-             #+ [ element searchItem
-                , element dropdownItem
-                , element createBtn'
-                , element counterItem
-                , element searchCount
-                , element dropdownCount
-                , element deleteBtn'
-                , element counterCount
-                , element modal
-                , element modal2
-                ]
+    modal2    <-
+        liftUI
+        $  UI.div
+        #+ [ UI.div #. "modal-background"
+           , UI.div
+           #. "modal-content"
+           #+ [UI.div #. "box" #+ [string "Fjern godkendt"]]
+           , element closeBtn2
            ]
 
+    elem <- mkContainer
+        [ element searchItem
+        , element dropdownItem
+        , element createBtnView
+        , element counterItem
+        , element searchCount
+        , element dropdownCount
+        , element deleteBtnView
+        , element counterCount
+        , element modal
+        , element modal2
+        ]
+
     -- Events and behaviors
-    bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
+    bFilterEntryItem  <- stepper "" . rumors $ UI.userText filterItem
     bFilterEntryCount <- stepper "" . rumors $ UI.userText filterCount
 
-    
+
     let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
         isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
 
@@ -163,17 +106,17 @@ setup window = mdo
         bFilterItem = facts tFilterItem
         eFilterItem = rumors tFilterItem
 
-    let tFilterCount = isInfixOf <$> UI.userText filterCount
-        bFilterCount = facts tFilterCount
-        eFilterCount = rumors tFilterCount
+    let tFilterCount    = isInfixOf <$> UI.userText filterCount
+        bFilterCount    = facts tFilterCount
+        eFilterCount    = rumors tFilterCount
 
-        eSelectionItem = rumors $ UI.userSelection listBoxItem
+        eSelectionItem  = rumors $ UI.userSelection listBoxItem
         eSelectionCount = rumors $ UI.userSelection listBoxCount
 
-        eClose         = UI.click closeBtn
+        eClose          = UI.click closeBtn
         eClose2         = UI.click closeBtn2
-        eCreate        = UI.click createBtn
-        eDelete        = UI.click deleteBtn
+        eCreate         = UI.click createBtn
+        eDelete         = UI.click deleteBtn
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
         [True <$ eCreate, False <$ eClose]
@@ -200,12 +143,11 @@ setup window = mdo
         ]
 
     bDatabaseCount <- asks Env.bDatabaseCount
-    bDatabaseItem   <- asks Env.bDatabaseItem
+    bDatabaseItem  <- asks Env.bDatabaseItem
 
-    let bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
-        bLookupItem = flip lookup <$> bDatabaseItem
+    bLookupItem    <- lookupItem
 
-        bSelectedItem :: Behavior (Maybe Item)
+    let bSelectedItem :: Behavior (Maybe Item)
         bSelectedItem = (=<<) <$> bLookupItem <*> bSelectionItem
 
         bShowItem :: Behavior (DatabaseKey -> String)
@@ -215,8 +157,11 @@ setup window = mdo
         bDisplayItemName = (UI.string .) <$> bShowItem
 
         bListBoxItems :: Behavior [DatabaseKey]
-        bListBoxItems = (\p show -> filter (p. show) . keys)
-                    <$> bFilterItem <*> bShowItem <*> bDatabaseItem
+        bListBoxItems =
+            (\p show -> filter (p . show) . keys)
+                <$> bFilterItem
+                <*> bShowItem
+                <*> bDatabaseItem
 
         bListBoxItems' :: Behavior [DatabaseKey]
         bListBoxItems' =
@@ -228,7 +173,8 @@ setup window = mdo
 
 
         bListBoxCountsToItem :: Behavior [DatabaseKey]
-        bListBoxCountsToItem = (\p -> mapMaybe p . keys) <$> bShowCount2 <*> bDatabaseCount
+        bListBoxCountsToItem =
+            (\p -> mapMaybe p . keys) <$> bShowCount2 <*> bDatabaseCount
 
 
 
@@ -239,14 +185,22 @@ setup window = mdo
         bSelectedCount = (=<<) <$> bLookupCount <*> bSelectionCount
 
         bShowCount :: Behavior (DatabaseKey -> String)
-        bShowCount = (\f g -> maybe "" (\x -> maybe "" Item.showItem (g (Count.item x))) . f) <$> bLookupCount <*> bLookupItem
+        bShowCount =
+            (\f g ->
+                    maybe "" (\x -> maybe "" Item.showItem (g (Count.item x))) . f
+                )
+                <$> bLookupCount
+                <*> bLookupItem
 
         bDisplayCountName :: Behavior (DatabaseKey -> UI Element)
         bDisplayCountName = (UI.string .) <$> bShowCount
 
         bListBoxCounts :: Behavior [DatabaseKey]
-        bListBoxCounts = (\p show -> filter (p. show) . keys)
-                    <$> bFilterCount <*> bShowCount <*> bDatabaseCount
+        bListBoxCounts =
+            (\p show -> filter (p . show) . keys)
+                <$> bFilterCount
+                <*> bShowCount
+                <*> bDatabaseCount
 
 
     liftUI $ element modal # sink
@@ -257,4 +211,8 @@ setup window = mdo
         (attr "class")
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal2)
 
-    return (elem, filterJust $ bSelectionItem <@ eCreate, filterJust $ bSelectionCount <@ eDelete)
+    return
+        ( elem
+        , filterJust $ bSelectionItem <@ eCreate
+        , filterJust $ bSelectionCount <@ eDelete
+        )

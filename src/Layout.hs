@@ -85,3 +85,12 @@ mkListBox bItems bSel bDisplay = liftUI $ do
            ]
     return (listBox, view)
 
+
+mkContainer
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => [UI Element]
+    -> m Element
+mkContainer elems =
+    liftUI $ UI.div #. "section is-medium" #+ [UI.div #. "container" #+ elems]
+
