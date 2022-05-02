@@ -17,6 +17,9 @@ setup window = mdo
     timer <- liftUI $ UI.timer # set UI.interval 1000
 
     let eTick = UI.tick timer
+
+    c <- liftIO $ (formatTime defaultTimeLocale "%F, %T") <$> getZonedTime
+    liftIO $ hTime (Time c)
     liftUI $ onEvent eTick $ \items -> do
         c <- liftIO $ (formatTime defaultTimeLocale "%F, %T") <$> getZonedTime
         liftIO $ hTime (Time c)

@@ -104,17 +104,19 @@ someFunc port = do
 setup2 :: Config -> Window -> UI ()
 setup2 config@Config {..} window = void $ mdo
 
-    env <- runApp env $ setup config window
+    (anyE, anyH) <- liftIO $ newEvent
+
+    env <- runApp env $ setup config window (anyE, anyH)
 
     runApp env $ do
-        changesHistory datastoreHistory
-        changesHistoryHandin datastoreHistoryHandIn
-        changesLoan datastoreLoan
-        changesUser datastoreUser
-        changesItem datastoreItem
-        changesToken datastoreToken
-        changesCount datastoreCount
-        changesTime datastoreTime
+        changesHistory datastoreHistory anyH
+        changesHistoryHandin datastoreHistoryHandIn anyH
+        changesLoan datastoreLoan anyH
+        changesUser datastoreUser anyH
+        changesItem datastoreItem anyH
+        changesToken datastoreToken anyH
+        changesCount datastoreCount anyH
+        changesTime datastoreTime anyH
 
     return ()
 
@@ -123,8 +125,9 @@ setup
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Config
     -> Window
+    -> (Event Token, Handler Token)
     -> m Env
-setup Config {..} window = mdo
+setup Config {..} window (anyE, anyH) = mdo
 
     tabSelectionFile      <- readJson dataTabSelectionFile :: m (Maybe Int)
     databaseUser          <- readJson datastoreUser :: m (Database User)
@@ -167,6 +170,8 @@ setup Config {..} window = mdo
 
     liftUI $ getBody window #+ [element content]
 
+
+    let allowedDiff = 3
 -------------------------------------------------------------------------------
     let eTabs = rumors tTabs
     let eAutoLog = unsafeMapIO (\_ -> do
@@ -175,13 +180,9 @@ setup Config {..} window = mdo
                     y <- mapM Timer.readTime $ Time.time <$> (tokenTTL =<< token)
                     x <- mapM Timer.readTime $ Time.time <$> time
                     let difftime = liftA2 diffUTCTime (zonedTimeToUTC <$> x) (zonedTimeToUTC <$> y)
-                    let allowedDiff = 10
-
-                    return $ fromMaybe NoToken $ (\t -> if (t > 10) then NoToken else fromMaybe NoToken token) <$> difftime
+                    return $ (\t -> t > allowedDiff) <$> difftime
                 ) eTime
-    let eAutoLog' = filterJust $ (\e -> case e of 
-                            NoToken -> Nothing 
-                            t -> Just t) <$> eAutoLog
+    let eAutoLog' = filterJust $ (\e -> if e then Just NoToken else Nothing) <$> filterJust eAutoLog
 -------------------------------------------------------------------------------
 
     bTimeSelection <- stepper (Just 0) UI.never
@@ -209,8 +210,6 @@ setup Config {..} window = mdo
 
     bTabSelection <- stepper tabSelectionFile $ Unsafe.head <$> unions
         [ eTabs
-        , Nothing <$ eLogout
-        , Nothing <$ eAutoLog'
         , (\b -> if b then Just 6 else Just 0)
         <$> bSelectedAdmin
         <@  eTokenCreate
@@ -281,12 +280,25 @@ setup Config {..} window = mdo
         ]
 
 
-    bTokenSelection <- stepper (Just 0) UI.never
+-------------------------------------------------------------------------------
+    let index = 0
+    bTokenSelection <- stepper (Just index) UI.never
 
-    bDatabaseToken  <- accumB databaseToken $ concatenate <$> unions
+    now <- liftIO $ (formatTime defaultTimeLocale "%F, %T") <$> getZonedTime
+    let checkedB db = do
+                    let token = Database.lookup index db
+                    y <- mapM Timer.readTime $ Time.time <$> (tokenTTL =<< token)
+                    x <- mapM Timer.readTime $ Time.time <$> (Just (Time now))
+                    let difftime = liftA2 diffUTCTime (zonedTimeToUTC <$> x) (zonedTimeToUTC <$> y)
+                    return $ (\t -> if t > allowedDiff then Database.update index NoToken db else db) <$> difftime
+    databaseToken' <- liftIO $ checkedB databaseToken
+-------------------------------------------------------------------------------
+
+    bDatabaseToken  <- accumB (fromMaybe databaseToken databaseToken') $ concatenate <$> unions
         [ filterJust $ Database.update' <$> bTokenSelection <@> eTokenCreate
         , filterJust $ Database.update' <$> bTokenSelection <@> eLogout
         , filterJust $ Database.update' <$> bTokenSelection <@> eAutoLog'
+        , filterJust $ Database.update' <$> bTokenSelection <@> anyE
         ]
 
 -------------------------------------------------------------------------------
@@ -372,9 +384,29 @@ setup Config {..} window = mdo
         (maybe [tokenCreate] <$> bGui <*> bTabSelection)
 --------------------------------------------------------------------------------
 
+    let updateToken = do
+                token <- currentValue bSelectedToken :: IO (Maybe Token)
+                time <- currentValue bSelectedTime
+                return $ case token of
+                    Nothing -> Nothing
+                    Just Token.NoToken -> Nothing
+                    Just (Token.Token a _) -> Just $ Token.Token a (fromMaybe (Time.Time "") time)
 
-    liftUI $ onChanges bTabSelection $ writeJson dataTabSelectionFile
-    liftUI $ onChanges bDatabaseExport $ writeCsv exportFile
+
+    liftUI $ onChanges bTabSelection $ \x -> do
+            mt <- liftIO updateToken
+            case mt of
+                Nothing -> return ()
+                Just t -> liftIO $ anyH t
+            writeJson dataTabSelectionFile x
+
+
+    liftUI $ onChanges bDatabaseExport $ \x -> do
+        mt <- liftIO updateToken
+        case mt of
+            Nothing -> return ()
+            Just t -> liftIO $ anyH t
+        writeCsv exportFile x
 
     return env
 
