@@ -35,7 +35,7 @@ import           Utils.Utils
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
-    -> m (Element, Event Loan)
+    -> m (Element, Event Loan, Tidings (Maybe DatabaseKey))
 setup window = mdo
 
     -- GUI elements
@@ -67,7 +67,7 @@ setup window = mdo
            ]
 
     --- ugs
-    infoSerie   <-
+    infoSerie <-
         liftUI
         $  UI.div
         #+ [ string "Serie: "
@@ -172,33 +172,24 @@ setup window = mdo
         <@> eFilterUser
         ]
 
-    bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
-        [ eSelectionItem
-        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
-        <$> bSelectionItem
-        <*> bShowItem
-        <@> eFilterItem
-        , Nothing <$ eCreate
-        ]
 
     bDatabaseLoan   <- asks Env.bDatabaseLoan
     bDatabaseUser   <- asks Env.bDatabaseUser
     bDatabaseItem   <- asks Env.bDatabaseItem
     bDatabaseToken  <- asks Env.bDatabaseToken
     bSelectionToken <- asks Env.bSelectionToken
+    bSelectionItem  <- asks Env.bCreateSelectionItem
 
     bLookupUser     <- lookupUser
     bLookupItem     <- lookupItem
     bLookupLoan     <- lookupLoan
+    bSelectedItem   <- selectedCreateLoanItem
 
     let bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
         bLoanItem = (fmap Loan.item .) <$> bLookupLoan
 
         bSelectedUser :: Behavior (Maybe User)
         bSelectedUser = (=<<) <$> bLookupUser <*> bSelectionUser
-
-        bSelectedItem :: Behavior (Maybe Item)
-        bSelectedItem = (=<<) <$> bLookupItem <*> bSelectionItem
 
         bShowUser :: Behavior (DatabaseKey -> String)
         bShowUser = (maybe "" User.name .) <$> bLookupUser
@@ -250,7 +241,7 @@ setup window = mdo
 
     let bCreateLoan :: Behavior (Maybe Loan)
         bCreateLoan = liftA2 Loan.Loan <$> bSelectionItem <*> bSelectionUser
-        -- <*> bSelectedTokenId
+    -- <*> bSelectedTokenId
 
         hasUserSelected :: Behavior Bool
         hasUserSelected = isJust <$> bSelectionUser
@@ -310,7 +301,21 @@ setup window = mdo
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 
 
-    return (elem, filterJust $ bCreateLoan <@ eCreate)
+    return
+        ( elem
+        , filterJust $ bCreateLoan <@ eCreate
+        , tidings
+            bSelectionItem
+            (Unsafe.head <$> unions
+                [ eSelectionItem
+                , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
+                <$> bSelectionItem
+                <*> bShowItem
+                <@> eFilterItem
+                , Nothing <$ eCreate
+                ]
+            )
+        )
 
 child = mkWriteAttr $ \i x -> void $ do
     return x # set children [] #+ (catMaybes [i])

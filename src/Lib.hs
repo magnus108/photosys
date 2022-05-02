@@ -140,7 +140,7 @@ setup Config {..} window = mdo
     (tokenCreate, eTokenCreate)           <- TokenCreate.setup window
     (tabs, tTabs, eLogout)                <- Tab.setup window
     (export          , eExport          ) <- Export.setup window
-    (loanCreate      , eLoanCreate      ) <- LoanCreate.setup window
+    (loanCreate      , eLoanCreate      , tLoanCreate) <- LoanCreate.setup window
     (loanDelete      , eLoanDelete      ) <- LoanDelete.setup window
     (loanCreateNormal, eLoanCreateNormal) <- LoanCreateNormal.setup window
     (loanDeleteNormal, eLoanDeleteNormal) <- LoanDeleteNormal.setup window
@@ -171,6 +171,11 @@ setup Config {..} window = mdo
     bTimeSelection <- stepper (Just 0) UI.never
     bDatabaseTime  <- accumB databaseTime $ concatenate <$> unions
         [filterJust $ Database.update' <$> bTimeSelection <@> eTime]
+
+
+    bCreateSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
+        [ rumors tLoanCreate
+        ]
 
 
     bDatabaseCount <- accumB databaseCount $ concatenate <$> unions
@@ -280,6 +285,7 @@ setup Config {..} window = mdo
                   , bSelectionTab          = bTabSelection
                   , bDatabaseCount         = bDatabaseCount
                   , bDatabaseTime          = bDatabaseTime
+                  , bCreateSelectionItem  = bCreateSelectionItem
                   }
 
 -------------------------------------------------------------------------------
