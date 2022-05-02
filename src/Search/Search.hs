@@ -30,6 +30,7 @@ import qualified Env
 import qualified Counter
 import           Layout
 import           Behaviors
+import Utils.Utils
 
 
 setup
@@ -123,9 +124,6 @@ setup window = mdo
     bFilterEntryUser <- stepper "" . rumors $ UI.userText filterUser
     bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
 
-
-    let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
-        isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
 
     let tFilterUser = isInfixOf <$> UI.userText filterUser
         bFilterUser = facts tFilterUser

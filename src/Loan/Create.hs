@@ -30,6 +30,7 @@ import qualified Env
 import qualified Counter
 import           Behaviors
 import           Layout
+import           Utils.Utils
 
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
@@ -65,6 +66,64 @@ setup window = mdo
            , element closeBtn
            ]
 
+    --- ugs
+    infoSerie   <-
+        liftUI
+        $  UI.div
+        #+ [ string "Serie: "
+           , UI.span
+               # sink child (fmap <$> bDisplayItemSerie <*> bSelectionItem)
+           ]
+    infoPrice <-
+        liftUI
+        $  UI.div
+        #+ [ string "Pris: "
+           , UI.span
+               # sink child (fmap <$> bDisplayItemPrice <*> bSelectionItem)
+           ]
+    infoVendor <-
+        liftUI
+        $  UI.div
+        #+ [ string "Forhandler: "
+           , UI.span
+               # sink child (fmap <$> bDisplayItemVendor <*> bSelectionItem)
+           ]
+
+    infoInvoiceNumber <-
+        liftUI
+        $  UI.div
+        #+ [ string "Fatura nr: "
+           , UI.span # sink
+               child
+               (fmap <$> bDisplayItemInvoiceNumber <*> bSelectionItem)
+           ]
+    infoDateOfPurchase <-
+        liftUI
+        $  UI.div
+        #+ [ string "Købsdato: "
+           , UI.span # sink
+               child
+               (fmap <$> bDisplayItemDateOfPurchase <*> bSelectionItem)
+           ]
+    infoNote <-
+        liftUI
+        $  UI.div
+        #+ [ string "Note: "
+           , UI.span # sink child (fmap <$> bDisplayItemNote <*> bSelectionItem)
+           ]
+
+    infoElem <- liftUI $ UI.div # sink children bInfo
+    let info =
+            [ infoSerie
+            , infoPrice
+            , infoVendor
+            , infoInvoiceNumber
+            , infoDateOfPurchase
+            , infoNote
+            ]
+        bInfo = (\b -> if b then info else []) <$> bHasSelectedItem
+    -- sorta hack
+
     elem <- mkContainer
         [ element searchUser
         , element dropdownUser
@@ -74,6 +133,7 @@ setup window = mdo
         , element createBtnView
         , element counterItem
         , element modal
+        , element infoElem
         ]
 
 
@@ -82,8 +142,6 @@ setup window = mdo
     bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
 
 
-    let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
-        isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
 
     let tFilterUser = isInfixOf <$> UI.userText filterUser
         bFilterUser = facts tFilterUser
@@ -129,9 +187,9 @@ setup window = mdo
     bDatabaseToken  <- asks Env.bDatabaseToken
     bSelectionToken <- asks Env.bSelectionToken
 
-    bLookupUser <- lookupUser
-    bLookupItem <- lookupItem
-    bLookupLoan <- lookupLoan
+    bLookupUser     <- lookupUser
+    bLookupItem     <- lookupItem
+    bLookupLoan     <- lookupLoan
 
     let bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
         bLoanItem = (fmap Loan.item .) <$> bLookupLoan
@@ -192,13 +250,55 @@ setup window = mdo
 
     let bCreateLoan :: Behavior (Maybe Loan)
         bCreateLoan = liftA2 Loan.Loan <$> bSelectionItem <*> bSelectionUser
-            -- <*> bSelectedTokenId
+        -- <*> bSelectedTokenId
 
         hasUserSelected :: Behavior Bool
         hasUserSelected = isJust <$> bSelectionUser
 
         hasItemSelected :: Behavior Bool
         hasItemSelected = isJust <$> bSelectionItem
+
+        bShowItemSerie :: Behavior (DatabaseKey -> String)
+        bShowItemSerie = (maybe "" Item.serie .) <$> bLookupItem
+        bDisplayItemSerie :: Behavior (DatabaseKey -> UI Element)
+        bDisplayItemSerie = (UI.string .) <$> bShowItemSerie
+
+        bShowItemPrice :: Behavior (DatabaseKey -> String)
+        bShowItemPrice = (maybe "" Item.price .) <$> bLookupItem
+        bDisplayItemPrice :: Behavior (DatabaseKey -> UI Element)
+        bDisplayItemPrice = (UI.string .) <$> bShowItemPrice
+
+        bShowItemInvoiceNumber :: Behavior (DatabaseKey -> String)
+        bShowItemInvoiceNumber =
+            (maybe "" Item.invoiceNumber .) <$> bLookupItem
+        bDisplayItemInvoiceNumber :: Behavior (DatabaseKey -> UI Element)
+        bDisplayItemInvoiceNumber = (UI.string .) <$> bShowItemInvoiceNumber
+
+        bShowItemDateOfPurchase :: Behavior (DatabaseKey -> String)
+        bShowItemDateOfPurchase =
+            (maybe "" Item.dateOfPurchase .) <$> bLookupItem
+        bDisplayItemDateOfPurchase :: Behavior (DatabaseKey -> UI Element)
+        bDisplayItemDateOfPurchase = (UI.string .) <$> bShowItemDateOfPurchase
+
+        bShowItemNote :: Behavior (DatabaseKey -> String)
+        bShowItemNote = (maybe "" Item.note .) <$> bLookupItem
+        bDisplayItemNote :: Behavior (DatabaseKey -> UI Element)
+        bDisplayItemNote = (UI.string .) <$> bShowItemNote
+
+        bShowItemVendor :: Behavior (DatabaseKey -> String)
+        bShowItemVendor = (maybe "" Item.vendor .) <$> bLookupItem
+        bDisplayItemVendor :: Behavior (DatabaseKey -> UI Element)
+        bDisplayItemVendor = (UI.string .) <$> bShowItemVendor
+
+
+    let bHasSelectedItem :: Behavior Bool
+        bHasSelectedItem =
+            (\x xs -> case x of
+                    Nothing -> False
+                    Just y  -> List.elem y xs
+                )
+                <$> bSelectionItem
+                <*> bListBoxItems
 
     liftUI $ element loanInfo # sink
         text
@@ -211,3 +311,6 @@ setup window = mdo
 
 
     return (elem, filterJust $ bCreateLoan <@ eCreate)
+
+child = mkWriteAttr $ \i x -> void $ do
+    return x # set children [] #+ (catMaybes [i])
