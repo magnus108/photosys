@@ -37,6 +37,7 @@ data Env = Env
 
     , bSelectionToken :: !(Behavior (Maybe DatabaseKey))
     , bSelectionTab :: !(Behavior (Maybe DatabaseKey))
+    , bSelectionTime :: !(Behavior (Maybe DatabaseKey))
 
     , bCreateSelectionItem :: !(Behavior (Maybe DatabaseKey))
     }

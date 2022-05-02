@@ -1,9 +1,15 @@
 module Changes where
 
+import qualified Timer
+import qualified Time
+import qualified Token
 import           Utils.Data
 import           Env
+import           Behaviors
 import           Monad
 import           Graphics.UI.Threepenny.Core
+
+import           Data.Time
 
 changesCount
     :: forall m
@@ -48,7 +54,7 @@ changesTime
     => FilePath
     -> m ()
 changesTime path = do
-    bDatabase <- asks Env.bDatabaseTime
+    bDatabase      <- asks Env.bDatabaseTime
     liftUI $ onChanges bDatabase $ writeJson path
 
 changesLoan

@@ -7,6 +7,8 @@ import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
+import           Time                           ( Time )
+import qualified Time
 import           Loan                           ( Loan )
 import qualified Loan
 import           User                           ( User )
@@ -26,6 +28,7 @@ import qualified Data.List                     as List
 import           Control.Bool
 import           Data.Password.Bcrypt
 
+import           Behaviors
 import           Monad
 import           Env                            ( Env )
 import qualified Env
@@ -81,12 +84,13 @@ setup window = mdo
     bLogin <- stepper Nothing $ Unsafe.head <$> unions
         [Just <$> eLoginIn, Just emptyLogin <$ eCreate]
 
-    bDatabaseLoan                      <- asks Env.bDatabaseLoan
-    bDatabaseUser                      <- asks Env.bDatabaseUser
-    bDatabaseItem                      <- asks Env.bDatabaseItem
-    bDatabaseToken                     <- asks Env.bDatabaseToken
-    bSelectionToken                    <- asks Env.bSelectionToken
-    bDatabaseHistory                   <- asks Env.bDatabaseHistory
+    bDatabaseLoan    <- asks Env.bDatabaseLoan
+    bDatabaseUser    <- asks Env.bDatabaseUser
+    bDatabaseItem    <- asks Env.bDatabaseItem
+    bDatabaseToken   <- asks Env.bDatabaseToken
+    bSelectionToken  <- asks Env.bSelectionToken
+    bDatabaseHistory <- asks Env.bDatabaseHistory
+    bTime            <- selectedTime
 
     let compareLogin :: Login -> User -> Bool
         compareLogin y x =
@@ -126,24 +130,13 @@ setup window = mdo
         UI.enabled
         (bDisplayItem <&&> (not <$> bHasToken))
 
----------
-    timer <- liftUI $ UI.timer # set UI.interval 1000
-    let eTick = UI.tick timer
-
-    (eTime, hTime) <- liftIO $ newEvent
-
-    c              <- liftIO $ getZonedTime
-
-    bTimer         <- stepper (show c) $ Unsafe.head <$> unions [eTime]
-
-    liftUI $ onEvent eTick $ \items -> do
-        c <- liftIO $ getZonedTime
-        liftIO $ hTime (show c)
-
-    liftUI $ UI.start timer
----------
-
-    return (elem, maybe (const Token.NoToken) Token.Token <$> bUser <*> bTimer <@ eCreate)
+    return
+        ( elem
+        , maybe (const Token.NoToken) Token.Token
+        <$> bUser
+        <*> (fromMaybe (Time.Time "") <$> bTime)
+        <@  eCreate
+        )
 
 
 emptyLogin :: Login

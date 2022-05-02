@@ -109,17 +109,17 @@ selectedItem bSelection = do
 selectedTime
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => Behavior (Maybe DatabaseKey)
-    -> m (Behavior (Maybe Time))
-selectedTime bSelection = do
-    bLookup <- lookupTime
+    => m (Behavior (Maybe Time))
+selectedTime = do
+    bSelection <- asks Env.bSelectionTime
+    bLookup    <- lookupTime
     return $ (=<<) <$> bLookup <*> bSelection
 
 selectedCreateLoanItem
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-      => m (Behavior (Maybe Item))
+    => m (Behavior (Maybe Item))
 selectedCreateLoanItem = do
     bSelection <- asks Env.bCreateSelectionItem
-    bLookup <- lookupItem
+    bLookup    <- lookupItem
     return $ (=<<) <$> bLookup <*> bSelection

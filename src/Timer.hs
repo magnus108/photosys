@@ -24,3 +24,7 @@ setup window = mdo
     liftUI $ UI.start timer
 
     return eTime
+
+
+readTime :: String -> IO ZonedTime
+readTime t = parseTimeM True defaultTimeLocale "%F, %T" t

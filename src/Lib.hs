@@ -3,6 +3,7 @@ module Lib
     ( someFunc
     )
 where
+import           Data.Time
 import           Changes
 import           Config
 import           Utils.Data
@@ -57,11 +58,13 @@ import qualified Token.Create                  as TokenCreate
 import           HistoryHandin                  ( HistoryHandin(..) )
 import           History                        ( History(..) )
 import           Loan                           ( Loan(..) )
+import           Loan                           ( Loan(..) )
 import           User                           ( User(..) )
 import           Count                          ( Count(..) )
 import           Time                           ( Time(..) )
 import           Token                          ( Token(..)
                                                 , isToken
+                                                , tokenTTL
                                                 , tokenId
                                                 )
 
@@ -139,8 +142,8 @@ setup Config {..} window = mdo
 
     (tokenCreate, eTokenCreate)           <- TokenCreate.setup window
     (tabs, tTabs, eLogout)                <- Tab.setup window
-    (export          , eExport          ) <- Export.setup window
-    (loanCreate      , eLoanCreate      , tLoanCreate) <- LoanCreate.setup window
+    (export, eExport)                     <- Export.setup window
+    (loanCreate, eLoanCreate, tLoanCreate) <- LoanCreate.setup window
     (loanDelete      , eLoanDelete      ) <- LoanDelete.setup window
     (loanCreateNormal, eLoanCreateNormal) <- LoanCreateNormal.setup window
     (loanDeleteNormal, eLoanDeleteNormal) <- LoanDeleteNormal.setup window
@@ -166,6 +169,19 @@ setup Config {..} window = mdo
 
 -------------------------------------------------------------------------------
     let eTabs = rumors tTabs
+    let eAutoLog = unsafeMapIO (\_ -> do
+                    token <- currentValue bSelectedToken
+                    time <- currentValue bSelectedTime
+                    y <- mapM Timer.readTime $ Time.time <$> (tokenTTL =<< token)
+                    x <- mapM Timer.readTime $ Time.time <$> time
+                    let difftime = liftA2 diffUTCTime (zonedTimeToUTC <$> x) (zonedTimeToUTC <$> y)
+                    let allowedDiff = 10
+
+                    return $ fromMaybe NoToken $ (\t -> if (t > 10) then NoToken else fromMaybe NoToken token) <$> difftime
+                ) eTime
+    let eAutoLog' = filterJust $ (\e -> case e of 
+                            NoToken -> Nothing 
+                            t -> Just t) <$> eAutoLog
 -------------------------------------------------------------------------------
 
     bTimeSelection <- stepper (Just 0) UI.never
@@ -174,8 +190,7 @@ setup Config {..} window = mdo
 
 
     bCreateSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
-        [ rumors tLoanCreate
-        ]
+        [rumors tLoanCreate]
 
 
     bDatabaseCount <- accumB databaseCount $ concatenate <$> unions
@@ -195,6 +210,7 @@ setup Config {..} window = mdo
     bTabSelection <- stepper tabSelectionFile $ Unsafe.head <$> unions
         [ eTabs
         , Nothing <$ eLogout
+        , Nothing <$ eAutoLog'
         , (\b -> if b then Just 6 else Just 0)
         <$> bSelectedAdmin
         <@  eTokenCreate
@@ -270,6 +286,7 @@ setup Config {..} window = mdo
     bDatabaseToken  <- accumB databaseToken $ concatenate <$> unions
         [ filterJust $ Database.update' <$> bTokenSelection <@> eTokenCreate
         , filterJust $ Database.update' <$> bTokenSelection <@> eLogout
+        , filterJust $ Database.update' <$> bTokenSelection <@> eAutoLog'
         ]
 
 -------------------------------------------------------------------------------
@@ -285,8 +302,11 @@ setup Config {..} window = mdo
                   , bSelectionTab          = bTabSelection
                   , bDatabaseCount         = bDatabaseCount
                   , bDatabaseTime          = bDatabaseTime
-                  , bCreateSelectionItem  = bCreateSelectionItem
+                  , bCreateSelectionItem   = bCreateSelectionItem
+                  , bSelectionTime         = bTimeSelection
                   }
+
+-------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
 
