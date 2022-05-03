@@ -2,6 +2,7 @@
 module History.HistoryHandin where
 
 import           Data.Time
+import           Utils.Utils
 
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
@@ -36,12 +37,13 @@ import           Env                            ( Env )
 import qualified Env
 import qualified Counter
 import Layout
+import Behaviors
 
 
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
-    -> m Element
+    -> m (Element, Tidings (Maybe DatabaseKey), Tidings (Maybe DatabaseKey), Tidings (Maybe DatabaseKey))
 setup window = mdo
 
     -- GUI elements
@@ -80,9 +82,6 @@ setup window = mdo
     bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
     bFilterEntryLoan <- stepper "" . rumors $ UI.userText filterLoan
 
-    let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
-        isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
-
     let tFilterUser = isInfixOf <$> UI.userText filterUser
         bFilterUser = facts tFilterUser
         eFilterUser = rumors tFilterUser
@@ -100,30 +99,9 @@ setup window = mdo
         eSelectionLoan = rumors $ UI.userSelection listBoxLoan
 
 
-    bSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
-        [ eSelectionUser
-        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
-        <$> bSelectionUser
-        <*> bShowUser
-        <@> eFilterUser
-        ]
-
-    bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
-        [ eSelectionItem
-        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
-        <$> bSelectionItem
-        <*> bShowItem
-        <@> eFilterItem
-        ]
-
-    bSelectionLoan <- stepper Nothing $ Unsafe.head <$> unions
-        [ eSelectionLoan
-        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
-        <$> bSelectionLoan
-        <*> bShowLoan
-        <@> eFilterLoan
-        ]
-
+    bSelectionItem <- asks Env.bHistoryHandinItem
+    bSelectionUser <- asks Env.bHistoryHandinUser
+    bSelectionLoan <- asks Env.bHistoryHandinLoan
     bDatabaseLoan          <- asks Env.bDatabaseLoan
     bDatabaseUser          <- asks Env.bDatabaseUser
     bDatabaseItem          <- asks Env.bDatabaseItem
@@ -131,29 +109,20 @@ setup window = mdo
     bSelectionToken        <- asks Env.bSelectionToken
     bDatabaseHistoryHandin <- asks Env.bDatabaseHistoryHandin
 
+    bLookupUser <- lookupUser
+    bLookupItem <- lookupItem
+    bLookupHistoryHandin <- lookupHistoryHandin
 
-    let bLookupUser :: Behavior (DatabaseKey -> Maybe User)
-        bLookupUser = flip lookup <$> bDatabaseUser
+    bSelectedLoan <- historyHandinLoan
+    bSelectedUser <- historyHandinUser
+    bSelectedItem <- historyHandinItem
 
-        bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
-        bLookupLoan =
-            (\x y -> fmap HistoryHandin.loan (lookup y x))
-                <$> bDatabaseHistoryHandin
+    let bLookupLoan :: Behavior (DatabaseKey -> Maybe Loan)
+        bLookupLoan = (fmap HistoryHandin.loan .) <$> bLookupHistoryHandin
 
-        bLookupHistoryHandin :: Behavior (DatabaseKey -> Maybe HistoryHandin)
-        bLookupHistoryHandin = flip lookup <$> bDatabaseHistoryHandin
-
-        bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
-        bLookupItem = flip lookup <$> bDatabaseItem
-
-        bSelectedUser :: Behavior (Maybe User)
-        bSelectedUser = (=<<) <$> bLookupUser <*> bSelectionUser
-
-        bSelectedItem :: Behavior (Maybe Item)
-        bSelectedItem = (=<<) <$> bLookupItem <*> bSelectionItem
-
-        bSelectedLoan :: Behavior (Maybe Loan)
-        bSelectedLoan = (=<<) <$> bLookupLoan <*> bSelectionLoan
+        bShowLoan :: Behavior (DatabaseKey -> String)
+        bShowLoan =
+            (maybe "" (Time.time . HistoryHandin.timestamp) .) <$> bLookupHistoryHandin
 
         bShowUser :: Behavior (DatabaseKey -> String)
         bShowUser = (maybe "" User.name .) <$> bLookupUser
@@ -161,9 +130,6 @@ setup window = mdo
         bShowItem :: Behavior (DatabaseKey -> String)
         bShowItem = (maybe "" Item.name .) <$> bLookupItem
 
-        bShowLoan :: Behavior (DatabaseKey -> String)
-        bShowLoan =
-            (maybe "" (Time.time . HistoryHandin.timestamp) .) <$> bLookupHistoryHandin
 
         bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
         bDisplayUserName = (UI.string .) <$> bShowUser
@@ -285,7 +251,31 @@ setup window = mdo
     liftUI $ element isAdmin # sink items
                                     ((\x -> catMaybes [x]) <$> bIsAdminGUI)
 
-    return elem
+    let tSelectionLoan = tidings bSelectionLoan $ Unsafe.head <$> unions
+                                                        [ eSelectionLoan
+                                                        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
+                                                        <$> bSelectionLoan
+                                                        <*> bShowLoan
+                                                        <@> eFilterLoan
+                                                        ]
+    let tSelectionUser = tidings bSelectionUser $ Unsafe.head <$> unions
+                                                        [ eSelectionUser
+                                                        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
+                                                        <$> bSelectionUser
+                                                        <*> bShowUser
+                                                        <@> eFilterUser
+                                                        ]
+
+
+    let tSelectionItem = tidings bSelectionItem $ Unsafe.head <$> unions
+                                                        [ eSelectionItem
+                                                        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
+                                                        <$> bSelectionItem
+                                                        <*> bShowItem
+                                                        <@> eFilterItem
+                                                        ]
+
+    return (elem, tSelectionLoan, tSelectionUser, tSelectionItem)
 
 items = mkWriteAttr $ \i x -> void $ do
     return x # set children [] #+ i

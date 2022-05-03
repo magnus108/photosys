@@ -12,8 +12,18 @@ import           Time                           ( Time )
 import qualified Time
 import           Count                          ( Count )
 import qualified Count
+import           HistoryHandin                  ( HistoryHandin )
+import qualified HistoryHandin
 import           Token
 import           Env
+
+lookupHistoryHandin
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (DatabaseKey -> Maybe HistoryHandin))
+lookupHistoryHandin = do
+    bDatabase <- asks Env.bDatabaseHistoryHandin
+    return $ flip lookup <$> bDatabase
 
 lookupTime
     :: forall m
@@ -121,5 +131,32 @@ selectedCreateLoanItem
     => m (Behavior (Maybe Item))
 selectedCreateLoanItem = do
     bSelection <- asks Env.bCreateSelectionItem
+    bLookup    <- lookupItem
+    return $ (=<<) <$> bLookup <*> bSelection
+
+historyHandinLoan
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (Maybe Loan))
+historyHandinLoan = do
+    bSelection <- asks Env.bHistoryHandinLoan
+    bLookup    <- lookupLoan
+    return $ (=<<) <$> bLookup <*> bSelection
+
+historyHandinUser
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (Maybe User))
+historyHandinUser = do
+    bSelection <- asks Env.bHistoryHandinUser
+    bLookup    <- lookupUser
+    return $ (=<<) <$> bLookup <*> bSelection
+
+historyHandinItem
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (Maybe Item))
+historyHandinItem = do
+    bSelection <- asks Env.bHistoryHandinItem
     bLookup    <- lookupItem
     return $ (=<<) <$> bLookup <*> bSelection

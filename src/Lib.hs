@@ -106,7 +106,7 @@ setup2 config@Config {..} window = void $ mdo
 
     (anyE, anyH) <- liftIO $ newEvent
 
-    env <- runApp env $ setup config window (anyE, anyH)
+    env          <- runApp env $ setup config window (anyE, anyH)
 
     runApp env $ do
         changesHistory datastoreHistory anyH
@@ -143,50 +143,67 @@ setup Config {..} window (anyE, anyH) = mdo
 
 -------------------------------------------------------------------------------
 
-    (tokenCreate, eTokenCreate)           <- TokenCreate.setup window
-    (tabs, tTabs, eLogout)                <- Tab.setup window
-    (export, eExport)                     <- Export.setup window
+    (tokenCreate, eTokenCreate)            <- TokenCreate.setup window
+    (tabs, tTabs, eLogout)                 <- Tab.setup window
+    (export, eExport)                      <- Export.setup window
     (loanCreate, eLoanCreate, tLoanCreate) <- LoanCreate.setup window
-    (loanDelete      , eLoanDelete      ) <- LoanDelete.setup window
-    (loanCreateNormal, eLoanCreateNormal) <- LoanCreateNormal.setup window
-    (loanDeleteNormal, eLoanDeleteNormal) <- LoanDeleteNormal.setup window
-    history                               <- History.setup window
-    historyNormal                         <- HistoryNormal.setup window
+    (loanDelete      , eLoanDelete      )  <- LoanDelete.setup window
+    (loanCreateNormal, eLoanCreateNormal)  <- LoanCreateNormal.setup window
+    (loanDeleteNormal, eLoanDeleteNormal)  <- LoanDeleteNormal.setup window
+    history                                <- History.setup window
+    historyNormal                          <- HistoryNormal.setup window
 
-    historyHandin                         <- HistoryHandin.setup window
-    historyHandinNormal                   <- HistoryHandinNormal.setup window
+    (historyHandin, tHistoryHandinLoan, tHistoryHandinUser, tHistoryHandinItem) <-
+        HistoryHandin.setup window
+    historyHandinNormal           <- HistoryHandinNormal.setup window
 
-    (count, eCount, eCountDelete)         <- Count.setup window
-    search                                <- Search.setup window
-    searchNormal                          <- SearchNormal.setup window
-    (userCreate, eUserCreate)             <- UserCreate.setup window
-    (userDelete, eUserDelete)             <- UserDelete.setup window
-    (itemCreate, eItemCreate)             <- ItemCreate.setup window
-    (itemDelete, eItemDelete)             <- ItemDelete.setup window
-    (eTime)                               <- Timer.setup window
+    (count, eCount, eCountDelete) <- Count.setup window
+    search                        <- Search.setup window
+    searchNormal                  <- SearchNormal.setup window
+    (userCreate, eUserCreate)     <- UserCreate.setup window
+    (userDelete, eUserDelete)     <- UserDelete.setup window
+    (itemCreate, eItemCreate)     <- ItemCreate.setup window
+    (itemDelete, eItemDelete)     <- ItemDelete.setup window
+    (eTime)                       <- Timer.setup window
 
-    notDone                               <- liftUI $ UI.string "Ikke færdig"
-    content                               <- liftUI $ UI.div
+    notDone                       <- liftUI $ UI.string "Ikke færdig"
+    content                       <- liftUI $ UI.div
 
     liftUI $ getBody window #+ [element content]
 
+    let eHistoryHandinItem = rumors tHistoryHandinItem
+    let eHistoryHandinLoan = rumors tHistoryHandinLoan
+    let eHistoryHandinUser = rumors tHistoryHandinUser
 
-    let allowedDiff = 600
+    let allowedDiff        = 600
 -------------------------------------------------------------------------------
-    let eTabs = rumors tTabs
-    let eAutoLog = unsafeMapIO (\_ -> do
-                    token <- currentValue bSelectedToken
-                    time <- currentValue bSelectedTime
-                    y <- mapM Timer.readTime $ Time.time <$> (tokenTTL =<< token)
-                    x <- mapM Timer.readTime $ Time.time <$> time
-                    let difftime = liftA2 diffUTCTime (zonedTimeToUTC <$> x) (zonedTimeToUTC <$> y)
-                    return $ (\t -> t > allowedDiff) <$> difftime
-                ) eTime
-    let eAutoLog' = filterJust $ (\e -> if e then Just NoToken else Nothing) <$> filterJust eAutoLog
+    let eTabs              = rumors tTabs
+    let
+        eAutoLog = unsafeMapIO
+            (\_ -> do
+                token <- currentValue bSelectedToken
+                time  <- currentValue bSelectedTime
+                y <- mapM Timer.readTime $ Time.time <$> (tokenTTL =<< token)
+                x     <- mapM Timer.readTime $ Time.time <$> time
+                let
+                    difftime = liftA2 diffUTCTime
+                                      (zonedTimeToUTC <$> x)
+                                      (zonedTimeToUTC <$> y)
+                return $ (\t -> t > allowedDiff) <$> difftime
+            )
+            eTime
+    let eAutoLog' =
+            filterJust
+                $   (\e -> if e then Just NoToken else Nothing)
+                <$> filterJust eAutoLog
 -------------------------------------------------------------------------------
 
-    bTimeSelection <- stepper (Just 0) UI.never
-    bDatabaseTime  <- accumB databaseTime $ concatenate <$> unions
+    bHistoryHandinLoan <- stepper Nothing eHistoryHandinLoan
+    bHistoryHandinUser <- stepper Nothing eHistoryHandinUser
+    bHistoryHandinItem <- stepper Nothing eHistoryHandinItem
+
+    bTimeSelection     <- stepper (Just 0) UI.never
+    bDatabaseTime      <- accumB databaseTime $ concatenate <$> unions
         [filterJust $ Database.update' <$> bTimeSelection <@> eTime]
 
 
@@ -285,21 +302,31 @@ setup Config {..} window (anyE, anyH) = mdo
     bTokenSelection <- stepper (Just index) UI.never
 
     now <- liftIO $ (formatTime defaultTimeLocale "%F, %T") <$> getZonedTime
-    let checkedB db = do
-                    let token = Database.lookup index db
-                    y <- mapM Timer.readTime $ Time.time <$> (tokenTTL =<< token)
-                    x <- mapM Timer.readTime $ Time.time <$> (Just (Time now))
-                    let difftime = liftA2 diffUTCTime (zonedTimeToUTC <$> x) (zonedTimeToUTC <$> y)
-                    return $ (\t -> if t > allowedDiff then Database.update index NoToken db else db) <$> difftime
+    let
+        checkedB db = do
+            let token = Database.lookup index db
+            y <- mapM Timer.readTime $ Time.time <$> (tokenTTL =<< token)
+            x <- mapM Timer.readTime $ Time.time <$> (Just (Time now))
+            let
+                difftime = liftA2 diffUTCTime
+                                  (zonedTimeToUTC <$> x)
+                                  (zonedTimeToUTC <$> y)
+            return
+                $   (\t -> if t > allowedDiff
+                        then Database.update index NoToken db
+                        else db
+                    )
+                <$> difftime
     databaseToken' <- liftIO $ checkedB databaseToken
 -------------------------------------------------------------------------------
 
-    bDatabaseToken  <- accumB (fromMaybe databaseToken databaseToken') $ concatenate <$> unions
-        [ filterJust $ Database.update' <$> bTokenSelection <@> eTokenCreate
-        , filterJust $ Database.update' <$> bTokenSelection <@> eLogout
-        , filterJust $ Database.update' <$> bTokenSelection <@> eAutoLog'
-        , filterJust $ Database.update' <$> bTokenSelection <@> anyE
-        ]
+    bDatabaseToken <-
+        accumB (fromMaybe databaseToken databaseToken') $ concatenate <$> unions
+            [ filterJust $ Database.update' <$> bTokenSelection <@> eTokenCreate
+            , filterJust $ Database.update' <$> bTokenSelection <@> eLogout
+            , filterJust $ Database.update' <$> bTokenSelection <@> eAutoLog'
+            , filterJust $ Database.update' <$> bTokenSelection <@> anyE
+            ]
 
 -------------------------------------------------------------------------------
 
@@ -316,6 +343,9 @@ setup Config {..} window (anyE, anyH) = mdo
                   , bDatabaseTime          = bDatabaseTime
                   , bCreateSelectionItem   = bCreateSelectionItem
                   , bSelectionTime         = bTimeSelection
+                  , bHistoryHandinLoan     = bHistoryHandinLoan
+                  , bHistoryHandinUser     = bHistoryHandinUser
+                  , bHistoryHandinItem     = bHistoryHandinItem
                   }
 
 -------------------------------------------------------------------------------
@@ -384,28 +414,30 @@ setup Config {..} window (anyE, anyH) = mdo
         (maybe [tokenCreate] <$> bGui <*> bTabSelection)
 --------------------------------------------------------------------------------
 
-    let updateToken = do
-                token <- currentValue bSelectedToken :: IO (Maybe Token)
-                time <- currentValue bSelectedTime
-                return $ case token of
-                    Nothing -> Nothing
-                    Just Token.NoToken -> Nothing
-                    Just (Token.Token a _) -> Just $ Token.Token a (fromMaybe (Time.Time "") time)
+    let
+        updateToken = do
+            token <- currentValue bSelectedToken :: IO (Maybe Token)
+            time  <- currentValue bSelectedTime
+            return $ case token of
+                Nothing            -> Nothing
+                Just Token.NoToken -> Nothing
+                Just (Token.Token a _) ->
+                    Just $ Token.Token a (fromMaybe (Time.Time "") time)
 
 
     liftUI $ onChanges bTabSelection $ \x -> do
-            mt <- liftIO updateToken
-            case mt of
-                Nothing -> return ()
-                Just t -> liftIO $ anyH t
-            writeJson dataTabSelectionFile x
+        mt <- liftIO updateToken
+        case mt of
+            Nothing -> return ()
+            Just t  -> liftIO $ anyH t
+        writeJson dataTabSelectionFile x
 
 
     liftUI $ onChanges bDatabaseExport $ \x -> do
         mt <- liftIO updateToken
         case mt of
             Nothing -> return ()
-            Just t -> liftIO $ anyH t
+            Just t  -> liftIO $ anyH t
         writeCsv exportFile x
 
     return env

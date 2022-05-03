@@ -40,4 +40,7 @@ data Env = Env
     , bSelectionTime :: !(Behavior (Maybe DatabaseKey))
 
     , bCreateSelectionItem :: !(Behavior (Maybe DatabaseKey))
+    , bHistoryHandinLoan :: !(Behavior (Maybe DatabaseKey))
+    , bHistoryHandinUser :: !(Behavior (Maybe DatabaseKey))
+    , bHistoryHandinItem :: !(Behavior (Maybe DatabaseKey))
     }
