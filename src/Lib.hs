@@ -153,7 +153,7 @@ setup Config {..} window (anyE, anyH) = mdo
     history                                <- History.setup window
     historyNormal                          <- HistoryNormal.setup window
 
-    (historyHandin, tHistoryHandinLoan, tHistoryHandinUser, tHistoryHandinItem) <-
+    (historyHandin, tHistoryHandinLoan, tHistoryHandinUser, tHistoryHandinItem, tHistoryHandinFilterUser) <-
         HistoryHandin.setup window
     historyHandinNormal           <- HistoryHandinNormal.setup window
 
@@ -171,13 +171,14 @@ setup Config {..} window (anyE, anyH) = mdo
 
     liftUI $ getBody window #+ [element content]
 
-    let eHistoryHandinItem = rumors tHistoryHandinItem
-    let eHistoryHandinLoan = rumors tHistoryHandinLoan
-    let eHistoryHandinUser = rumors tHistoryHandinUser
+    let eHistoryHandinItem       = rumors tHistoryHandinItem
+    let eHistoryHandinLoan       = rumors tHistoryHandinLoan
+    let eHistoryHandinUser       = rumors tHistoryHandinUser
+    let eHistoryHandinFilterUser = rumors tHistoryHandinFilterUser
 
-    let allowedDiff        = 600
+    let allowedDiff              = 600
 -------------------------------------------------------------------------------
-    let eTabs              = rumors tTabs
+    let eTabs                    = rumors tTabs
     let
         eAutoLog = unsafeMapIO
             (\_ -> do
@@ -198,12 +199,13 @@ setup Config {..} window (anyE, anyH) = mdo
                 <$> filterJust eAutoLog
 -------------------------------------------------------------------------------
 
-    bHistoryHandinLoan <- stepper Nothing eHistoryHandinLoan
-    bHistoryHandinUser <- stepper Nothing eHistoryHandinUser
-    bHistoryHandinItem <- stepper Nothing eHistoryHandinItem
+    bHistoryHandinLoan       <- stepper Nothing eHistoryHandinLoan
+    bHistoryHandinUser       <- stepper Nothing eHistoryHandinUser
+    bHistoryHandinFilterUser <- stepper "" eHistoryHandinFilterUser
+    bHistoryHandinItem       <- stepper Nothing eHistoryHandinItem
 
-    bTimeSelection     <- stepper (Just 0) UI.never
-    bDatabaseTime      <- accumB databaseTime $ concatenate <$> unions
+    bTimeSelection           <- stepper (Just 0) UI.never
+    bDatabaseTime            <- accumB databaseTime $ concatenate <$> unions
         [filterJust $ Database.update' <$> bTimeSelection <@> eTime]
 
 
@@ -330,22 +332,23 @@ setup Config {..} window (anyE, anyH) = mdo
 
 -------------------------------------------------------------------------------
 
-    let env = Env { bDatabaseLoan          = bDatabaseLoan
-                  , bDatabaseUser          = bDatabaseUser
-                  , bDatabaseItem          = bDatabaseItem
-                  , bDatabaseToken         = bDatabaseToken
-                  , bSelectionToken        = bTokenSelection
-                  , bDatabaseHistory       = bDatabaseHistory
-                  , bDatabaseHistoryHandin = bDatabaseHistoryHandin
-                  , bDatabaseTab           = bDatabaseTab
-                  , bSelectionTab          = bTabSelection
-                  , bDatabaseCount         = bDatabaseCount
-                  , bDatabaseTime          = bDatabaseTime
-                  , bCreateSelectionItem   = bCreateSelectionItem
-                  , bSelectionTime         = bTimeSelection
-                  , bHistoryHandinLoan     = bHistoryHandinLoan
-                  , bHistoryHandinUser     = bHistoryHandinUser
-                  , bHistoryHandinItem     = bHistoryHandinItem
+    let env = Env { bDatabaseLoan            = bDatabaseLoan
+                  , bDatabaseUser            = bDatabaseUser
+                  , bDatabaseItem            = bDatabaseItem
+                  , bDatabaseToken           = bDatabaseToken
+                  , bSelectionToken          = bTokenSelection
+                  , bDatabaseHistory         = bDatabaseHistory
+                  , bDatabaseHistoryHandin   = bDatabaseHistoryHandin
+                  , bDatabaseTab             = bDatabaseTab
+                  , bSelectionTab            = bTabSelection
+                  , bDatabaseCount           = bDatabaseCount
+                  , bDatabaseTime            = bDatabaseTime
+                  , bCreateSelectionItem     = bCreateSelectionItem
+                  , bSelectionTime           = bTimeSelection
+                  , bHistoryHandinLoan       = bHistoryHandinLoan
+                  , bHistoryHandinUser       = bHistoryHandinUser
+                  , bHistoryHandinFilterUser = bHistoryHandinFilterUser
+                  , bHistoryHandinItem       = bHistoryHandinItem
                   }
 
 -------------------------------------------------------------------------------

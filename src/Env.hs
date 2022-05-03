@@ -42,5 +42,6 @@ data Env = Env
     , bCreateSelectionItem :: !(Behavior (Maybe DatabaseKey))
     , bHistoryHandinLoan :: !(Behavior (Maybe DatabaseKey))
     , bHistoryHandinUser :: !(Behavior (Maybe DatabaseKey))
+    , bHistoryHandinFilterUser :: !(Behavior String)
     , bHistoryHandinItem :: !(Behavior (Maybe DatabaseKey))
     }

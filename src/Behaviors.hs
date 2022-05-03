@@ -1,10 +1,12 @@
 module Behaviors where
 
+import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
 import           Reactive.Threepenny
 import           Database
 import           Monad
 import           User
+import           Utils.Utils
 import           Loan
 import           Item                           ( Item )
 import qualified Item
@@ -15,7 +17,8 @@ import qualified Count
 import           HistoryHandin                  ( HistoryHandin )
 import qualified HistoryHandin
 import           Token
-import           Env
+import           Env                            ( Env )
+import qualified Env
 
 lookupHistoryHandin
     :: forall m
@@ -160,3 +163,50 @@ historyHandinItem = do
     bSelection <- asks Env.bHistoryHandinItem
     bLookup    <- lookupItem
     return $ (=<<) <$> bLookup <*> bSelection
+
+historyHandinShowItem
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (DatabaseKey -> String))
+historyHandinShowItem = do
+    bLookup <- lookupItem
+    return $ (maybe "" Item.name .) <$> bLookup
+
+historyHandinShowUser
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (DatabaseKey -> String))
+historyHandinShowUser = do
+    bLookup <- lookupUser
+    return $ (maybe "" User.name .) <$> bLookup
+
+historyHandinDisplayUser
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (DatabaseKey -> UI Element))
+historyHandinDisplayUser = do
+    show <- historyHandinShowUser
+    return $ (UI.string .) <$> show
+
+
+historyHandinDisplayItem
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (DatabaseKey -> UI Element))
+historyHandinDisplayItem = do
+    show <- historyHandinShowItem
+    return $ (UI.string .) <$> show
+
+historyHandinListBoxUsers
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior [DatabaseKey])
+historyHandinListBoxUsers = do
+    bDatabaseUser <- asks Env.bDatabaseUser
+    bFilterUser   <- fmap isInfixOf <$> asks Env.bHistoryHandinFilterUser
+    bShowUser     <- historyHandinShowUser
+    return
+        $   (\p show -> filter (p . show) . keys)
+        <$> bFilterUser
+        <*> bShowUser
+        <*> bDatabaseUser
