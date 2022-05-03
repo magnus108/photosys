@@ -62,7 +62,7 @@ setup window = mdo
         [True <$ eCreate, eModal]
 
     bUser <- stepper Nothing $ Unsafe.head <$> unions
-        [Just <$> eUserIn, Just emptyUser <$ eCreate]
+        [(\x -> if x == emptyUser then Nothing else Just x) <$> eUserIn, Nothing <$ eCreate]
 
     let bNotEmpty = isJust <$> bUser
     liftUI $ element createBtn # sink UI.enabled bNotEmpty

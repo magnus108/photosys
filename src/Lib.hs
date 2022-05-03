@@ -171,7 +171,7 @@ setup Config {..} window (anyE, anyH) = mdo
     liftUI $ getBody window #+ [element content]
 
 
-    let allowedDiff = 3
+    let allowedDiff = 600
 -------------------------------------------------------------------------------
     let eTabs = rumors tTabs
     let eAutoLog = unsafeMapIO (\_ -> do
