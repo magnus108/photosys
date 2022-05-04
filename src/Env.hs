@@ -18,6 +18,8 @@ import           History                        ( History )
 import qualified History
 import           HistoryHandin                  ( HistoryHandin )
 import qualified HistoryHandin
+import           Repair                         ( Repair )
+import qualified Repair
 import           Time                           ( Time )
 import qualified Time
 import           Database                       ( Database
@@ -34,6 +36,7 @@ data Env = Env
     , bDatabaseTab :: !(Behavior (Database Tab))
     , bDatabaseCount :: !(Behavior (Database Count))
     , bDatabaseTime :: !(Behavior (Database Time))
+    , bDatabaseRepair :: !(Behavior (Database Repair))
 
     , bSelectionToken :: !(Behavior (Maybe DatabaseKey))
     , bSelectionTab :: !(Behavior (Maybe DatabaseKey))

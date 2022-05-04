@@ -4,7 +4,7 @@ import Data.Aeson
 import Loan
 import Time
 
-data Repair = Repair { loan :: Loan , timestamp :: Time, adminUser :: Int}
+data Repair = Repair { loan :: Int }
     deriving stock (Eq, Ord, Show)
     deriving stock (Generic)
 

@@ -11,6 +11,7 @@ data Config = Config
     ,datastoreHistoryHandIn  :: FilePath
     ,datastoreCount          :: FilePath
     ,datastoreTime          :: FilePath
+    ,datastoreRepair          :: FilePath
     ,exportFile              :: FilePath
     }
 

@@ -37,6 +37,8 @@ import qualified History.HistoryHandin         as HistoryHandin
 import qualified Export.Export                 as Export
 import qualified Tab.Tab                       as Tab
 
+import qualified Repair.Repair                 as Repair
+
 import qualified Item.Create                   as ItemCreate
 import qualified Item.Delete                   as ItemDelete
 
@@ -62,6 +64,7 @@ import           Loan                           ( Loan(..) )
 import           User                           ( User(..) )
 import           Count                          ( Count(..) )
 import           Time                           ( Time(..) )
+import           Repair                         ( Repair(..) )
 import           Token                          ( Token(..)
                                                 , isToken
                                                 , tokenTTL
@@ -88,6 +91,7 @@ someFunc port = do
                         , datastoreHistoryHandIn = "data/historyHandin.json"
                         , datastoreCount         = "data/count.json"
                         , datastoreTime          = "data/time.json"
+                        , datastoreRepair        = "data/repair.json"
                         , exportFile             = "data/export.csv"
                         }
 
@@ -117,6 +121,7 @@ setup2 config@Config {..} window = void $ mdo
         changesToken datastoreToken anyH
         changesCount datastoreCount anyH
         changesTime datastoreTime anyH
+        changesRepair datastoreRepair anyH
 
     return ()
 
@@ -140,6 +145,7 @@ setup Config {..} window (anyE, anyH) = mdo
         readJson datastoreHistoryHandIn :: m (Database HistoryHandin)
     databaseCount <- readJson datastoreCount :: m (Database Count)
     databaseTime <- readJson datastoreTime :: m (Database Time)
+    databaseRepair <- readJson datastoreRepair :: m (Database Repair)
 
 -------------------------------------------------------------------------------
 
@@ -164,7 +170,11 @@ setup Config {..} window (anyE, anyH) = mdo
     (userDelete, eUserDelete)     <- UserDelete.setup window
     (itemCreate, eItemCreate)     <- ItemCreate.setup window
     (itemDelete, eItemDelete)     <- ItemDelete.setup window
+
+    (repair    , eRepair    )     <- Repair.setup window
+
     (eTime)                       <- Timer.setup window
+
 
     notDone                       <- liftUI $ UI.string "Ikke færdig"
     content                       <- liftUI $ UI.div
@@ -212,6 +222,8 @@ setup Config {..} window (anyE, anyH) = mdo
     bCreateSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
         [rumors tLoanCreate]
 
+    bDatabaseRepair <- accumB databaseRepair $ concatenate <$> unions
+        [Database.delete <$> eRepair]
 
     bDatabaseCount <- accumB databaseCount $ concatenate <$> unions
         [Database.create . Count <$> eCount, Database.delete <$> eCountDelete]
@@ -343,6 +355,7 @@ setup Config {..} window (anyE, anyH) = mdo
                   , bSelectionTab            = bTabSelection
                   , bDatabaseCount           = bDatabaseCount
                   , bDatabaseTime            = bDatabaseTime
+                  , bDatabaseRepair            = bDatabaseRepair
                   , bCreateSelectionItem     = bCreateSelectionItem
                   , bSelectionTime           = bTimeSelection
                   , bHistoryHandinLoan       = bHistoryHandinLoan
@@ -406,7 +419,7 @@ setup Config {..} window (anyE, anyH) = mdo
                 (13, True ) -> [tabs, historyHandin]
                 (14, False) -> [tabs, historyHandinNormal]
                 (15, True ) -> [tabs, count]
-                (16, True ) -> [tabs, notDone]
+                (16, True ) -> [tabs, repair]
                 (17, False) -> [tabs, notDone]
                 (0 , False) -> [tabs, loanDeleteNormal]--- Hack
             else [tokenCreate]

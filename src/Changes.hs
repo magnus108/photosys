@@ -12,6 +12,23 @@ import           Graphics.UI.Threepenny.Core
 import           Data.Time
 import           Token
 
+changesRepair
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => FilePath
+    -> Handler Token
+    -> m ()
+changesRepair path anyH = do
+    bSelectedToken <- selectedToken
+    bSelectedTime <- selectedTime
+    bDatabase <- asks Env.bDatabaseRepair
+    liftUI $ onChanges bDatabase $ \x -> do
+        mt <- updateToken bSelectedToken bSelectedTime
+        case mt of
+            Nothing -> return ()
+            Just t -> liftIO $ anyH t
+        writeJson path x
+
 changesCount
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)

@@ -16,6 +16,8 @@ import           Count                          ( Count )
 import qualified Count
 import           HistoryHandin                  ( HistoryHandin )
 import qualified HistoryHandin
+import           Repair                         ( Repair )
+import qualified Repair
 import           Token
 import           Env                            ( Env )
 import qualified Env
@@ -26,6 +28,14 @@ lookupHistoryHandin
     => m (Behavior (DatabaseKey -> Maybe HistoryHandin))
 lookupHistoryHandin = do
     bDatabase <- asks Env.bDatabaseHistoryHandin
+    return $ flip lookup <$> bDatabase
+
+lookupRepair
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (DatabaseKey -> Maybe Repair))
+lookupRepair = do
+    bDatabase <- asks Env.bDatabaseRepair
     return $ flip lookup <$> bDatabase
 
 lookupTime
