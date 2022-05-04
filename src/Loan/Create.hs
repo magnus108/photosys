@@ -55,15 +55,18 @@ setup window = mdo
 
     loanInfo                   <- liftUI $ UI.span
     -- GUI layout
-    closeBtn                   <- liftUI $ UI.button #. "modal-close is-large"
+    closeBtn                   <- liftUI $ UI.input # set UI.type_ "button" #. "button" # set value "Luk"
     modal                      <-
         liftUI
         $  UI.div
         #+ [ UI.div #. "modal-background"
            , UI.div
-           #. "modal-content"
-           #+ [UI.div #. "box" #+ [string "Lån godkendt: ", element loanInfo]]
-           , element closeBtn
+           #. "modal-card"
+           #+ [ UI.mkElement "section"
+              #. "modal-card-body"
+              #+ [string "Lån godkendt: ", element loanInfo]
+              , UI.mkElement "footer" #. "modal-card-foot" #+ [element closeBtn]
+              ]
            ]
 
     --- ugs
@@ -155,10 +158,11 @@ setup window = mdo
         eSelectionItem = rumors $ UI.userSelection listBoxItem
         eCreate        = UI.click createBtn
         eClose         = UI.click closeBtn
+        ePress = UI.keyup closeBtn
 
+    bActiveModal <- stepper True $ Unsafe.head <$> unions
+        [True <$ eCreate, False <$ eClose, False <$ ePress]
 
-    bActiveModal <- stepper False $ Unsafe.head <$> unions
-        [True <$ eCreate, False <$ eClose]
 
     bLastLoanItem <- stepper Nothing $ Unsafe.head <$> unions
         [bSelectionItem <@ eCreate]
@@ -241,7 +245,7 @@ setup window = mdo
 
     let bCreateLoan :: Behavior (Maybe Loan)
         bCreateLoan = liftA2 Loan.Loan <$> bSelectionItem <*> bSelectionUser
-    -- <*> bSelectedTokenId
+-- <*> bSelectedTokenId
 
         hasUserSelected :: Behavior Bool
         hasUserSelected = isJust <$> bSelectionUser
@@ -296,10 +300,9 @@ setup window = mdo
         ((maybe "" Item.name) <$> bLastLoanItemItem)
     liftUI $ element createBtn # sink UI.enabled
                                       (hasUserSelected <&&> hasItemSelected)
-    liftUI $ element modal # sink
-        (attr "class")
-        ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 
+
+    liftUI $ element modal # sink (modalSink closeBtn) bActiveModal
 
     return
         ( elem
@@ -319,3 +322,7 @@ setup window = mdo
 
 child = mkWriteAttr $ \i x -> void $ do
     return x # set children [] #+ (catMaybes [i])
+
+modalSink e = mkWriteAttr $ \b x -> void $ do
+                return x # set (attr "class") (if b then "modal is-active" else "modal")
+                if b then (UI.setFocus e) else return ()
