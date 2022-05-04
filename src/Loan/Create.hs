@@ -160,7 +160,7 @@ setup window = mdo
         eClose         = UI.click closeBtn
         ePress = UI.keyup closeBtn
 
-    bActiveModal <- stepper True $ Unsafe.head <$> unions
+    bActiveModal <- stepper False $ Unsafe.head <$> unions
         [True <$ eCreate, False <$ eClose, False <$ ePress]
 
 
