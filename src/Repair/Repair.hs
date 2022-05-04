@@ -1,6 +1,7 @@
 {-# LANGUAGE RecursiveDo #-}
 module Repair.Repair where
 
+import           Utils.Utils
 import           Data.Aeson
 
 import qualified Graphics.UI.Threepenny        as UI
@@ -43,7 +44,7 @@ setup window = mdo
                                              bSelectionRepair
                                              bDisplayRepair
     counterRepair                 <- liftUI $ Counter.counter bListBoxRepairs
-    
+
     (filterUser , searchUser  ) <- mkSearch bFilterEntryUser
     (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers
                                              bSelectionUser
@@ -57,8 +58,7 @@ setup window = mdo
     counterItem                <- liftUI $ Counter.counter bListBoxItems
 
 
-    loanInfo                   <- liftUI $ UI.span
-    (deleteBtn, deleteBtnView) <- mkButton "Aflever"
+    (deleteBtn, deleteBtnView) <- mkButton "Tilbagelever"
 
     -- GUI layout
     closeBtn                   <- liftUI $ UI.button #. "modal-close is-large"
@@ -70,7 +70,7 @@ setup window = mdo
            #. "modal-content"
            #+ [ UI.div
                 #. "box"
-                #+ [string "Aflevering godkendt: ", element loanInfo]
+                #+ [string "Tilbagelever godkendt"]
               ]
            , element closeBtn
            ]
@@ -79,13 +79,13 @@ setup window = mdo
         [ element searchUser
         , element dropdownUser
         , element counterUser
-        , element searchRepair
-        , element dropdownRepair
-        , element counterRepair
         , element searchItem
         , element dropdownItem
-        , element deleteBtnView
         , element counterItem
+        , element searchRepair
+        , element dropdownRepair
+        , element deleteBtnView
+        , element counterRepair
         , element modal
         ]
 
@@ -96,8 +96,6 @@ setup window = mdo
     bFilterEntryRepair <- stepper "" . rumors $ UI.userText filterRepair
 
 
-    let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
-        isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
 
     let tFilterRepair = isInfixOf <$> UI.userText filterRepair
         bFilterRepair = facts tFilterRepair
@@ -194,106 +192,59 @@ setup window = mdo
         bDisplayItemName :: Behavior (DatabaseKey -> UI Element)
         bDisplayItemName = (UI.string .) <$> bShowItem
 
-        bListBoxUsers :: Behavior [DatabaseKey]
-        bListBoxUsers =
-            (\p q r show ->
-                    filter (flip List.elem r)
-                        . filter (flip List.elem q)
-                        . filter (p . show)
-                        . keys
-                )
-                <$> bFilterUser
-                <*> bUsersWithLoan
-                <*> bSelectionUsers
-                <*> bShowUser
-                <*> bDatabaseUser
-
-
-        bUsersWithLoan :: Behavior [DatabaseKey]
-        bUsersWithLoan =
-            (\f -> catMaybes . fmap f . keys) <$> bLoanUser <*> bDatabaseLoan
-
-        bSelectionUsers :: Behavior [DatabaseKey]
-        bSelectionUsers =
-            (\i lookupItem lookupUser ->
-                    catMaybes
-                        . fmap lookupUser
-                        . filter ((\x -> i == Nothing || i == x) . lookupItem)
-                        . keys
-                )
-                <$> bSelectionItem
-                <*> bLoanItem
-                <*> bLoanUser
-                <*> bDatabaseLoan
-
-        bListBoxItems :: Behavior [DatabaseKey]
-        bListBoxItems =
-            (\p q r show ->
-                    filter (flip List.elem r)
-                        . filter (flip List.elem q)
-                        . filter (p . show)
-                        . keys
-                )
-                <$> bFilterItem
-                <*> bItemsWithLoan
-                <*> bSelectionItems
-                <*> bShowItem
-                <*> bDatabaseItem
-
-
-        bItemsWithLoan :: Behavior [DatabaseKey]
-        bItemsWithLoan =
-            (\f -> catMaybes . fmap f . keys) <$> bLoanItem <*> bDatabaseLoan
-
-        bSelectionItems :: Behavior [DatabaseKey]
-        bSelectionItems =
-            (\i lookupUser lookupItem ->
-                    catMaybes
-                        . fmap lookupItem
-                        . filter ((\x -> i == Nothing || i == x) . lookupUser)
-                        . keys
-                )
-                <$> bSelectionUser
-                <*> bLoanUser
-                <*> bLoanItem
-                <*> bDatabaseLoan
-
-    let bSelectedLoan :: Behavior (Maybe DatabaseKey)
-        bSelectedLoan =
-            (\item user lookup ->
-                    find
-                            ( (\x ->
-                                  ((Loan.item <$> x) == item)
-                                      && ((Loan.user <$> x) == user)
-                              )
-                            . lookup
-                            )
-                        . keys
-                )
-                <$> bSelectionItem
-                <*> bSelectionUser
-                <*> bLookupLoan
-                <*> bDatabaseLoan
-
-        hasSelectedLoan :: Behavior Bool
-        hasSelectedLoan = isJust <$> bSelectedLoan
 
         bLastLoanItemItem :: Behavior (Maybe Item)
         bLastLoanItemItem = (=<<) <$> bLookupItem <*> bLastLoanItem
 
+
+        bLoans :: Behavior [Loan]
+        bLoans = (\lookup -> catMaybes . fmap lookup . keys) <$> bLookupLoan <*> bDatabaseLoan
+
+        bLoans2 :: Behavior [(User, Item, Repair)]
+        bLoans2 = (\lookupUser lookupItem lookupRepair -> catMaybes . fmap (\l -> liftA3 (,,) (lookupUser (Loan.user l)) (lookupItem (Loan.item l)) (lookupRepair (Loan.item l)))) <$> bLookupUser <*> bLookupItem <*> bLookupRepair <*> bLoans
+
+        bLoans3 :: Behavior [(User, Item, Repair)]
+        bLoans3 = (\i -> filter (\x -> Just (snd3 x) == i || i == Nothing )) <$> bSelectedItem <*> bLoans2
+
+        bLoans4 :: Behavior [(User, Item, Repair)]
+        bLoans4 = (\i -> filter (\x -> Just (fst3 x) == i || i == Nothing )) <$> bSelectedUser <*> bLoans3
+
+        bLoans5 :: Behavior [(User, Item, Repair)]
+        bLoans5 = (\i -> filter (\x -> Just (thd3 x) == i || i == Nothing )) <$> bSelectedRepair <*> bLoans4
+
+
+
         bListBoxRepairs :: Behavior [DatabaseKey]
-        bListBoxRepairs = (\p show -> filter (p. show) . keys)
-                        <$> bFilterRepair <*> bShowRepair <*> bDatabaseRepair
+        bListBoxRepairs = (\p show lookup pairs -> filter (flip List.elem (fmap (Just . thd3) pairs) . lookup) . filter (p. show) . keys)
+                        <$> bFilterRepair <*> bShowRepair <*> bLookupRepair <*> bLoans5 <*> bDatabaseRepair
+
+        bListBoxUsers :: Behavior [DatabaseKey]
+        bListBoxUsers = (\p show lookup pairs -> filter (flip List.elem (fmap (Just . fst3) pairs) . lookup) . filter (p. show) . keys)
+                        <$> bFilterUser <*> bShowUser <*> bLookupUser <*> bLoans5 <*> bDatabaseUser
+
+        bListBoxItems :: Behavior [DatabaseKey]
+        bListBoxItems  = (\p show lookup pairs -> filter (flip List.elem (fmap (Just . snd3) pairs) . lookup) . filter (p. show) . keys)
+                        <$> bFilterItem <*> bShowItem <*> bLookupItem <*> bLoans5 <*> bDatabaseItem
 
         bSelectedRepair :: Behavior (Maybe Repair)
         bSelectedRepair = (=<<) <$> bLookupRepair <*> bSelectionRepair
 
-    liftUI $ element loanInfo # sink
-        text
-        ((maybe "" Item.name) <$> bLastLoanItemItem)
-    liftUI $ element deleteBtn # sink UI.enabled hasSelectedLoan
+        hasSelectedRepair :: Behavior Bool
+        hasSelectedRepair = isJust <$> bSelectedRepair
+
+    liftUI $ element deleteBtn # sink UI.enabled hasSelectedRepair
     liftUI $ element modal # sink
         (attr "class")
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 
     return (elem, filterJust $ bSelectionRepair <@ eDelete)
+
+
+fst3 :: (a,b,c) -> a
+fst3 (a,b,c) = a
+
+snd3 :: (a,b,c) -> b
+snd3 (a,b,c) = b
+
+thd3 :: (a,b,c) -> c
+thd3 (a,b,c) = c
