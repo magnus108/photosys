@@ -57,6 +57,7 @@ library
       Monad
       Repair
       Repair.Repair
+      Repair.RepairCreate
       Search.Search
       Search.SearchNormal
       Tab

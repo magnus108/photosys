@@ -38,6 +38,7 @@ import qualified Export.Export                 as Export
 import qualified Tab.Tab                       as Tab
 
 import qualified Repair.Repair                 as Repair
+import qualified Repair.RepairCreate                 as RepairCreate
 
 import qualified Item.Create                   as ItemCreate
 import qualified Item.Delete                   as ItemDelete
@@ -171,6 +172,7 @@ setup Config {..} window (anyE, anyH) = mdo
     (itemCreate, eItemCreate)     <- ItemCreate.setup window
     (itemDelete, eItemDelete)     <- ItemDelete.setup window
 
+    (repairCreate , eRepairCreate )     <- RepairCreate.setup window
     (repair    , eRepair    )     <- Repair.setup window
 
     (eTime)                       <- Timer.setup window
@@ -223,7 +225,7 @@ setup Config {..} window (anyE, anyH) = mdo
         [rumors tLoanCreate]
 
     bDatabaseRepair <- accumB databaseRepair $ concatenate <$> unions
-        [Database.delete <$> eRepair]
+        [Database.create . Repair <$> eRepairCreate, Database.delete <$> eRepair]
 
     bDatabaseCount <- accumB databaseCount $ concatenate <$> unions
         [Database.create . Count <$> eCount, Database.delete <$> eCountDelete]
@@ -419,8 +421,9 @@ setup Config {..} window (anyE, anyH) = mdo
                 (13, True ) -> [tabs, historyHandin]
                 (14, False) -> [tabs, historyHandinNormal]
                 (15, True ) -> [tabs, count]
-                (16, True ) -> [tabs, repair]
-                (17, False) -> [tabs, notDone]
+                (16, True ) -> [tabs, repairCreate]
+                (17, True ) -> [tabs, repair]
+                (18, False) -> [tabs, notDone]
                 (0 , False) -> [tabs, loanDeleteNormal]--- Hack
             else [tokenCreate]
 
