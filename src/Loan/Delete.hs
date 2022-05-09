@@ -79,8 +79,9 @@ setup window = mdo
 
 
     -- Events and behaviors
-    bFilterEntryUser <- stepper "" . rumors $ UI.userText filterUser
-    bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
+    let eDelete        = UI.click deleteBtn
+    bFilterEntryUser <- stepper "" $ Unsafe.head <$> unions [rumors $ UI.userText filterUser, "" <$ eDelete]
+    bFilterEntryItem <- stepper "" $ Unsafe.head <$> unions [rumors $ UI.userText filterItem, "" <$ eDelete]
 
 
     let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
@@ -96,7 +97,6 @@ setup window = mdo
 
     let eSelectionUser = rumors $ UI.userSelection listBoxUser
         eSelectionItem = rumors $ UI.userSelection listBoxItem
-        eDelete        = UI.click deleteBtn
         eClose         = UI.click closeBtn
         ePress = UI.keyup closeBtn
 

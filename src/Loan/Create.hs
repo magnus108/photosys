@@ -141,8 +141,9 @@ setup window = mdo
 
 
     -- Events and behaviors
-    bFilterEntryUser <- stepper "" . rumors $ UI.userText filterUser
-    bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
+    let eCreate        = UI.click createBtn
+    bFilterEntryUser <- stepper "" $ Unsafe.head <$> unions [rumors $ UI.userText filterUser, "" <$ eCreate]
+    bFilterEntryItem <- stepper "" $ Unsafe.head <$> unions [rumors $ UI.userText filterItem, "" <$ eCreate]
 
 
 
@@ -156,7 +157,6 @@ setup window = mdo
 
     let eSelectionUser = rumors $ UI.userSelection listBoxUser
         eSelectionItem = rumors $ UI.userSelection listBoxItem
-        eCreate        = UI.click createBtn
         eClose         = UI.click closeBtn
         ePress = UI.keyup closeBtn
 
@@ -175,6 +175,10 @@ setup window = mdo
         <*> bShowUser
         <@> eFilterUser
         ]
+
+    liftUI $ onChanges bSelectionUser $ \x -> do
+        traceShowM "here"
+        traceShowM x
 
 
     bDatabaseLoan   <- asks Env.bDatabaseLoan
