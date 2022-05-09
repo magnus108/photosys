@@ -7,6 +7,8 @@ import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
+import qualified Repair
+import           Repair                         ( Repair )
 import qualified Counter
 import           Loan                           ( Loan )
 import qualified Loan
@@ -39,43 +41,40 @@ setup window = mdo
     (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers
                                              bSelectionUser
                                              bDisplayUserName
-    counterUser <- liftUI $ Counter.counter bListBoxUsers
+    counterUser                 <- liftUI $ Counter.counter bListBoxUsers
 
     (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
     (listBoxItem, dropdownItem) <- mkListBox bListBoxItems
                                              bSelectionItem
                                              bDisplayItemName
-    counterItem <- liftUI $ Counter.counter bListBoxItems
+    counterItem                <- liftUI $ Counter.counter bListBoxItems
 
 
-    loanInfo    <- liftUI $ UI.span
-    (deleteBtn, deleteBtnView) <- mkButton "Aflever"
+    loanInfo                   <- liftUI $ UI.span
+    (deleteBtn, deleteBtnView) <- mkButton "Til reperation"
 
     -- GUI layout
-    closeBtn <- liftUI $ UI.button #. "modal-close is-large"
-    modal    <-
+    closeBtn                   <- liftUI $ UI.button #. "modal-close is-large"
+    modal                      <-
         liftUI
         $  UI.div
         #+ [ UI.div #. "modal-background"
            , UI.div
            #. "modal-content"
-           #+ [ UI.div
-                #. "box"
-                #+ [string "Aflevering godkendt: ", element loanInfo]
-              ]
+           #+ [UI.div #. "box" #+ [string "Godkendt: ", element loanInfo]]
            , element closeBtn
            ]
 
     elem <- mkContainer
-             [ element searchUser
-                , element dropdownUser
-                , element counterUser
-                , element searchItem
-                , element dropdownItem
-                , element deleteBtnView
-                , element counterItem
-                , element modal
-           ]
+        [ element searchUser
+        , element dropdownUser
+        , element counterUser
+        , element searchItem
+        , element dropdownItem
+        , element deleteBtnView
+        , element counterItem
+        , element modal
+        ]
 
 
     -- Events and behaviors
@@ -130,11 +129,13 @@ setup window = mdo
     bDatabaseItem   <- asks Env.bDatabaseItem
     bDatabaseToken  <- asks Env.bDatabaseToken
     bSelectionToken <- asks Env.bSelectionToken
+    bDatabaseRepair <- asks Env.bDatabaseRepair
 
 
     bLookupUser     <- lookupUser
     bLookupItem     <- lookupItem
     bLookupLoan     <- lookupLoan
+    bLookupRepair   <- lookupRepair
 
     let bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
         bLoanItem = (fmap Loan.item .) <$> bLookupLoan
@@ -181,30 +182,41 @@ setup window = mdo
 
         bSelectionUsers :: Behavior [DatabaseKey]
         bSelectionUsers =
-            (\i lookupItem lookupUser ->
+            (\i lookupItem reps lookupUser ->
                     catMaybes
                         . fmap lookupUser
+                        . filter (flip List.notElem (fmap Just reps) . lookupItem)
                         . filter ((\x -> i == Nothing || i == x) . lookupItem)
                         . keys
                 )
                 <$> bSelectionItem
                 <*> bLoanItem
+                <*> bRepairs
                 <*> bLoanUser
                 <*> bDatabaseLoan
 
         bListBoxItems :: Behavior [DatabaseKey]
         bListBoxItems =
-            (\p q r show ->
+            (\p q z r show ->
                     filter (flip List.elem r)
                         . filter (flip List.elem q)
                         . filter (p . show)
+                        . filter (flip List.notElem z)
                         . keys
                 )
                 <$> bFilterItem
                 <*> bItemsWithLoan
+                <*> bRepairs
                 <*> bSelectionItems
                 <*> bShowItem
                 <*> bDatabaseItem
+
+
+        bRepairs :: Behavior [DatabaseKey]
+        bRepairs =
+            (\db lookup -> fmap Repair.loan $ catMaybes $ fmap lookup (keys db))
+                <$> bDatabaseRepair
+                <*> bLookupRepair
 
 
         bItemsWithLoan :: Behavior [DatabaseKey]

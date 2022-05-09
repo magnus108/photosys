@@ -43,10 +43,10 @@ setup window = mdo
         (element elemName # set (attr "placeholder") "Fx Kamera 1")
 
     dataCode <- mkInput
-        "Code"
+        "Stregkode"
         (element elemCode # set (attr "placeholder") "Fx ABCDE")
     dataSerie <- mkInput
-        "Serie"
+        "S/N"
         (element elemSerie # set (attr "placeholder") "Fx 13")
 
     dataPrice <- mkInput
