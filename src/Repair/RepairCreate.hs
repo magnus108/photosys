@@ -214,9 +214,10 @@ setup window = mdo
 
         bRepairs :: Behavior [DatabaseKey]
         bRepairs =
-            (\db lookup -> fmap Repair.loan $ catMaybes $ fmap lookup (keys db))
+            (\db lookup f -> catMaybes $ fmap f $ fmap Repair.loan $ catMaybes $ fmap lookup (keys db))
                 <$> bDatabaseRepair
                 <*> bLookupRepair
+                <*> bLoanItem
 
 
         bItemsWithLoan :: Behavior [DatabaseKey]

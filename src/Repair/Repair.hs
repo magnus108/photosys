@@ -197,11 +197,16 @@ setup window = mdo
         bLastLoanItemItem = (=<<) <$> bLookupItem <*> bLastLoanItem
 
 
-        bLoans :: Behavior [Loan]
-        bLoans = (\lookup -> catMaybes . fmap lookup . keys) <$> bLookupLoan <*> bDatabaseLoan
+
+
+        bRepairs :: Behavior [Repair]
+        bRepairs = (\db lookupRepair -> catMaybes $ fmap lookupRepair (keys db)) <$> bDatabaseRepair <*> bLookupRepair
+
+        bLoans :: Behavior [(Maybe Loan, Repair)]
+        bLoans = (\lookup repairs -> fmap (\x -> (lookup (Repair.loan x), x)) repairs) <$> bLookupLoan <*> bRepairs
 
         bLoans2 :: Behavior [(User, Item, Repair)]
-        bLoans2 = (\lookupUser lookupItem lookupRepair -> catMaybes . fmap (\l -> liftA3 (,,) (lookupUser (Loan.user l)) (lookupItem (Loan.item l)) (lookupRepair (Loan.item l)))) <$> bLookupUser <*> bLookupItem <*> bLookupRepair <*> bLoans
+        bLoans2 = (\lookupUser lookupItem lookupRepair -> catMaybes . fmap (\(ml, r) -> liftA3 (,,) (lookupUser =<< (Loan.user <$> ml)) (lookupItem =<< (Loan.item <$> ml)) (Just r))) <$> bLookupUser <*> bLookupItem <*> bLookupRepair <*> bLoans
 
         bLoans3 :: Behavior [(User, Item, Repair)]
         bLoans3 = (\i -> filter (\x -> Just (snd3 x) == i || i == Nothing )) <$> bSelectedItem <*> bLoans2
@@ -211,7 +216,6 @@ setup window = mdo
 
         bLoans5 :: Behavior [(User, Item, Repair)]
         bLoans5 = (\i -> filter (\x -> Just (thd3 x) == i || i == Nothing )) <$> bSelectedRepair <*> bLoans4
-
 
 
         bListBoxRepairs :: Behavior [DatabaseKey]
@@ -231,6 +235,7 @@ setup window = mdo
 
         hasSelectedRepair :: Behavior Bool
         hasSelectedRepair = isJust <$> bSelectedRepair
+
 
     liftUI $ element deleteBtn # sink UI.enabled hasSelectedRepair
     liftUI $ element modal # sink
