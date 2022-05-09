@@ -98,7 +98,7 @@ setup window = mdo
     let eSelectionUser = rumors $ UI.userSelection listBoxUser
         eSelectionItem = rumors $ UI.userSelection listBoxItem
         eClose         = UI.click closeBtn
-        ePress = UI.keyup closeBtn
+        ePress = UI.keypress closeBtn
 
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
@@ -107,18 +107,26 @@ setup window = mdo
 
     bSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionUser
-        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
+        , (\b s users p -> case filter (p . s) (keys users) of
+                                (x:[]) -> Just x
+                                (xs) -> b >>= \a -> if p (s a) then Just a else Nothing
+          )
         <$> bSelectionUser
         <*> bShowUser
+        <*> bDatabaseUser
         <@> eFilterUser
         ]
 
 
     bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionItem
-        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
+        , (\b s items p -> case filter (p . s) (keys items) of
+                                (x:[]) -> Just x
+                                (xs) -> b >>= \a -> if p (s a) then Just a else Nothing
+          )
         <$> bSelectionItem
         <*> bShowItem
+        <*> bDatabaseItem
         <@> eFilterItem
         , Nothing <$ eDelete
         ]
