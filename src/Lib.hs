@@ -168,7 +168,7 @@ setup Config {..} window (anyE, anyH) = mdo
     search                        <- Search.setup window
     searchNormal                  <- SearchNormal.setup window
     (userCreate, eUserCreate)     <- UserCreate.setup window
-    (userDelete, eUserDelete)     <- UserDelete.setup window
+    (userDelete, eUserDelete, ePassUpdate)     <- UserDelete.setup window
     (itemCreate, eItemCreate)     <- ItemCreate.setup window
     (itemDelete, eItemDelete)     <- ItemDelete.setup window
 
@@ -309,6 +309,7 @@ setup Config {..} window (anyE, anyH) = mdo
                             (User.admin x)
                     )
                     eUserCreate
+        , ePassUpdate
         , Database.delete <$> eUserDelete
         ]
 

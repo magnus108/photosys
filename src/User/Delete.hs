@@ -1,6 +1,9 @@
 {-# LANGUAGE RecursiveDo #-}
 module User.Delete where
+import qualified Data.Text                     as T
+import           Data.Password.Bcrypt
 
+import qualified Checkbox
 import           Data.Aeson
 
 import qualified Graphics.UI.Threepenny        as UI
@@ -35,26 +38,41 @@ import qualified Modal
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
-    -> m (Element, Event DatabaseKey)
+    -> m
+           ( Element
+           , Event DatabaseKey
+           , Event (Database User -> Database User)
+           )
 setup window = mdo
     -- GUI elements
     (filterUser , searchUser  ) <- mkSearch bFilterEntryUser
     (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers
                                              bSelectionUser
                                              bDisplayUserName
-    (deleteBtn, deleteBtnView)         <- mkButton "Slet"
+    (deleteBtn, deleteBtnView) <- mkButton "Slet"
 
-    counter                            <- liftUI $ Counter.counter bListBoxUsers
+    counter                    <- liftUI $ Counter.counter bListBoxUsers
     (realDeleteBtn, realDeleteBtnView) <- mkButton "Sikker på slet?"
+
+    ((elemName, elemPassword, elemAdmin), tUser            ) <- liftUI
+        $ dataItem bSelectionDataUser
+    (changeBtn, changeBtnView) <- mkButton "Ændre"
+
+
 
     -- GUI layout
     modal <- liftUI $ Modal.modal (element realDeleteBtnView) bActiveModal
 
-    elem                               <- mkContainer
+    dataPassword <- mkInput "Ændre password"
+                            (element elemPassword # set UI.type_ "password")
+
+    elem <- mkContainer
         [ element searchUser
         , element dropdownUser
         , element deleteBtnView
         , element counter
+        , element dataPassword
+        , element changeBtnView
         , element modal
         ]
 
@@ -69,9 +87,27 @@ setup window = mdo
     let eSelectionUser = rumors $ UI.userSelection listBoxUser
         eDelete        = UI.click deleteBtn
         eRealDelete    = UI.click realDeleteBtn
+        eChange        = UI.click changeBtn
 
         eModal         = rumors $ Modal.state modal
-
+        bUserIn        = facts tUser
+        eUserIn        = bUserIn <@ eChange
+        passUpdate =
+            filterJust
+                $   update'
+                <$> bSelectionUser
+                <@> (unsafeMapIO
+                        (\x -> do
+                            let password =
+                                    mkPassword $ T.pack $ User.password x
+                            passHash <- hashPassword password
+                            return $ User.User
+                                (User.name x)
+                                (T.unpack $ unPasswordHash passHash)
+                                (User.admin x)
+                        )
+                        eUserIn
+                    )
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
         [True <$ eDelete, False <$ eModal, False <$ eRealDelete]
@@ -152,4 +188,23 @@ setup window = mdo
         (bHasSelectedUser <&&> isSelectedCurrentUser)
 
 
-    return (elem, filterJust $ bSelectionUser <@ eRealDelete)
+    return (elem, filterJust $ bSelectionUser <@ eRealDelete, passUpdate)
+
+
+emptyUser :: User
+emptyUser = User.User "" "" False
+
+dataItem
+    :: Behavior (Maybe User) -> UI ((Element, Element, Element), Tidings User)
+dataItem bUser = do
+    entry1 <- UI.entry $ User.name . fromMaybe emptyUser <$> bUser
+    entry2 <- UI.entry $ User.password . fromMaybe emptyUser <$> bUser
+    entry3 <- Checkbox.entry $ User.admin . fromMaybe emptyUser <$> bUser
+
+    return
+        ( (getElement entry1, getElement entry2, getElement entry3)
+        , User.User
+        <$> UI.userText entry1
+        <*> UI.userText entry2
+        <*> Checkbox.userCheck entry3
+        )
