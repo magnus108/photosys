@@ -38,35 +38,31 @@ import qualified Modal
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
-    -> m
-           ( Element
-           , Event DatabaseKey
-           , Event (Database User -> Database User)
-           )
+    -> m (Element, Event DatabaseKey, Event (Database User -> Database User))
 setup window = mdo
     -- GUI elements
     (filterUser , searchUser  ) <- mkSearch bFilterEntryUser
     (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers
                                              bSelectionUser
                                              bDisplayUserName
-    (deleteBtn, deleteBtnView) <- mkButton "Slet"
+    (deleteBtn, deleteBtnView)         <- mkButton "Slet"
 
-    counter                    <- liftUI $ Counter.counter bListBoxUsers
+    counter                            <- liftUI $ Counter.counter bListBoxUsers
     (realDeleteBtn, realDeleteBtnView) <- mkButton "Sikker på slet?"
 
-    ((elemName, elemPassword, elemAdmin), tUser            ) <- liftUI
-        $ dataItem bSelectionDataUser
-    (changeBtn, changeBtnView) <- mkButton "Ændre"
+    ((elemName, elemPassword, elemAdmin), tUser) <- liftUI $ dataItem bSelectionDataUser
+    (changeBtn, changeBtnView)         <- mkButton "Ændre"
 
 
 
     -- GUI layout
     modal <- liftUI $ Modal.modal (element realDeleteBtnView) bActiveModal
+    modal2 <- liftUI $ Modal.modal (UI.string "Kode ændret") bActiveModal2
 
     dataPassword <- mkInput "Ændre password"
                             (element elemPassword # set UI.type_ "password")
 
-    elem <- mkContainer
+    elem                               <- mkContainer
         [ element searchUser
         , element dropdownUser
         , element deleteBtnView
@@ -74,6 +70,7 @@ setup window = mdo
         , element dataPassword
         , element changeBtnView
         , element modal
+        , element modal2
         ]
 
 
@@ -87,34 +84,34 @@ setup window = mdo
     let eSelectionUser = rumors $ UI.userSelection listBoxUser
         eDelete        = UI.click deleteBtn
         eRealDelete    = UI.click realDeleteBtn
-        eChange        = UI.click changeBtn
+        eChange    = UI.click changeBtn
 
         eModal         = rumors $ Modal.state modal
-        bUserIn        = facts tUser
-        eUserIn        = bUserIn <@ eChange
-        passUpdate =
-            filterJust
-                $   update'
-                <$> bSelectionUser
-                <@> (unsafeMapIO
-                        (\x -> do
-                            let password =
-                                    mkPassword $ T.pack $ User.password x
-                            passHash <- hashPassword password
-                            return $ User.User
-                                (User.name x)
-                                (T.unpack $ unPasswordHash passHash)
-                                (User.admin x)
-                        )
-                        eUserIn
-                    )
+        eModal2 = rumors $ Modal.state modal2
+        eUserIn = btmp <@ eChange
+
+    btmp <- stepper (emptyUser) $ Unsafe.head <$> unions [rumors tUser]
+
+    let passUpdate = filterJust $ update' <$> bSelectionUser <@>(unsafeMapIO
+                    (\x -> do
+                        let password = mkPassword $ T.pack $ User.password x
+                        passHash <- hashPassword password
+                        return $ User.User
+                            (User.name x)
+                            (T.unpack $ unPasswordHash passHash)
+                            (User.admin x)
+                    ) eUserIn)
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
         [True <$ eDelete, False <$ eModal, False <$ eRealDelete]
 
+    bActiveModal2 <- stepper False $ Unsafe.head <$> unions
+        [True<$eUserIn, False <$ eModal2]
+
     bSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionUser
         , Nothing <$ eRealDelete
+        , Nothing <$ eChange
         , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
         <$> bSelectionUser
         <*> bShowDataUser
