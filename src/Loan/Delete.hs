@@ -52,18 +52,18 @@ setup window = mdo
     (deleteBtn, deleteBtnView) <- mkButton "Aflever"
 
     -- GUI layout
-    closeBtn <- liftUI $ UI.button #. "modal-close is-large"
-    modal    <-
+    closeBtn                   <- liftUI $ UI.input # set UI.type_ "button" #. "button" # set value "Luk"
+    modal                      <-
         liftUI
         $  UI.div
         #+ [ UI.div #. "modal-background"
            , UI.div
-           #. "modal-content"
-           #+ [ UI.div
-                #. "box"
-                #+ [string "Aflevering godkendt: ", element loanInfo]
+           #. "modal-card"
+           #+ [ UI.mkElement "section"
+              #. "modal-card-body"
+              #+ [string "Aflevering godkendt: ", element loanInfo]
+              , UI.mkElement "footer" #. "modal-card-foot" #+ [element closeBtn]
               ]
-           , element closeBtn
            ]
 
     elem <- mkContainer
@@ -98,10 +98,11 @@ setup window = mdo
         eSelectionItem = rumors $ UI.userSelection listBoxItem
         eDelete        = UI.click deleteBtn
         eClose         = UI.click closeBtn
+        ePress = UI.keyup closeBtn
 
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
-        [True <$ eDelete, False <$ eClose]
+        [True <$ eDelete, False <$ eClose, False <$ ePress]
 
 
     bSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
@@ -251,8 +252,10 @@ setup window = mdo
         text
         ((maybe "" Item.name) <$> bLastLoanItemItem)
     liftUI $ element deleteBtn # sink UI.enabled hasSelectedLoan
-    liftUI $ element modal # sink
-        (attr "class")
-        ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
+    liftUI $ element modal # sink (modalSink closeBtn) bActiveModal
 
     return (elem, filterJust $ bSelectedLoan <@ eDelete)
+
+modalSink e = mkWriteAttr $ \b x -> void $ do
+                return x # set (attr "class") (if b then "modal is-active" else "modal")
+                if b then (UI.setFocus e) else return ()

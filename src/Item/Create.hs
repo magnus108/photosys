@@ -62,15 +62,18 @@ setup window = mdo
     dataNote           <- mkInput "Note" (element elemNote)
 
 
-    closeBtn           <- liftUI $ UI.button #. "modal-close is-large"
-    modal              <-
+    closeBtn                   <- liftUI $ UI.input # set UI.type_ "button" #. "button" # set value "Luk"
+    modal                      <-
         liftUI
         $  UI.div
         #+ [ UI.div #. "modal-background"
            , UI.div
-           #. "modal-content"
-           #+ [UI.div #. "box" #+ [string "Opret godkendt"]]
-           , element closeBtn
+           #. "modal-card"
+           #+ [ UI.mkElement "section"
+              #. "modal-card-body"
+              #+ [string "Opret godkendt"]
+              , UI.mkElement "footer" #. "modal-card-foot" #+ [element closeBtn]
+              ]
            ]
 
     elem <- mkContainer
@@ -99,6 +102,7 @@ setup window = mdo
     bItem <- stepper Nothing $ Unsafe.head <$> unions
         [Just <$> eItemIn, Just emptyItem <$ eCreate]
 
+
     bDatabaseLoan    <- asks Env.bDatabaseLoan
     bDatabaseUser    <- asks Env.bDatabaseUser
     bDatabaseItem    <- asks Env.bDatabaseItem
@@ -106,13 +110,24 @@ setup window = mdo
     bSelectionToken  <- asks Env.bSelectionToken
     bDatabaseHistory <- asks Env.bDatabaseHistory
 
+    bLookupItem     <- lookupItem
 
     let bNotEmpty = isJust <$> bItem
-    liftUI $ element createBtn # sink UI.enabled bNotEmpty
+    let bShowItemCode :: Behavior (DatabaseKey -> String)
+        bShowItemCode = (maybe "" Item.code .) <$> bLookupItem
 
-    liftUI $ element modal # sink
-        (attr "class")
-        ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
+        bCode = fmap Item.code <$> bItem
+
+        bItems :: Behavior [String]
+        bItems =  (\db lookup -> fmap Item.code $ catMaybes $ fmap lookup $ keys db)
+                <$> bDatabaseItem <*> bLookupItem
+        isError = (\x xs -> List.notElem x (fmap Just xs)) <$> bCode <*> bItems
+
+
+    liftUI $ element elemCode # sink UI.class_ ((\b -> if b then "input" else "input is-danger") <$> isError)
+    liftUI $ element createBtn # sink UI.enabled (bNotEmpty <&&> isError)
+
+    liftUI $ element modal # sink (modalSink closeBtn) bActiveModal
 
     return (elem, filterJust $ bItem <@ eCreate)
 
@@ -164,3 +179,7 @@ dataItem bItem = do
         <*> UI.userText entry7
         <*> UI.userText entry8
         )
+
+modalSink e = mkWriteAttr $ \b x -> void $ do
+                return x # set (attr "class") (if b then "modal is-active" else "modal")
+                if b then (UI.setFocus e) else return ()
