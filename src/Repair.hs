@@ -1,10 +1,10 @@
 module Repair where
 
-import Data.Aeson
-import Loan
-import Time
+import           Data.Aeson
+import           Loan
+import           Time
 
-data Repair = Repair { loan :: Int }
+data Repair = Repair { loan :: Int, note :: String}
     deriving stock (Eq, Ord, Show)
     deriving stock (Generic)
 

@@ -33,7 +33,7 @@ import           Behaviors
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
-    -> m (Element, Event DatabaseKey)
+    -> m (Element, Event Repair)
 setup window = mdo
 
     -- GUI elements
@@ -50,10 +50,12 @@ setup window = mdo
     counterItem                <- liftUI $ Counter.counter bListBoxItems
 
 
+    comment <- liftUI $ UI.entry bComment
     loanInfo                   <- liftUI $ UI.span
     (deleteBtn, deleteBtnView) <- mkButton "Til reperation"
 
     -- GUI layout
+    commentView <- mkInput "Kommentar" (element comment)
     closeBtn                   <- liftUI $ UI.button #. "modal-close is-large"
     modal                      <-
         liftUI
@@ -71,6 +73,7 @@ setup window = mdo
         , element counterUser
         , element searchItem
         , element dropdownItem
+        , element commentView
         , element deleteBtnView
         , element counterItem
         , element modal
@@ -98,6 +101,8 @@ setup window = mdo
         eDelete        = UI.click deleteBtn
         eClose         = UI.click closeBtn
 
+    bComment <- stepper "" $ Unsafe.head <$> unions
+        [rumors $ UI.userText comment, ""<$eDelete]
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
         [True <$ eDelete, False <$ eClose]
@@ -268,4 +273,4 @@ setup window = mdo
         (attr "class")
         ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
 
-    return (elem, filterJust $ bSelectedLoan <@ eDelete)
+    return (elem, filterJust $ (\mx y -> fmap (\x -> Repair.Repair x y) mx) <$> bSelectedLoan <*> bComment <@ eDelete)

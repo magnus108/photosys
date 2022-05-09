@@ -225,7 +225,7 @@ setup Config {..} window (anyE, anyH) = mdo
         [rumors tLoanCreate]
 
     bDatabaseRepair <- accumB databaseRepair $ concatenate <$> unions
-        [Database.create . Repair <$> eRepairCreate, Database.delete <$> eRepair]
+        [Database.create <$> eRepairCreate, Database.delete <$> eRepair]
 
     bDatabaseCount <- accumB databaseCount $ concatenate <$> unions
         [Database.create . Count <$> eCount, Database.delete <$> eCountDelete]
