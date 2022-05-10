@@ -154,7 +154,7 @@ setup Config {..} window (anyE, anyH) = mdo
     (tabs, tTabs, eLogout)                 <- Tab.setup window
     (export, eExport)                      <- Export.setup window
     (loanCreate, eLoanCreate, tLoanCreate) <- LoanCreate.setup window
-    (loanDelete      , eLoanDelete     , tDeleteLoanFilterUser, tDeleteLoanFilterItem, tDeleteLoanSelectionUser, tDeleteLoanSelectionItem)  <- LoanDelete.setup window
+    de <- LoanDelete.setup window
     (loanCreateNormal, eLoanCreateNormal)  <- LoanCreateNormal.setup window
     (loanDeleteNormal, eLoanDeleteNormal)  <- LoanDeleteNormal.setup window
     history                                <- History.setup window
@@ -232,7 +232,7 @@ setup Config {..} window (anyE, anyH) = mdo
 
     bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
         [ Database.create <$> eLoanCreate
-        , Database.delete <$> eLoanDelete
+        , Database.delete <$> (LoanDelete._eDeleteLoan de)
         , Database.create <$> eLoanCreateNormal
         , Database.delete <$> eLoanDeleteNormal
         ]
@@ -282,7 +282,7 @@ setup Config {..} window (anyE, anyH) = mdo
                         <$> bSelectedTime
                         <*> bSelectedTokenId
                         )
-                    <@> (filterJust $ bLookupLoan <@> eLoanDelete)
+                    <@> (filterJust $ bLookupLoan <@> (LoanDelete._eDeleteLoan de))
                     )
             , Database.create
                 <$> (   (   (\x z y -> HistoryHandin y
@@ -315,16 +315,16 @@ setup Config {..} window (anyE, anyH) = mdo
 
 
     bDeleteLoanFilterUser <- stepper "" $ Unsafe.head <$> unions
-        [rumors tDeleteLoanFilterUser]
+        [rumors (LoanDelete._userFilterDE de)]
 
     bDeleteLoanFilterItem <- stepper "" $ Unsafe.head <$> unions
-        [rumors tDeleteLoanFilterItem]
+        [rumors (LoanDelete._itemFilterDE de)]
 
     bDeleteLoanSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
-        [rumors tDeleteLoanSelectionUser]
+        [rumors (LoanDelete._userSelectionDE de)]
 
     bDeleteLoanSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
-        [rumors tDeleteLoanSelectionItem]
+        [rumors (LoanDelete._itemSelectionDE de)]
 
 
 -------------------------------------------------------------------------------
@@ -424,7 +424,7 @@ setup Config {..} window (anyE, anyH) = mdo
     let display y isAdmin x = if y
             then case (x, isAdmin) of
                 (0 , True ) -> [tabs, loanCreate]
-                (1 , True ) -> [tabs, loanDelete]
+                (1 , True ) -> [tabs, getElement de]
                 (2 , True ) -> [tabs, itemCreate]
                 (3 , True ) -> [tabs, itemDelete]
                 (4 , True ) -> [tabs, userCreate]

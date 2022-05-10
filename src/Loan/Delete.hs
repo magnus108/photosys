@@ -30,17 +30,22 @@ import           Behaviors
 import           Loan.Behaviors
 
 
+
+data DeleteEntry = DeleteEntry
+    { _elementDE :: Element
+    , _eDeleteLoan :: Event DatabaseKey
+    , _userFilterDE    :: Tidings String
+    , _itemFilterDE :: Tidings String
+    , _userSelectionDE :: Tidings (Maybe DatabaseKey)
+    , _itemSelectionDE :: Tidings (Maybe DatabaseKey)
+    }
+
+instance Widget DeleteEntry where getElement = _elementDE
+
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
-    -> m
-           ( Element
-           , Event DatabaseKey
-           , Tidings String
-           , Tidings String
-           , Tidings (Maybe DatabaseKey)
-           , Tidings (Maybe DatabaseKey)
-           )
+    -> m DeleteEntry
 setup window = mdo
 
     -- GUI elements
@@ -77,7 +82,7 @@ setup window = mdo
               ]
            ]
 
-    elem <- mkContainer
+    _elementDE <- mkContainer
         [ element searchUser
         , element dropdownUser
         , element counterUser
@@ -235,7 +240,7 @@ setup window = mdo
     liftUI $ element deleteBtn # sink UI.enabled hasSelectedLoan
     liftUI $ element modal # sink (modalSink closeBtn) bActiveModal
 
-    let tSelectionUser = tidings bSelectionUser $ Unsafe.head <$> unions
+    let _userSelectionDE = tidings bSelectionUser $ Unsafe.head <$> unions
             [ eSelectionUser
             , (\b s users p -> case filter (p . s) (keys users) of
                   (x : []) -> Just x
@@ -247,7 +252,7 @@ setup window = mdo
             <@> eFilterUser
             ]
 
-        tSelectionItem = tidings bSelectionItem $ Unsafe.head <$> unions
+        _itemSelectionDE = tidings bSelectionItem $ Unsafe.head <$> unions
             [ eSelectionItem
             , (\b s items p -> case filter (p . s) (keys items) of
                   (x : []) -> Just x
@@ -260,21 +265,16 @@ setup window = mdo
             , Nothing <$ eDelete
             ]
 
-        tFilterEntryUser =
+        _userFilterDE =
             tidings bFilterEntryUser $ Unsafe.head <$> unions
                 [rumors $ UI.userText filterUser, "" <$ eDelete]
 
-        tFilterEntryItem = tidings bFilterEntryItem $ Unsafe.head <$> unions
+        _itemFilterDE = tidings bFilterEntryItem $ Unsafe.head <$> unions
             [rumors $ UI.userText filterItem, "" <$ eDelete]
 
-    return
-        ( elem
-        , filterJust $ bSelectedLoan <@ eDelete
-        , tFilterEntryUser
-        , tFilterEntryItem
-        , tSelectionUser
-        , tSelectionItem
-        )
+        _eDeleteLoan = filterJust $ bSelectedLoan <@ eDelete
+
+    return DeleteEntry { .. }
 
 modalSink e = mkWriteAttr $ \b x -> void $ do
     return x # set (attr "class") (if b then "modal is-active" else "modal")
