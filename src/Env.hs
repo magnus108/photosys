@@ -47,4 +47,9 @@ data Env = Env
     , bHistoryHandinUser :: !(Behavior (Maybe DatabaseKey))
     , bHistoryHandinFilterUser :: !(Behavior String)
     , bHistoryHandinItem :: !(Behavior (Maybe DatabaseKey))
+
+    , bDeleteLoanFilterUser :: !(Behavior String)
+    , bDeleteLoanSelectionUser :: !(Behavior (Maybe DatabaseKey))
+    , bDeleteLoanFilterItem :: !(Behavior String)
+    , bDeleteLoanSelectionItem :: !(Behavior (Maybe DatabaseKey))
     }

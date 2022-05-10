@@ -32,7 +32,14 @@ import           Behaviors
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
-    -> m (Element, Event DatabaseKey)
+    -> m
+           ( Element
+           , Event DatabaseKey
+           , Tidings String
+           , Tidings String
+           , Tidings (Maybe DatabaseKey)
+           , Tidings (Maybe DatabaseKey)
+           )
 setup window = mdo
 
     -- GUI elements
@@ -83,10 +90,8 @@ setup window = mdo
 
     -- Events and behaviors
     let eDelete = UI.click deleteBtn
-    bFilterEntryUser <- stepper "" $ Unsafe.head <$> unions
-        [rumors $ UI.userText filterUser, "" <$ eDelete]
-    bFilterEntryItem <- stepper "" $ Unsafe.head <$> unions
-        [rumors $ UI.userText filterItem, "" <$ eDelete]
+    bFilterEntryUser <- asks Env.bDeleteLoanFilterUser
+    bFilterEntryItem <- asks Env.bDeleteLoanFilterItem
 
 
 
@@ -107,36 +112,12 @@ setup window = mdo
     bActiveModal <- stepper False $ Unsafe.head <$> unions
         [True <$ eDelete, False <$ eClose, False <$ ePress]
 
-
-    bSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
-        [ eSelectionUser
-        , (\b s users p -> case filter (p . s) (keys users) of
-              (x : []) -> Just x
-              (xs    ) -> b >>= \a -> if p (s a) then Just a else Nothing
-          )
-        <$> bSelectionUser
-        <*> bShowUser
-        <*> bDatabaseUser
-        <@> eFilterUser
-        ]
-
-
-    bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
-        [ eSelectionItem
-        , (\b s items p -> case filter (p . s) (keys items) of
-              (x : []) -> Just x
-              (xs    ) -> b >>= \a -> if p (s a) then Just a else Nothing
-          )
-        <$> bSelectionItem
-        <*> bShowItem
-        <*> bDatabaseItem
-        <@> eFilterItem
-        , Nothing <$ eDelete
-        ]
-
     bLastLoanItem <- stepper Nothing $ Unsafe.head <$> unions
         [bSelectionItem <@ eDelete]
 
+
+    bSelectionUser  <- asks Env.bDeleteLoanSelectionUser
+    bSelectionItem  <- asks Env.bDeleteLoanSelectionItem
     bDatabaseLoan   <- asks Env.bDatabaseLoan
     bDatabaseUser   <- asks Env.bDatabaseUser
     bDatabaseItem   <- asks Env.bDatabaseItem
@@ -265,7 +246,46 @@ setup window = mdo
     liftUI $ element deleteBtn # sink UI.enabled hasSelectedLoan
     liftUI $ element modal # sink (modalSink closeBtn) bActiveModal
 
-    return (elem, filterJust $ bSelectedLoan <@ eDelete)
+    let tSelectionUser = tidings bSelectionUser $ Unsafe.head <$> unions
+            [ eSelectionUser
+            , (\b s users p -> case filter (p . s) (keys users) of
+                  (x : []) -> Just x
+                  (xs    ) -> b >>= \a -> if p (s a) then Just a else Nothing
+              )
+            <$> bSelectionUser
+            <*> bShowUser
+            <*> bDatabaseUser
+            <@> eFilterUser
+            ]
+
+        tSelectionItem = tidings bSelectionItem $ Unsafe.head <$> unions
+            [ eSelectionItem
+            , (\b s items p -> case filter (p . s) (keys items) of
+                  (x : []) -> Just x
+                  (xs    ) -> b >>= \a -> if p (s a) then Just a else Nothing
+              )
+            <$> bSelectionItem
+            <*> bShowItem
+            <*> bDatabaseItem
+            <@> eFilterItem
+            , Nothing <$ eDelete
+            ]
+
+        tFilterEntryUser =
+            tidings bFilterEntryUser $ Unsafe.head <$> unions
+                [rumors $ UI.userText filterUser, "" <$ eDelete]
+
+        tFilterEntryItem = tidings bFilterEntryItem $ Unsafe.head <$> unions
+            [rumors $ UI.userText filterItem, "" <$ eDelete]
+
+    return
+        ( elem
+        , filterJust $ bSelectedLoan <@ eDelete
+        , tFilterEntryUser
+        , tFilterEntryItem
+        , tSelectionUser
+        , tSelectionItem
+        )
 
 modalSink e = mkWriteAttr $ \b x -> void $ do
     return x # set (attr "class") (if b then "modal is-active" else "modal")

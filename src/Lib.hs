@@ -154,7 +154,7 @@ setup Config {..} window (anyE, anyH) = mdo
     (tabs, tTabs, eLogout)                 <- Tab.setup window
     (export, eExport)                      <- Export.setup window
     (loanCreate, eLoanCreate, tLoanCreate) <- LoanCreate.setup window
-    (loanDelete      , eLoanDelete      )  <- LoanDelete.setup window
+    (loanDelete      , eLoanDelete     , tDeleteLoanFilterUser, tDeleteLoanFilterItem, tDeleteLoanSelectionUser, tDeleteLoanSelectionItem)  <- LoanDelete.setup window
     (loanCreateNormal, eLoanCreateNormal)  <- LoanCreateNormal.setup window
     (loanDeleteNormal, eLoanDeleteNormal)  <- LoanDeleteNormal.setup window
     history                                <- History.setup window
@@ -314,6 +314,19 @@ setup Config {..} window (anyE, anyH) = mdo
         ]
 
 
+    bDeleteLoanFilterUser <- stepper "" $ Unsafe.head <$> unions
+        [rumors tDeleteLoanFilterUser]
+
+    bDeleteLoanFilterItem <- stepper "" $ Unsafe.head <$> unions
+        [rumors tDeleteLoanFilterItem]
+
+    bDeleteLoanSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
+        [rumors tDeleteLoanSelectionUser]
+
+    bDeleteLoanSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
+        [rumors tDeleteLoanSelectionItem]
+
+
 -------------------------------------------------------------------------------
     let index = 0
     bTokenSelection <- stepper (Just index) UI.never
@@ -365,6 +378,10 @@ setup Config {..} window (anyE, anyH) = mdo
                   , bHistoryHandinUser       = bHistoryHandinUser
                   , bHistoryHandinFilterUser = bHistoryHandinFilterUser
                   , bHistoryHandinItem       = bHistoryHandinItem
+                  , bDeleteLoanFilterUser = bDeleteLoanFilterUser
+                  , bDeleteLoanFilterItem = bDeleteLoanFilterItem
+                  , bDeleteLoanSelectionUser = bDeleteLoanSelectionUser
+                  , bDeleteLoanSelectionItem = bDeleteLoanSelectionItem
                   }
 
 -------------------------------------------------------------------------------
