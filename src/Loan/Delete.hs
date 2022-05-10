@@ -69,6 +69,7 @@ setup window = mdo
     closeBtn <- liftUI $ UI.input # set UI.type_ "button" #. "button" # set
         value
         "Luk"
+
     modal <-
         liftUI
         $  UI.div
@@ -96,6 +97,8 @@ setup window = mdo
 
     -- Events and behaviors
     let eDelete = UI.click deleteBtn
+    let eClose         = Unsafe.head <$> unions [UI.click closeBtn, () <$ UI.keypress closeBtn]
+
     bFilterEntryUser <- asks Env.bDeleteLoanFilterUser
     bFilterEntryItem <- asks Env.bDeleteLoanFilterItem
 
@@ -110,15 +113,11 @@ setup window = mdo
 
     let eSelectionUser = rumors $ UI.userSelection listBoxUser
         eSelectionItem = rumors $ UI.userSelection listBoxItem
-        eClose         = UI.click closeBtn
-        ePress         = UI.keypress closeBtn
 
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
-        [True <$ eDelete, False <$ eClose, False <$ ePress]
+        [True <$ eDelete, False <$ eClose]
 
-    bLastLoanItem <- stepper Nothing $ Unsafe.head <$> unions
-        [bSelectionItem <@ eDelete]
 
 
     bSelectionUser  <- asks Env.bDeleteLoanSelectionUser
@@ -145,111 +144,45 @@ setup window = mdo
     bDisplayUserName <- displayUser
     bShowItem <- showItem
     bDisplayItem <- displayItem
+    bDisplayItemSelected <- displayItemDelete
 
+    let bAllLoans = keys <$> bDatabaseLoan
 
-    let bListBoxUsers :: Behavior [DatabaseKey]
-        bListBoxUsers =
-            (\p q r show ->
-                    filter (flip List.elem r)
-                        . filter (flip List.elem q)
-                        . filter (p . show)
-                        . keys
-                )
-                <$> bFilterUser
-                <*> bUsersWithLoan
-                <*> bSelectionUsers
-                <*> bShowUser
-                <*> bDatabaseUser
+    let bLoansf1  = (\f y -> Predicate (\l -> y == (Loan.item <$> (f l)) || y == Nothing)) <$> bLookupLoan <*> bSelectionItem
+    let bLoansf2  = (\f y -> Predicate (\l -> y == (Loan.item <$> (f l)) || y == Nothing)) <$> bLookupLoan <*> bSelectionItem
+    let bloansf = (filter . getPredicate . mconcat) <$> (sequenceA [bLoansf1, bLoansf2])
 
+    let bLoans' = (\f x y p s q r ->
+                            filter (\l -> y == (Loan.item <$> (f l)) || y == Nothing)
+                          . filter (\l -> x == (Loan.user <$> (f l)) || x == Nothing)
+                          . filter (\l -> and $ (p . s . Loan.user) <$> (f l))
+                          . filter (\l -> and $ (q . r . Loan.item) <$> (f l))
+                          ) <$> bLookupLoan <*> bSelectionUser <*> bSelectionItem <*> bFilterUser <*> bShowUser <*> bFilterItem <*> bShowItem
 
-        bUsersWithLoan :: Behavior [DatabaseKey]
-        bUsersWithLoan =
-            (\f -> catMaybes . fmap f . keys) <$> bLoanUserId <*> bDatabaseLoan
+    let bSearchLoans = bLoans' <*> bAllLoans
 
-        bSelectionUsers :: Behavior [DatabaseKey]
-        bSelectionUsers =
-            (\i lookupItem lookupUser ->
-                    catMaybes
-                        . fmap lookupUser
-                        . filter ((\x -> i == Nothing || i == x) . lookupItem)
-                        . keys
-                )
-                <$> bSelectionItem
-                <*> bLoanItemId
-                <*> bLoanUserId
-                <*> bDatabaseLoan
+    let bListBoxUsers' = (\f xs -> fmap Loan.user $ catMaybes $ fmap f xs) <$> bLookupLoan <*> bSearchLoans
+    let bListBoxUsers = (\xs -> filter (\x -> List.elem x xs) . keys) <$> bListBoxUsers' <*> bDatabaseUser
+    let bListBoxItems' = (\f xs -> fmap Loan.item $ catMaybes $ fmap f xs)<$> bLookupLoan <*> bSearchLoans
+    let bListBoxItems = (\xs -> filter (\x -> List.elem x xs) . keys) <$> bListBoxItems' <*> bDatabaseItem
 
-        bListBoxItems :: Behavior [DatabaseKey]
-        bListBoxItems =
-            (\p q r show ->
-                    filter (flip List.elem r)
-                        . filter (flip List.elem q)
-                        . filter (p . show)
-                        . keys
-                )
-                <$> bFilterItem
-                <*> bItemsWithLoan
-                <*> bSelectionItems
-                <*> bShowItem
-                <*> bDatabaseItem
-
-
-        bItemsWithLoan :: Behavior [DatabaseKey]
-        bItemsWithLoan =
-            (\f -> catMaybes . fmap f . keys) <$> bLoanItemId <*> bDatabaseLoan
-
-        bSelectionItems :: Behavior [DatabaseKey]
-        bSelectionItems =
-            (\i lookupUser lookupItem ->
-                    catMaybes
-                        . fmap lookupItem
-                        . filter ((\x -> i == Nothing || i == x) . lookupUser)
-                        . keys
-                )
-                <$> bSelectionUser
-                <*> bLoanUserId
-                <*> bLoanItemId
-                <*> bDatabaseLoan
-
-    let bSelectedLoan :: Behavior (Maybe DatabaseKey)
-        bSelectedLoan =
-            (\item user lookup ->
-                    find
-                            ( (\x ->
-                                  ((Loan.item <$> x) == item)
-                                      && ((Loan.user <$> x) == user)
-                              )
-                            . lookup
-                            )
-                        . keys
-                )
-                <$> bSelectionItem
-                <*> bSelectionUser
-                <*> bLookupLoan
-                <*> bDatabaseLoan
-
-        hasSelectedLoan :: Behavior Bool
+    let bSelectedLoan = listToFirst <$> bSearchLoans
         hasSelectedLoan = isJust <$> bSelectedLoan
 
-        bLastLoanItemItem :: Behavior (Maybe Item)
-        bLastLoanItemItem = (=<<) <$> bLookupItem <*> bLastLoanItem
 
-    liftUI $ element loanInfo # sink
-        text
-        ((maybe "" Item.name) <$> bLastLoanItemItem)
+    liftUI $ element loanInfo # sink items bDisplayItemSelected
     liftUI $ element deleteBtn # sink UI.enabled hasSelectedLoan
     liftUI $ element modal # sink (modalSink closeBtn) bActiveModal
 
     let _userSelectionDE = tidings bSelectionUser $ Unsafe.head <$> unions
             [ eSelectionUser
-            , (\b s users p -> case filter (p . s) (keys users) of
-                  (x : []) -> Just x
-                  (xs    ) -> b >>= \a -> if p (s a) then Just a else Nothing
-              )
-            <$> bSelectionUser
-            <*> bShowUser
-            <*> bDatabaseUser
-            <@> eFilterUser
+            , (\ax f x y s q r p -> 
+                            let gg = filter (\l -> y == (Loan.item <$> (f l)) || y == Nothing) $ filter (\l -> and $ (p . s . Loan.user) <$> (f l)) $ filter (\l -> and $ (q . r . Loan.item) <$> (f l)) ax
+                                  in case listToFirst $ fmap Loan.user $ catMaybes $ fmap f gg of
+                                        Just x -> Just x
+                                        Nothing -> Nothing
+                          ) <$> bAllLoans <*> bLookupLoan <*> bSelectionUser <*> bSelectionItem <*> bShowUser <*> bFilterItem <*> bShowItem <@> eFilterUser
+            , Nothing <$ eClose
             ]
 
         _itemSelectionDE = tidings bSelectionItem $ Unsafe.head <$> unions
@@ -262,20 +195,29 @@ setup window = mdo
             <*> bShowItem
             <*> bDatabaseItem
             <@> eFilterItem
-            , Nothing <$ eDelete
+            , Nothing <$ eClose
             ]
 
         _userFilterDE =
             tidings bFilterEntryUser $ Unsafe.head <$> unions
-                [rumors $ UI.userText filterUser, "" <$ eDelete]
+                [rumors $ UI.userText filterUser, "" <$ eClose]
 
         _itemFilterDE = tidings bFilterEntryItem $ Unsafe.head <$> unions
-            [rumors $ UI.userText filterItem, "" <$ eDelete]
+            [rumors $ UI.userText filterItem, "" <$ eClose]
 
-        _eDeleteLoan = filterJust $ bSelectedLoan <@ eDelete
+        _eDeleteLoan = filterJust $ bSelectedLoan <@ eClose
 
     return DeleteEntry { .. }
 
 modalSink e = mkWriteAttr $ \b x -> void $ do
     return x # set (attr "class") (if b then "modal is-active" else "modal")
     if b then UI.setFocus e else return ()
+
+
+listToFirst :: [a] -> Maybe a
+listToFirst (x:[]) = Just x
+listToFirst _ = Nothing
+
+
+items = mkWriteAttr $ \i x -> void $ do
+    return x # set children [] #+ [i]
