@@ -244,3 +244,11 @@ displayUser
 displayUser = do
     show <- showUser
     return $ (UI.string .) <$> show
+
+displayItem
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (DatabaseKey -> UI Element))
+displayItem = do
+    show <- showItem
+    return $ (UI.string .) <$> show

@@ -53,7 +53,7 @@ setup window = mdo
     (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
     (listBoxItem, dropdownItem) <- mkListBox bListBoxItems
                                              bSelectionItem
-                                             bDisplayItemName
+                                             bDisplayItem
     counterItem                <- liftUI $ Counter.counter bListBoxItems
 
 
@@ -138,15 +138,11 @@ setup window = mdo
     bSelectedItem <- selectedItemDelete
 
     bDisplayUserName <- displayUser
+    bShowItem <- showItem
+    bDisplayItem <- displayItem
 
-    let bShowItem :: Behavior (DatabaseKey -> String)
-        bShowItem = (maybe "" Item.showItem .) <$> bLookupItem
 
-
-        bDisplayItemName :: Behavior (DatabaseKey -> UI Element)
-        bDisplayItemName = (UI.string .) <$> bShowItem
-
-        bListBoxUsers :: Behavior [DatabaseKey]
+    let bListBoxUsers :: Behavior [DatabaseKey]
         bListBoxUsers =
             (\p q r show ->
                     filter (flip List.elem r)
