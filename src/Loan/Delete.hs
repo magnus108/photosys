@@ -27,6 +27,7 @@ import           Env                            ( Env )
 import qualified Env
 import           Layout
 import           Behaviors
+import           Loan.Behaviors
 
 
 setup
@@ -94,7 +95,6 @@ setup window = mdo
     bFilterEntryItem <- asks Env.bDeleteLoanFilterItem
 
 
-
     let tFilterUser = isInfixOf <$> UI.userText filterUser
         bFilterUser = facts tFilterUser
         eFilterUser = rumors tFilterUser
@@ -129,26 +129,19 @@ setup window = mdo
     bLookupItem     <- lookupItem
     bLookupLoan     <- lookupLoan
 
-    let bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
-        bLoanItem = (fmap Loan.item .) <$> bLookupLoan
+    bLoanItemId <- loanItemId
+    bLoanUserId <- loanUserId
 
-        bLoanUser :: Behavior (DatabaseKey -> Maybe Int)
-        bLoanUser = (fmap Loan.user .) <$> bLookupLoan
+    bShowUser <- showUser
 
-        bSelectedUser :: Behavior (Maybe User)
-        bSelectedUser = (=<<) <$> bLookupUser <*> bSelectionUser
+    bSelectedUser <- selectedUserDelete
+    bSelectedItem <- selectedItemDelete
 
-        bSelectedItem :: Behavior (Maybe Item)
-        bSelectedItem = (=<<) <$> bLookupItem <*> bSelectionItem
+    bDisplayUserName <- displayUser
 
-        bShowUser :: Behavior (DatabaseKey -> String)
-        bShowUser = (maybe "" User.name .) <$> bLookupUser
-
-        bShowItem :: Behavior (DatabaseKey -> String)
+    let bShowItem :: Behavior (DatabaseKey -> String)
         bShowItem = (maybe "" Item.showItem .) <$> bLookupItem
 
-        bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
-        bDisplayUserName = (UI.string .) <$> bShowUser
 
         bDisplayItemName :: Behavior (DatabaseKey -> UI Element)
         bDisplayItemName = (UI.string .) <$> bShowItem
@@ -170,7 +163,7 @@ setup window = mdo
 
         bUsersWithLoan :: Behavior [DatabaseKey]
         bUsersWithLoan =
-            (\f -> catMaybes . fmap f . keys) <$> bLoanUser <*> bDatabaseLoan
+            (\f -> catMaybes . fmap f . keys) <$> bLoanUserId <*> bDatabaseLoan
 
         bSelectionUsers :: Behavior [DatabaseKey]
         bSelectionUsers =
@@ -181,8 +174,8 @@ setup window = mdo
                         . keys
                 )
                 <$> bSelectionItem
-                <*> bLoanItem
-                <*> bLoanUser
+                <*> bLoanItemId
+                <*> bLoanUserId
                 <*> bDatabaseLoan
 
         bListBoxItems :: Behavior [DatabaseKey]
@@ -202,7 +195,7 @@ setup window = mdo
 
         bItemsWithLoan :: Behavior [DatabaseKey]
         bItemsWithLoan =
-            (\f -> catMaybes . fmap f . keys) <$> bLoanItem <*> bDatabaseLoan
+            (\f -> catMaybes . fmap f . keys) <$> bLoanItemId <*> bDatabaseLoan
 
         bSelectionItems :: Behavior [DatabaseKey]
         bSelectionItems =
@@ -213,8 +206,8 @@ setup window = mdo
                         . keys
                 )
                 <$> bSelectionUser
-                <*> bLoanUser
-                <*> bLoanItem
+                <*> bLoanUserId
+                <*> bLoanItemId
                 <*> bDatabaseLoan
 
     let bSelectedLoan :: Behavior (Maybe DatabaseKey)
@@ -289,4 +282,4 @@ setup window = mdo
 
 modalSink e = mkWriteAttr $ \b x -> void $ do
     return x # set (attr "class") (if b then "modal is-active" else "modal")
-    if b then (UI.setFocus e) else return ()
+    if b then UI.setFocus e else return ()

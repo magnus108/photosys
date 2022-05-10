@@ -47,6 +47,7 @@ library
       Layout
       Lib
       Loan
+      Loan.Behaviors
       Loan.Create
       Loan.CreateNormal
       Loan.Delete

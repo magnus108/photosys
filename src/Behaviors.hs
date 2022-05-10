@@ -220,3 +220,27 @@ historyHandinListBoxUsers = do
         <$> bFilterUser
         <*> bShowUser
         <*> bDatabaseUser
+
+loanUserId
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (DatabaseKey -> Maybe DatabaseKey))
+loanUserId = do
+    bLookupLoan <- lookupLoan
+    return $ (fmap Loan.user .) <$> bLookupLoan
+
+loanItemId
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (DatabaseKey -> Maybe DatabaseKey))
+loanItemId = do
+    bLookupLoan <- lookupLoan
+    return $ (fmap Loan.item .) <$> bLookupLoan
+
+displayUser
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (DatabaseKey -> UI Element))
+displayUser = do
+    show <- showUser
+    return $ (UI.string .) <$> show
