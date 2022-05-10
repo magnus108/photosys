@@ -1,6 +1,7 @@
 {-# LANGUAGE RecursiveDo #-}
 module Loan.Delete where
 
+import           Utils.Utils
 import           Data.Aeson
 
 import qualified Graphics.UI.Threepenny        as UI
@@ -39,21 +40,23 @@ setup window = mdo
     (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers
                                              bSelectionUser
                                              bDisplayUserName
-    counterUser <- liftUI $ Counter.counter bListBoxUsers
+    counterUser                 <- liftUI $ Counter.counter bListBoxUsers
 
     (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
     (listBoxItem, dropdownItem) <- mkListBox bListBoxItems
                                              bSelectionItem
                                              bDisplayItemName
-    counterItem <- liftUI $ Counter.counter bListBoxItems
+    counterItem                <- liftUI $ Counter.counter bListBoxItems
 
 
-    loanInfo    <- liftUI $ UI.span
+    loanInfo                   <- liftUI $ UI.span
     (deleteBtn, deleteBtnView) <- mkButton "Aflever"
 
     -- GUI layout
-    closeBtn                   <- liftUI $ UI.input # set UI.type_ "button" #. "button" # set value "Luk"
-    modal                      <-
+    closeBtn <- liftUI $ UI.input # set UI.type_ "button" #. "button" # set
+        value
+        "Luk"
+    modal <-
         liftUI
         $  UI.div
         #+ [ UI.div #. "modal-background"
@@ -67,25 +70,25 @@ setup window = mdo
            ]
 
     elem <- mkContainer
-             [ element searchUser
-                , element dropdownUser
-                , element counterUser
-                , element searchItem
-                , element dropdownItem
-                , element deleteBtnView
-                , element counterItem
-                , element modal
-           ]
+        [ element searchUser
+        , element dropdownUser
+        , element counterUser
+        , element searchItem
+        , element dropdownItem
+        , element deleteBtnView
+        , element counterItem
+        , element modal
+        ]
 
 
     -- Events and behaviors
-    let eDelete        = UI.click deleteBtn
-    bFilterEntryUser <- stepper "" $ Unsafe.head <$> unions [rumors $ UI.userText filterUser, "" <$ eDelete]
-    bFilterEntryItem <- stepper "" $ Unsafe.head <$> unions [rumors $ UI.userText filterItem, "" <$ eDelete]
+    let eDelete = UI.click deleteBtn
+    bFilterEntryUser <- stepper "" $ Unsafe.head <$> unions
+        [rumors $ UI.userText filterUser, "" <$ eDelete]
+    bFilterEntryItem <- stepper "" $ Unsafe.head <$> unions
+        [rumors $ UI.userText filterItem, "" <$ eDelete]
 
 
-    let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
-        isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
 
     let tFilterUser = isInfixOf <$> UI.userText filterUser
         bFilterUser = facts tFilterUser
@@ -98,7 +101,7 @@ setup window = mdo
     let eSelectionUser = rumors $ UI.userSelection listBoxUser
         eSelectionItem = rumors $ UI.userSelection listBoxItem
         eClose         = UI.click closeBtn
-        ePress = UI.keypress closeBtn
+        ePress         = UI.keypress closeBtn
 
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
@@ -108,8 +111,8 @@ setup window = mdo
     bSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionUser
         , (\b s users p -> case filter (p . s) (keys users) of
-                                (x:[]) -> Just x
-                                (xs) -> b >>= \a -> if p (s a) then Just a else Nothing
+              (x : []) -> Just x
+              (xs    ) -> b >>= \a -> if p (s a) then Just a else Nothing
           )
         <$> bSelectionUser
         <*> bShowUser
@@ -121,8 +124,8 @@ setup window = mdo
     bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionItem
         , (\b s items p -> case filter (p . s) (keys items) of
-                                (x:[]) -> Just x
-                                (xs) -> b >>= \a -> if p (s a) then Just a else Nothing
+              (x : []) -> Just x
+              (xs    ) -> b >>= \a -> if p (s a) then Just a else Nothing
           )
         <$> bSelectionItem
         <*> bShowItem
@@ -265,5 +268,5 @@ setup window = mdo
     return (elem, filterJust $ bSelectedLoan <@ eDelete)
 
 modalSink e = mkWriteAttr $ \b x -> void $ do
-                return x # set (attr "class") (if b then "modal is-active" else "modal")
-                if b then (UI.setFocus e) else return ()
+    return x # set (attr "class") (if b then "modal is-active" else "modal")
+    if b then (UI.setFocus e) else return ()
