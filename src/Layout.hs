@@ -5,6 +5,18 @@ import qualified Graphics.UI.Threepenny        as UI
 import           Reactive.Threepenny
 import           Monad
 import           Env
+import qualified Counter
+
+
+mkCounter
+    :: forall m a
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => Behavior [a]
+    -> m Element
+mkCounter xs = liftUI $ do
+    count <- Counter.counter xs
+    view <- element count #. "tag is-info is-large"
+    return view
 
 
 mkButton
@@ -19,6 +31,7 @@ mkButton title = liftUI $ do
         #. "field"
         #+ [UI.div #. "control" #+ [element button #. "button"]]
     return (button, view)
+
 
 mkCheckbox
     :: forall m

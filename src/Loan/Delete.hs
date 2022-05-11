@@ -4,6 +4,7 @@ module Loan.Delete where
 import           Utils.Utils
 import           Data.Aeson
 
+import Data.Functor.Contravariant.Divisible
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
@@ -53,13 +54,13 @@ setup window = mdo
     (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers
                                              bSelectionUser
                                              bDisplayUserName
-    counterUser                 <- liftUI $ Counter.counter bListBoxUsers
+    counterUser                 <- mkCounter bListBoxUsers
 
     (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
     (listBoxItem, dropdownItem) <- mkListBox bListBoxItems
                                              bSelectionItem
                                              bDisplayItem
-    counterItem                <- liftUI $ Counter.counter bListBoxItems
+    counterItem                <- mkCounter bListBoxItems
 
 
     loanInfo                   <- liftUI $ UI.span
@@ -148,9 +149,32 @@ setup window = mdo
 
     let bAllLoans = keys <$> bDatabaseLoan
 
-    let bLoansf1  = (\f y -> Predicate (\l -> y == (Loan.item <$> (f l)) || y == Nothing)) <$> bLookupLoan <*> bSelectionItem
-    let bLoansf2  = (\f y -> Predicate (\l -> y == (Loan.item <$> (f l)) || y == Nothing)) <$> bLookupLoan <*> bSelectionItem
-    let bloansf = (filter . getPredicate . mconcat) <$> (sequenceA [bLoansf1, bLoansf2])
+
+-------------------------------------------------------------------------------
+    let what = Predicate (const False)
+    let what1 = Predicate . flip (maybe True . (==))
+    let what2 x y = divide (\l -> (Loan.item l, Loan.user l)) (what1 x) (what1 y)
+    let what3 x y = choose (maybeToRight ()) what (what2 x y)
+    let what4 f x y = contramap f $ what3 x y
+    let what5 = what4 <$> bLookupLoan <*> bSelectionItem <*> bSelectionUser
+
+
+    let what6 = filter . getPredicate <$> what5
+    let what7 = what6 <*> bAllLoans
+-------------------------------------------------------------------------------
+    let sod = Predicate (const False)
+    let sod1 = Predicate <$> bFilterUser
+    let sod2 = Predicate <$> bFilterItem
+    let sod5 = contramap <$> bShowUser <*> sod1
+    let sod6 = contramap <$> bShowItem <*> sod2
+    let sod7 = divide (\l -> (Loan.item l, Loan.user l)) <$> sod5 <*> sod6
+    let sod8 = choose (maybeToRight ()) sod <$> sod7
+    let sod9 = contramap <$> bLookupLoan <*> sod8
+    let sod10 = filter . getPredicate <$> sod9
+    let sod11 = sod10 <*> bAllLoans
+
+    let bloansf = (filter . getPredicate . mconcat) <$> (sequenceA [sod9, what5])
+-------------------------------------------------------------------------------
 
     let bLoans' = (\f x y p s q r ->
                             filter (\l -> y == (Loan.item <$> (f l)) || y == Nothing)

@@ -95,6 +95,7 @@ library
     , bytestring
     , cassava
     , comonad
+    , contravariant
     , control-bool
     , filepath
     , generic-lens
@@ -136,6 +137,7 @@ executable photosys-exe
     , bytestring
     , cassava
     , comonad
+    , contravariant
     , control-bool
     , filepath
     , generic-lens
@@ -179,6 +181,7 @@ test-suite photosys-test
     , bytestring
     , cassava
     , comonad
+    , contravariant
     , control-bool
     , filepath
     , generic-lens

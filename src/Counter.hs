@@ -18,9 +18,8 @@ import           Reactive.Threepenny
 
 
 
-counter :: forall a . Ord a => Behavior [a] -> UI Element
+counter :: Behavior [a] -> UI Element
 counter bitems = do
     content <- UI.span
-    let bCount = (show . length) <$> bitems
-    element content #. "tag is-info is-large" # sink text bCount
-    -- overvej flyt styling ud
+    let bCount = show . length <$> bitems
+    element content # sink text bCount
