@@ -39,7 +39,7 @@ setup window = mdo
     (listBoxItem, dropdownItem) <- mkListBox bListBoxItems
                                              bSelectionItem
                                              bDisplayItemName
-    counter                    <- liftUI $ Counter.counter bListBoxItems
+    counter                    <- mkCounter bListBoxItems
 
     (deleteBtn, deleteBtnView) <- mkButton "Slet"
     realDeleteBtn <- liftUI $ UI.button #+ [string "Sikker på slet?"]

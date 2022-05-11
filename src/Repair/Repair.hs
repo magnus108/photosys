@@ -43,19 +43,19 @@ setup window = mdo
     (listBoxRepair, dropdownRepair) <- mkListBox bListBoxRepairs
                                              bSelectionRepair
                                              bDisplayRepair
-    counterRepair                 <- liftUI $ Counter.counter bListBoxRepairs
+    counterRepair                 <- mkCounter bListBoxRepairs
 
     (filterUser , searchUser  ) <- mkSearch bFilterEntryUser
     (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers
                                              bSelectionUser
                                              bDisplayUserName
-    counterUser                 <- liftUI $ Counter.counter bListBoxUsers
+    counterUser                 <- mkCounter bListBoxUsers
 
     (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
     (listBoxItem, dropdownItem) <- mkListBox bListBoxItems
                                              bSelectionItem
                                              bDisplayItemName
-    counterItem                <- liftUI $ Counter.counter bListBoxItems
+    counterItem                <- mkCounter bListBoxItems
 
 
     (deleteBtn, deleteBtnView) <- mkButton "Tilbagelever"

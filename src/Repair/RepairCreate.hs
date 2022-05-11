@@ -41,13 +41,13 @@ setup window = mdo
     (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers
                                              bSelectionUser
                                              bDisplayUserName
-    counterUser                 <- liftUI $ Counter.counter bListBoxUsers
+    counterUser                 <- mkCounter bListBoxUsers
 
     (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
     (listBoxItem, dropdownItem) <- mkListBox bListBoxItems
                                              bSelectionItem
                                              bDisplayItemName
-    counterItem                <- liftUI $ Counter.counter bListBoxItems
+    counterItem                <- mkCounter bListBoxItems
 
 
     comment <- liftUI $ UI.entry bComment

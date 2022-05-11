@@ -42,7 +42,7 @@ setup window = mdo
                                              bDisplayItemName
 
     (deleteBtn, deleteBtnView) <- mkButton "Aflever"
-    counter <- liftUI $ Counter.counter bListBoxItems
+    counter <- mkCounter bListBoxItems
     loanInfo <- liftUI $ UI.span
 
     -- GUI layout

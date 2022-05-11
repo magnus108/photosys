@@ -151,6 +151,7 @@ setup window = mdo
 
 
 -------------------------------------------------------------------------------
+    --SATS PÅ denne
     let what = Predicate (const False)
     let what1 = Predicate . flip (maybe True . (==))
     let what2 x y = divide (\l -> (Loan.item l, Loan.user l)) (what1 x) (what1 y)
@@ -172,9 +173,7 @@ setup window = mdo
     let sod9 = contramap <$> bLookupLoan <*> sod8
     let sod10 = filter . getPredicate <$> sod9
     let sod11 = sod10 <*> bAllLoans
-
     let bloansf = (filter . getPredicate . mconcat) <$> (sequenceA [sod9, what5])
-
 -------------------------------------------------------------------------------
     let sode1 = Predicate <$> eFilterUser
     let sode3 = contramap <$> bShowUser <@> sode1
@@ -183,20 +182,6 @@ setup window = mdo
     let sode9 = contramap <$> bLookupLoan <@> sode8
     let soder = divide (\x -> (x, x)) <$> (pure sod) <@> sode9
     let sode10 = flip (filter . getPredicate) <$> bAllLoans <@> soder
-
-    {-
-    let sode1 x = Predicate x
-    let sode3 x = flip contramap (sode1 x) <$> bShowUser
-    let sode7 x y = divide (\l -> (Loan.item l, Loan.user l)) <$> sode3 x <*> sode3 y
-    let sode8 x y = choose (maybeToRight ()) sod <$> (sode7 x y)
-    let sode9 x y = contramap <$> bLookupLoan <*> (sod8 x y)
-    let sode10 x y = filter . getPredicate <$> (sode9 x y)
-    let sode11 = sode10 <$> bFilterUser
-    -}
-    --let sode12 = sode11 <$> bFilterUser <@> eFilterUser
-    
-    --let sode7 = divide (\l -> (Loan.user l, Loan.user l)) <$> sode3
-    _
 
 -------------------------------------------------------------------------------
 

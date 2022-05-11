@@ -46,11 +46,11 @@ setup window = mdo
 
     (filterItem, searchItem) <- mkSearch bFilterEntryItem
     (listBoxItem, dropdownItem) <- mkListBox bListBoxItems'' bSelectionItem bDisplayItemName
-    counterItem <- liftUI $ Counter.counter bListBoxItems''
+    counterItem <- mkCounter bListBoxItems''
 
     (filterLoan, searchLoan) <- mkSearch bFilterEntryLoan
     (listBoxLoan, dropdownLoan) <- mkListBox bListBoxLoans'' bSelectionLoan bDisplayLoanTime
-    counterLoan <- liftUI $ Counter.counter bListBoxLoans''
+    counterLoan <- mkCounter bListBoxLoans''
 
     -- GUI layout
     elem <- mkContainer

@@ -42,7 +42,7 @@ setup window = mdo
     (listBoxItem, dropdownItem) <- mkListBox bListBoxItems bSelectionItem bDisplayItemName
     (createBtn, createBtnView) <- mkButton "Lån"
 
-    counter    <- liftUI $ Counter.counter bListBoxItems
+    counter    <- mkCounter bListBoxItems
     loanInfo   <- liftUI $ UI.span
 
     -- GUI layout

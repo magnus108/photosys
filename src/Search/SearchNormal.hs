@@ -27,6 +27,7 @@ import           Monad
 import           Env                            ( Env )
 import qualified Env
 import qualified Counter
+import           Layout
 
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
@@ -36,8 +37,7 @@ setup win = mdo
     filterItem      <- liftUI $ UI.entry bFilterEntryItem
     listBoxItem     <- liftUI
         $ UI.listBox bListBoxItems bSelectionItem bDisplayItemName
-    counter     <- liftUI
-        $ Counter.counter bListBoxItems
+    counter     <- mkCounter bListBoxItems
 
     -- GUI layout
     searchItem <-

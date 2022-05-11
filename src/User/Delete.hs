@@ -47,7 +47,7 @@ setup window = mdo
                                              bDisplayUserName
     (deleteBtn, deleteBtnView)         <- mkButton "Slet"
 
-    counter                            <- liftUI $ Counter.counter bListBoxUsers
+    counter                            <- mkCounter bListBoxUsers
     (realDeleteBtn, realDeleteBtnView) <- mkButton "Sikker på slet?"
 
     ((elemName, elemPassword, elemAdmin), tUser) <- liftUI $ dataItem bSelectionDataUser

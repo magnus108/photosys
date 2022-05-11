@@ -57,19 +57,19 @@ setup window = mdo
     (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers''
                                              bSelectionUser
                                              bDisplayUserName
-    counterUser                 <- liftUI $ Counter.counter bListBoxUsers''
+    counterUser                 <- mkCounter bListBoxUsers''
 
     (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
     (listBoxItem, dropdownItem) <- mkListBox bListBoxItems''
                                              bSelectionItem
                                              bDisplayItemName
-    counterItem                 <- liftUI $ Counter.counter bListBoxItems''
+    counterItem                 <- mkCounter bListBoxItems''
 
     (filterLoan , searchLoan  ) <- mkSearch bFilterEntryLoan
     (listBoxLoan, dropdownLoan) <- mkListBox bListBoxLoans''
                                              bSelectionLoan
                                              bDisplayLoanTime
-    counterLoan <- liftUI $ Counter.counter bListBoxLoans''
+    counterLoan <- mkCounter bListBoxLoans''
 
     isAdmin     <- liftUI $ UI.div
 

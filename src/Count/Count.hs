@@ -46,13 +46,13 @@ setup window = mdo
     (listBoxItem, dropdownItem) <- mkListBox bListBoxItems'
                                              bSelectionItem
                                              bDisplayItemName
-    counterItem                   <- liftUI $ Counter.counter bListBoxItems'
+    counterItem                   <- mkCounter bListBoxItems'
 
     (filterCount , searchCount  ) <- mkSearch bFilterEntryCount
     (listBoxCount, dropdownCount) <- mkListBox bListBoxCounts
                                                bSelectionCount
                                                bDisplayCountName
-    counterCount <- liftUI $ Counter.counter bListBoxCounts
+    counterCount <- mkCounter bListBoxCounts
 
     (createBtn, createBtnView) <- mkButton "Optæl"
     (deleteBtn, deleteBtnView) <- mkButton "Fjern"
