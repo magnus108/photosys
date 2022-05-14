@@ -52,6 +52,7 @@ library
       Loan.CreateNormal
       Loan.Delete
       Loan.DeleteNormal
+      Loan.Predicates
       Login
       MenuBox
       Modal
