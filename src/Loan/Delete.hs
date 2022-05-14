@@ -148,56 +148,63 @@ setup window = mdo
     bDisplayItem <- displayItem
     bDisplayItemSelected <- displayItemDelete
 
-    let bAllLoans = keys <$> bDatabaseLoan
-
----------------------------------------------------------------------------------------------------------------------------------
-    let what5 env = getPredicate $ contramap (P.lookupLoan env) $
+    let itemFilter env = P.compareMaybe (P.selectionItem env) <> (contramap (P.showItem env) (Predicate (P.filterItem env)))
+    let userFilter env = P.compareMaybe (P.selectionUser env) <> (contramap (P.showUser env) (Predicate (P.filterUser env)))
+    let loanFilter env = getPredicate $ contramap (P.lookupLoan env) $
                                 P.chooseMaybe $
                                     divide (\l -> (Loan.item l, Loan.user l))
-                                                    ((P.compareMaybe (P.selectionItem env)) <> (contramap (P.showItem env) (Predicate (P.filterItem env))))
-                                                    ((P.compareMaybe (P.selectionUser env)) <> (contramap (P.showUser env) (Predicate (P.filterUser env))))
-    let what4 env = filter $ what5 env
+                                                    (itemFilter env)
+                                                    (userFilter env)
 
     let deleteFilter = P.DeleteLoanFilter <$> bLookupLoan <*> bSelectionUser <*> bSelectionItem <*> bFilterUser <*> bShowUser <*> bShowItem
-    let eFilter = deleteFilter <@> eFilterItem
     let bFilter = deleteFilter <*> bFilterItem
 
-    let eFilter' = what5 <$> eFilter
-    let ewhat = flip what4 <$> bAllLoans <@> eFilter
-    let bSearchLoans = what4 <$> bFilter <*> bAllLoans
----------------------------------------------------------------------------------------------------------------------------------
-
+    let bSearchLoans = (\env -> filter (loanFilter env) . keys) <$> bFilter <*> bDatabaseLoan
 
     let bListBoxUsers' = (\f xs -> fmap Loan.user $ catMaybes $ fmap f xs) <$> bLookupLoan <*> bSearchLoans
     let bListBoxUsers = (\xs -> filter (\x -> List.elem x xs) . keys) <$> bListBoxUsers' <*> bDatabaseUser
     let bListBoxItems' = (\f xs -> fmap Loan.item $ catMaybes $ fmap f xs)<$> bLookupLoan <*> bSearchLoans
     let bListBoxItems = (\xs -> filter (\x -> List.elem x xs) . keys) <$> bListBoxItems' <*> bDatabaseItem
 
+
     let bSelectedLoan = listToFirst <$> bSearchLoans
         hasSelectedLoan = isJust <$> bSelectedLoan
 
-
+    liftUI $ element loanInfo # sink items bDisplayItemSelected
+    liftUI $ element deleteBtn # sink UI.enabled hasSelectedLoan
+    liftUI $ element modal # sink (modalSink closeBtn) bActiveModal
 
     let _userSelectionDE = tidings bSelectionUser $ Unsafe.head <$> unions
             [ eSelectionUser
-            , (\ax f x y s q r p -> 
-                            let gg = filter (\l -> y == (Loan.item <$> (f l)) || y == Nothing) $ filter (\l -> and $ (p . s . Loan.user) <$> (f l)) $ filter (\l -> and $ (q . r . Loan.item) <$> (f l)) ax in 
-                                case listToFirst $ fmap Loan.user $ catMaybes $ fmap f gg of
-                                        Just x -> Just x
-                                        Nothing -> Nothing
-                          ) <$> bAllLoans <*> bLookupLoan <*> bSelectionUser <*> bSelectionItem <*> bShowUser <*> bFilterItem <*> bShowItem <@> eFilterUser
+            , (\items a b c d e f p -> case filter (loanFilter (P.DeleteLoanFilter a b c d e f p)) (keys items) of
+                  (x : []) -> fmap Loan.user (a x)
+                  (xs    ) -> b >>= \z -> if (loanFilter (P.DeleteLoanFilter a b c d e f p)) z then fmap Loan.user (a z) else Nothing
+              )
+            <$> bDatabaseLoan
+            <*> bLookupLoan
+            <*> bSelectionUser
+            <*> bSelectionItem
+            <*> bFilterUser
+            <*> bShowUser
+            <*> bShowItem
+            <@> eFilterUser
             , Nothing <$ eClose
             ]
 
         _itemSelectionDE = tidings bSelectionItem $ Unsafe.head <$> unions
             [ eSelectionItem
-            , (\b items p -> case filter p (keys items) of
-                  (x : []) -> Just x
-                  (xs    ) -> b >>= \a -> if p a then Just a else Nothing
+            , (\items a b c d e f p -> case filter (loanFilter (P.DeleteLoanFilter a b c d e f p)) (keys items) of
+                  (x : []) -> fmap Loan.item (a x)
+                  (xs    ) -> b >>= \z -> if (loanFilter (P.DeleteLoanFilter a b c d e f p)) z then fmap Loan.item (a z) else Nothing
               )
-            <$> bSelectionItem
-            <*> bDatabaseItem
-            <@> eFilter'
+            <$> bDatabaseLoan
+            <*> bLookupLoan
+            <*> bSelectionUser
+            <*> bSelectionItem
+            <*> bFilterUser
+            <*> bShowUser
+            <*> bShowItem
+            <@> eFilterItem
             , Nothing <$ eClose
             ]
 
@@ -209,10 +216,6 @@ setup window = mdo
             [rumors $ UI.userText filterItem, "" <$ eClose]
 
         _eDeleteLoan = filterJust $ bSelectedLoan <@ eClose
-
-    liftUI $ element loanInfo # sink items bDisplayItemSelected
-    liftUI $ element deleteBtn # sink UI.enabled hasSelectedLoan
-    liftUI $ element modal # sink (modalSink closeBtn) bActiveModal
 
     return DeleteEntry { .. }
 
