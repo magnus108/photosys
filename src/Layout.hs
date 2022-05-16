@@ -116,9 +116,10 @@ mkSearchEntry
     -> Behavior (Maybe a)
     -> Behavior (a -> UI Element)
     -> Behavior String
-    -> m (Element,Element,Element, UI.TextEntry, UI.ListBox a)
+    -> m (Element, UI.TextEntry, UI.ListBox a)
 mkSearchEntry bItems bSel bDisplay bFilterItem = do
     (filter, filterView) <- mkSearch bFilterItem
     (listBox, listBoxView) <- mkListBox bItems bSel bDisplay
     counterView                 <- mkCounter bItems
-    return (filterView, listBoxView,  counterView, filter, listBox)
+    view <- liftUI $ UI.div #. "box" #+ (fmap element [filterView, listBoxView, counterView])
+    return (view, filter, listBox)

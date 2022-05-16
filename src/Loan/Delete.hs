@@ -51,21 +51,24 @@ setup
 setup window = mdo
 
     -- GUI elements
-    (searchUserView, listBoxUserView, counterUserView, filterUser, listBoxUser) <- mkSearchEntry
+    (userView, filterUser, listBoxUser) <- mkSearchEntry
                                                                                         bListBoxUsers
                                                                                         bSelectionUser
                                                                                         bDisplayUserName
                                                                                         bFilterEntryUser
 
-    (searchItemView, listBoxItemView, counterItemView, filterItem, listBoxItem) <- mkSearchEntry
+    (itemView, filterItem, listBoxItem) <- mkSearchEntry
                                                                                         bListBoxItems
                                                                                         bSelectionItem
                                                                                         bDisplayItem
                                                                                         bFilterEntryItem
 
 
-    loanInfo                   <- liftUI $ UI.span
     (deleteBtn, deleteBtnView) <- mkButton "Aflever"
+
+
+
+    loanInfo                   <- liftUI $ UI.span
 
     -- GUI layout
     closeBtn <- liftUI $ UI.input # set UI.type_ "button" #. "button" # set
@@ -86,13 +89,9 @@ setup window = mdo
            ]
 
     _elementDE <- mkContainer
-        [ element searchUserView
-        , element listBoxUserView
-        , element counterUserView
-        , element searchItemView
-        , element listBoxItemView
+        [ element userView
+        , element itemView
         , element deleteBtnView
-        , element counterItemView
         , element modal
         ]
 
