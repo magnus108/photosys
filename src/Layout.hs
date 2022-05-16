@@ -107,3 +107,18 @@ mkContainer
 mkContainer elems =
     liftUI $ UI.div #. "section is-medium" #+ [UI.div #. "container" #+ elems]
 
+
+
+mkSearchEntry
+    :: forall m a
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m, Ord a)
+    => Behavior [a]
+    -> Behavior (Maybe a)
+    -> Behavior (a -> UI Element)
+    -> Behavior String
+    -> m (Element,Element,Element, UI.TextEntry, UI.ListBox a)
+mkSearchEntry bItems bSel bDisplay bFilterItem = do
+    (filter, filterView) <- mkSearch bFilterItem
+    (listBox, listBoxView) <- mkListBox bItems bSel bDisplay
+    counterView                 <- mkCounter bItems
+    return (filterView, listBoxView,  counterView, filter, listBox)

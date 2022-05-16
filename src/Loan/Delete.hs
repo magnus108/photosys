@@ -51,17 +51,17 @@ setup
 setup window = mdo
 
     -- GUI elements
-    (filterUser , searchUser  ) <- mkSearch bFilterEntryUser
-    (listBoxUser, dropdownUser) <- mkListBox bListBoxUsers
-                                             bSelectionUser
-                                             bDisplayUserName
-    counterUser                 <- mkCounter bListBoxUsers
+    (searchUserView, listBoxUserView, counterUserView, filterUser, listBoxUser) <- mkSearchEntry
+                                                                                        bListBoxUsers
+                                                                                        bSelectionUser
+                                                                                        bDisplayUserName
+                                                                                        bFilterEntryUser
 
-    (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
-    (listBoxItem, dropdownItem) <- mkListBox bListBoxItems
-                                             bSelectionItem
-                                             bDisplayItem
-    counterItem                <- mkCounter bListBoxItems
+    (searchItemView, listBoxItemView, counterItemView, filterItem, listBoxItem) <- mkSearchEntry
+                                                                                        bListBoxItems
+                                                                                        bSelectionItem
+                                                                                        bDisplayItem
+                                                                                        bFilterEntryItem
 
 
     loanInfo                   <- liftUI $ UI.span
@@ -86,13 +86,13 @@ setup window = mdo
            ]
 
     _elementDE <- mkContainer
-        [ element searchUser
-        , element dropdownUser
-        , element counterUser
-        , element searchItem
-        , element dropdownItem
+        [ element searchUserView
+        , element listBoxUserView
+        , element counterUserView
+        , element searchItemView
+        , element listBoxItemView
         , element deleteBtnView
-        , element counterItem
+        , element counterItemView
         , element modal
         ]
 
