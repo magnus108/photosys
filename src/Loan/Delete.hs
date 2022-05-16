@@ -10,6 +10,7 @@ import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
+import qualified Modal
 import qualified Counter
 import           Loan                           ( Loan )
 import qualified Loan
@@ -64,41 +65,24 @@ setup window = mdo
                                                                                         bFilterEntryItem
 
 
+    (modalView , modal) <- mkModal bActiveModal bDisplayItemSelected
+
+
     (deleteBtn, deleteBtnView) <- mkButton "Aflever"
 
 
-
-    loanInfo                   <- liftUI $ UI.span
-
     -- GUI layout
-    closeBtn <- liftUI $ UI.input # set UI.type_ "button" #. "button" # set
-        value
-        "Luk"
-
-    modal <-
-        liftUI
-        $  UI.div
-        #+ [ UI.div #. "modal-background"
-           , UI.div
-           #. "modal-card"
-           #+ [ UI.mkElement "section"
-              #. "modal-card-body"
-              #+ [string "Aflevering godkendt: ", element loanInfo]
-              , UI.mkElement "footer" #. "modal-card-foot" #+ [element closeBtn]
-              ]
-           ]
-
     _elementDE <- mkContainer
         [ element userView
         , element itemView
         , element deleteBtnView
-        , element modal
+        , element modalView
         ]
 
 
     -- Events and behaviors
+
     let eDelete = UI.click deleteBtn
-    let eClose         = Unsafe.head <$> unions [UI.click closeBtn, () <$ UI.keypress closeBtn]
 
     bFilterEntryUser <- asks Env.bDeleteLoanFilterUser
     bFilterEntryItem <- asks Env.bDeleteLoanFilterItem
@@ -115,10 +99,9 @@ setup window = mdo
     let eSelectionUser = rumors $ UI.userSelection listBoxUser
         eSelectionItem = rumors $ UI.userSelection listBoxItem
 
+    let eModal = rumors $ Modal._stateModal modal
 
-    bActiveModal <- stepper False $ Unsafe.head <$> unions
-        [True <$ eDelete, False <$ eClose]
-
+    bActiveModal <- stepper False $ Unsafe.head <$> unions [True <$ eDelete, eModal]
 
 
     bSelectionUser  <- asks Env.bDeleteLoanSelectionUser
@@ -145,7 +128,7 @@ setup window = mdo
     bDisplayUserName <- displayUser
     bShowItem <- showItem
     bDisplayItem <- displayItem
-    bDisplayItemSelected <- displayItemDelete
+    bDisplayItemSelected <- showItemDelete
 
     let itemFilter env = P.compareMaybe (P.selectionItem env) <> (contramap (P.showItem env) (Predicate (P.filterItem env)))
     let userFilter env = P.compareMaybe (P.selectionUser env) <> (contramap (P.showUser env) (Predicate (P.filterUser env)))
@@ -169,9 +152,7 @@ setup window = mdo
     let bSelectedLoan = listToFirst <$> bSearchLoans
         hasSelectedLoan = isJust <$> bSelectedLoan
 
-    liftUI $ element loanInfo # sink items bDisplayItemSelected
     liftUI $ element deleteBtn # sink UI.enabled hasSelectedLoan
-    liftUI $ element modal # sink (modalSink closeBtn) bActiveModal
 
     let _userSelectionDE = tidings bSelectionUser $ Unsafe.head <$> unions
             [ eSelectionUser
@@ -187,7 +168,7 @@ setup window = mdo
             <*> bShowUser
             <*> bShowItem
             <@> eFilterUser
-            , Nothing <$ eClose
+            , Nothing <$ eModal
             ]
 
         _itemSelectionDE = tidings bSelectionItem $ Unsafe.head <$> unions
@@ -204,23 +185,20 @@ setup window = mdo
             <*> bShowUser
             <*> bShowItem
             <@> eFilterItem
-            , Nothing <$ eClose
+            , Nothing <$ eModal
             ]
 
         _userFilterDE =
             tidings bFilterEntryUser $ Unsafe.head <$> unions
-                [rumors $ UI.userText filterUser, "" <$ eClose]
+                [rumors $ UI.userText filterUser, "" <$ eModal]
 
         _itemFilterDE = tidings bFilterEntryItem $ Unsafe.head <$> unions
-            [rumors $ UI.userText filterItem, "" <$ eClose]
+            [rumors $ UI.userText filterItem, "" <$ eModal]
 
-        _eDeleteLoan = filterJust $ bSelectedLoan <@ eClose
+        _eDeleteLoan = filterJust $ bSelectedLoan <@ eModal
 
     return DeleteEntry { .. }
 
-modalSink e = mkWriteAttr $ \b x -> void $ do
-    return x # set (attr "class") (if b then "modal is-active" else "modal")
-    if b then UI.setFocus e else return ()
 
 
 listToFirst :: [a] -> Maybe a
@@ -228,5 +206,3 @@ listToFirst (x:[]) = Just x
 listToFirst _ = Nothing
 
 
-items = mkWriteAttr $ \i x -> void $ do
-    return x # set children [] #+ [i]

@@ -180,6 +180,3 @@ dataItem bItem = do
         <*> UI.userText entry8
         )
 
-modalSink e = mkWriteAttr $ \b x -> void $ do
-                return x # set (attr "class") (if b then "modal is-active" else "modal")
-                if b then (UI.setFocus e) else return ()

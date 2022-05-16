@@ -43,23 +43,25 @@ setup window = mdo
                             (element elemPassword # set UI.type_ "password")
     dataAdmin <- mkCheckbox "Admin" (element elemAdmin)
 
-    modal     <- liftUI $ Modal.modal (UI.string "Opret godkendt") bActiveModal
+    --(modalView, modal) <- mkModal bActiveModal [UI.string "Opret godkendt"]
 
     elem      <- mkContainer
         [ element dataName
         , element dataPassword
         , element dataAdmin
         , element createBtnView
-        , element modal
+        --, element modalView
         ]
 
     -- Events and behaviors
     let eCreate = UI.click createBtn
-        eModal  = rumors $ Modal.state modal
+--        eModal  = rumors $ Modal.state modal
         eUserIn = rumors tUser
 
+    {-
     bActiveModal <- stepper False $ Unsafe.head <$> unions
         [True <$ eCreate, eModal]
+        -}
 
     bUser <- stepper Nothing $ Unsafe.head <$> unions
         [(\x -> if x == emptyUser then Nothing else Just x) <$> eUserIn, Nothing <$ eCreate]

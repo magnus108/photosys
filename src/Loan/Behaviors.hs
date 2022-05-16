@@ -43,11 +43,11 @@ selectedItemDelete = do
     bLookup    <- lookupItem
     return $ (=<<) <$> bLookup <*> bSelection
 
-displayItemDelete
+showItemDelete
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => m (Behavior (UI Element))
-displayItemDelete = do
+    => m (Behavior String)
+showItemDelete = do
     bSelection <- asks Env.bDeleteLoanSelectionItem
-    bDisplay    <- displayItem
-    return $ (\f x -> maybe (UI.string "") f x) <$> bDisplay <*> bSelection
+    bShow    <- showItem
+    return $ maybe "" <$> bShow <*> bSelection

@@ -6,6 +6,8 @@ import           Reactive.Threepenny
 import           Monad
 import           Env
 import qualified Counter
+import           Modal (Modal)
+import qualified Modal
 
 
 mkCounter
@@ -123,3 +125,36 @@ mkSearchEntry bItems bSel bDisplay bFilterItem = do
     counterView                 <- mkCounter bItems
     view <- liftUI $ UI.div #. "box" #+ (fmap element [filterView, listBoxView, counterView])
     return (view, filter, listBox)
+
+mkModal
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => Behavior Bool
+    -> Behavior String
+    -> m (Element, Modal)
+mkModal bState elems =
+    liftUI $ do
+        info <- UI.span
+        element info # sink text elems
+
+        modal <- Modal.modal bState
+
+        let closeBtn = Modal._elementCloseBtn modal
+        view <- UI.div
+                #+ [ UI.div #. "modal-background"
+                , UI.div
+                #. "modal-card"
+                #+ [ UI.mkElement "section"
+                    #. "modal-card-body"
+                    #+ [element info]
+                    , UI.mkElement "footer" #. "modal-card-foot" #+
+                            [element closeBtn # set UI.type_ "button" #. "button" # set value "Luk"]
+                    ]
+                ]
+        element view # sink (modalSink closeBtn) bState
+        return (view, modal)
+
+modalSink e = mkWriteAttr $ \b x -> void $ do
+    return x # set (attr "class") (if b then "modal is-active" else "modal")
+    if b then UI.setFocus e else return ()
+

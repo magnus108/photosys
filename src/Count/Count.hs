@@ -58,8 +58,8 @@ setup window = mdo
     (deleteBtn, deleteBtnView) <- mkButton "Fjern"
 
     -- GUI layout
-    modal <- liftUI $ Modal.modal (UI.string "Optælling godkendt") bActiveModal
-    modal2 <- liftUI $ Modal.modal (UI.string "Fjern godkendt") bActiveModal2
+    --(modalView, modal) <- mkModal bActiveModal [UI.string "Optælling godkendt"]
+    --(modalView2, modal2) <- mkModal bActiveModal2 [UI.string "Fjern godkendt"]
 
     elem <- mkContainer
         [ element searchItem
@@ -70,8 +70,8 @@ setup window = mdo
         , element dropdownCount
         , element deleteBtnView
         , element counterCount
-        , element modal
-        , element modal2
+        --, element modalView
+        --, element modalView2
         ]
 
     -- Events and behaviors
@@ -93,14 +93,16 @@ setup window = mdo
         eCreate         = UI.click createBtn
         eDelete         = UI.click deleteBtn
 
-        eModal          = rumors $ Modal.state modal
-        eModal2         = rumors $ Modal.state modal2
+        --eModal          = rumors $ Modal.state modal
+        --eModal2         = rumors $ Modal.state modal2
 
+    {-
     bActiveModal <- stepper False $ Unsafe.head <$> unions
         [True <$ eCreate, eModal]
 
     bActiveModal2 <- stepper False $ Unsafe.head <$> unions
         [True <$ eDelete, eModal2]
+        -}
 
     bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionItem

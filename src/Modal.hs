@@ -1,6 +1,7 @@
 {-# LANGUAGE RecordWildCards, ScopedTypeVariables #-}
 module Modal where
 
+import qualified Relude.Unsafe                 as Unsafe
 import           Control.Monad                  ( void
                                                 , when
                                                 )
@@ -18,32 +19,17 @@ import           Reactive.Threepenny
 
 
 data Modal = Modal
-    { _elementModal  :: Element
+    { _elementCloseBtn :: Element
     , _stateModal :: Tidings Bool
     }
 
-instance Widget Modal where getElement = _elementModal
 
 state :: Modal -> Tidings Bool
 state = _stateModal
 
 
-modal :: UI Element -> Behavior Bool -> UI Modal
-modal elem bState = do
-    closeBtn                   <- UI.button #. "modal-close is-large"
-    _elementModal <- UI.div
-        #+ [ UI.div #. "modal-background"
-           , UI.div
-           #. "modal-content"
-           #+ [UI.div #. "box" #+ [elem]]
-           , element closeBtn
-           ]
-
-
-    let _stateModal = tidings bState $ False <$ UI.click closeBtn
-
-    element _elementModal # sink
-        (attr "class")
-        ((\b -> if b then "modal is-active" else "modal") <$> bState)
-
+modal :: Behavior Bool -> UI Modal
+modal bState = do
+    _elementCloseBtn <- UI.input
+    let _stateModal = tidings bState $ Unsafe.head <$> unions [False <$ UI.click _elementCloseBtn, False <$ UI.keyup _elementCloseBtn]
     return Modal {..}

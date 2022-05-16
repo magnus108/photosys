@@ -55,19 +55,7 @@ setup window = mdo
 
     loanInfo                   <- liftUI $ UI.span
     -- GUI layout
-    closeBtn                   <- liftUI $ UI.input # set UI.type_ "button" #. "button" # set value "Luk"
-    modal                      <-
-        liftUI
-        $  UI.div
-        #+ [ UI.div #. "modal-background"
-           , UI.div
-           #. "modal-card"
-           #+ [ UI.mkElement "section"
-              #. "modal-card-body"
-              #+ [string "Lån godkendt: ", element loanInfo]
-              , UI.mkElement "footer" #. "modal-card-foot" #+ [element closeBtn]
-              ]
-           ]
+    --(modalView, modal) <- mkModal bActiveModal [string "Lån godkendt: ", element loanInfo]
 
     --- ugs
     infoSerie <-
@@ -135,7 +123,7 @@ setup window = mdo
         , element dropdownItem
         , element createBtnView
         , element counterItem
-        , element modal
+        ---, element modalView
         , element infoElem
         ]
 
@@ -157,11 +145,9 @@ setup window = mdo
 
     let eSelectionUser = rumors $ UI.userSelection listBoxUser
         eSelectionItem = rumors $ UI.userSelection listBoxItem
-        eClose         = UI.click closeBtn
-        ePress = UI.keypress closeBtn
 
-    bActiveModal <- stepper False $ Unsafe.head <$> unions
-        [True <$ eCreate, False <$ eClose, False <$ ePress]
+    --bActiveModal <- stepper False $ Unsafe.head <$> unions
+     --   [True <$ eCreate]
 
 
     bLastLoanItem <- stepper Nothing $ Unsafe.head <$> unions
@@ -306,7 +292,6 @@ setup window = mdo
                                       (hasUserSelected <&&> hasItemSelected)
 
 
-    liftUI $ element modal # sink (modalSink closeBtn) bActiveModal
 
     return
         ( elem
@@ -330,7 +315,3 @@ setup window = mdo
 
 child = mkWriteAttr $ \i x -> void $ do
     return x # set children [] #+ (catMaybes [i])
-
-modalSink e = mkWriteAttr $ \b x -> void $ do
-                return x # set (attr "class") (if b then "modal is-active" else "modal")
-                if b then (UI.setFocus e) else return ()
