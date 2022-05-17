@@ -288,5 +288,3 @@ setup window = mdo
 
     return elem
 
-items = mkWriteAttr $ \i x -> void $ do
-    return x # set children [] #+ i

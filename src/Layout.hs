@@ -130,12 +130,10 @@ mkModal
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Behavior Bool
-    -> Behavior String
+    -> [UI Element]
     -> m (Element, Modal)
 mkModal bState elems =
     liftUI $ do
-        info <- UI.span
-        element info # sink text elems
 
         modal <- Modal.modal bState
 
@@ -146,7 +144,7 @@ mkModal bState elems =
                 #. "modal-card"
                 #+ [ UI.mkElement "section"
                     #. "modal-card-body"
-                    #+ [element info]
+                    #+ elems
                     , UI.mkElement "footer" #. "modal-card-foot" #+
                             [element closeBtn # set UI.type_ "button" #. "button" # set value "Luk"]
                     ]
@@ -158,3 +156,5 @@ modalSink e = mkWriteAttr $ \b x -> void $ do
     return x # set (attr "class") (if b then "modal is-active" else "modal")
     if b then UI.setFocus e else return ()
 
+items = mkWriteAttr $ \ix x -> void $ do
+    return x # set children [] #+ ix

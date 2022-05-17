@@ -2,6 +2,7 @@
 module Loan.Create where
 
 import           Data.Time
+import qualified Modal
 
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
@@ -53,9 +54,8 @@ setup window = mdo
 
     (createBtn, createBtnView) <- mkButton "Lån"
 
-    loanInfo                   <- liftUI $ UI.span
     -- GUI layout
-    --(modalView, modal) <- mkModal bActiveModal [string "Lån godkendt: ", element loanInfo]
+    (modalView, modal) <- mkModal bActiveModal [UI.span # sink text ((maybe "" Item.name) <$> bLastLoanItemItem)]
 
     --- ugs
     infoSerie <-
@@ -123,7 +123,7 @@ setup window = mdo
         , element dropdownItem
         , element createBtnView
         , element counterItem
-        ---, element modalView
+        , element modalView
         , element infoElem
         ]
 
@@ -146,8 +146,9 @@ setup window = mdo
     let eSelectionUser = rumors $ UI.userSelection listBoxUser
         eSelectionItem = rumors $ UI.userSelection listBoxItem
 
-    --bActiveModal <- stepper False $ Unsafe.head <$> unions
-     --   [True <$ eCreate]
+    let eModal = rumors $ Modal._stateModal modal
+
+    bActiveModal <- stepper False $ Unsafe.head <$> unions [True <$ eCreate, eModal]
 
 
     bLastLoanItem <- stepper Nothing $ Unsafe.head <$> unions
@@ -285,9 +286,6 @@ setup window = mdo
                 <$> bSelectionItem
                 <*> bListBoxItems
 
-    liftUI $ element loanInfo # sink
-        text
-        ((maybe "" Item.name) <$> bLastLoanItemItem)
     liftUI $ element createBtn # sink UI.enabled
                                       (hasUserSelected <&&> hasItemSelected)
 

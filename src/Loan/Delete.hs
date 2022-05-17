@@ -65,13 +65,12 @@ setup window = mdo
                                                                                         bFilterEntryItem
 
 
-    (modalView , modal) <- mkModal bActiveModal bDisplayItemSelected
+    (modalView , modal) <- mkModal bActiveModal [UI.span # sink text bShowItemSelected]
 
 
     (deleteBtn, deleteBtnView) <- mkButton "Aflever"
 
 
-    -- GUI layout
     _elementDE <- mkContainer
         [ element userView
         , element itemView
@@ -79,8 +78,6 @@ setup window = mdo
         , element modalView
         ]
 
-
-    -- Events and behaviors
 
     let eDelete = UI.click deleteBtn
 
@@ -128,7 +125,7 @@ setup window = mdo
     bDisplayUserName <- displayUser
     bShowItem <- showItem
     bDisplayItem <- displayItem
-    bDisplayItemSelected <- showItemDelete
+    bShowItemSelected <- showItemDelete
 
     let itemFilter env = P.compareMaybe (P.selectionItem env) <> (contramap (P.showItem env) (Predicate (P.filterItem env)))
     let userFilter env = P.compareMaybe (P.selectionUser env) <> (contramap (P.showUser env) (Predicate (P.filterUser env)))

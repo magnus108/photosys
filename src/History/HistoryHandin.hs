@@ -281,6 +281,3 @@ setup window = mdo
 
     return
         (elem, tSelectionLoan, tSelectionUser, tSelectionItem, tFilterEntryUser)
-
-items = mkWriteAttr $ \i x -> void $ do
-    return x # set children [] #+ i

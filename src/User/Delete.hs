@@ -56,8 +56,8 @@ setup window = mdo
 
 
     -- GUI layout
-    --(modalView, modal) <- mkModal bActiveModal [element realDeleteBtnView]
-    --(modalView2, modal2) <- mkModal bActiveModal2 [UI.string "Kode ændret"]
+    (modalView, modal) <- mkModal bActiveModal [element realDeleteBtnView]
+    (modalView2, modal2) <- mkModal bActiveModal2 [UI.string "Kode ændret"]
 
     dataPassword <- mkInput "Ændre password"
                             (element elemPassword # set UI.type_ "password")
@@ -69,8 +69,8 @@ setup window = mdo
         , element counter
         , element dataPassword
         , element changeBtnView
-      --  , element modalView
-     --   , element modalView2
+        , element modalView
+        , element modalView2
         ]
 
 
@@ -86,8 +86,8 @@ setup window = mdo
         eRealDelete    = UI.click realDeleteBtn
         eChange    = UI.click changeBtn
 
---        eModal         = rumors $ Modal.state modal
- --       eModal2 = rumors $ Modal.state modal2
+        eModal         = rumors $ Modal.state modal
+        eModal2 = rumors $ Modal.state modal2
         eUserIn = btmp <@ eChange
 
     btmp <- stepper (emptyUser) $ Unsafe.head <$> unions [rumors tUser]
@@ -102,13 +102,11 @@ setup window = mdo
                             (User.admin x)
                     ) eUserIn)
 
-    {-
     bActiveModal <- stepper False $ Unsafe.head <$> unions
-        [True <$ eDelete, False <$ eModal, False <$ eRealDelete]
+        [True <$ eDelete, eModal, False <$ eRealDelete]
 
     bActiveModal2 <- stepper False $ Unsafe.head <$> unions
-        [True<$eUserIn, False <$ eModal2]
-        -}
+        [True<$eUserIn, eModal2]
 
     bSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionUser
