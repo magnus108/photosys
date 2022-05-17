@@ -100,7 +100,7 @@ setup window = mdo
         liftUI
         $  UI.div
         #+ [ string "Note: "
-           , UI.span # sink child (fmap <$> bDisplayItemNote <*> bSelectionItem)
+           , UI.span # sink text ((maybe "" Item.note) <$> bSelectedLoan)
            ]
 
     infoElem <- liftUI $ UI.div # sink children bInfo
@@ -268,8 +268,9 @@ setup window = mdo
 
         bShowItemNote :: Behavior (DatabaseKey -> String)
         bShowItemNote = (maybe "" Item.note .) <$> bLookupItem
-        bDisplayItemNote :: Behavior (DatabaseKey -> UI Element)
-        bDisplayItemNote = (UI.string .) <$> bShowItemNote
+
+        bSelectedLoan :: Behavior (Maybe Item)
+        bSelectedLoan = ((=<<) <$> bLookupItem <*> bSelectionItem)
 
         bShowItemVendor :: Behavior (DatabaseKey -> String)
         bShowItemVendor = (maybe "" Item.vendor .) <$> bLookupItem

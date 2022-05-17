@@ -134,9 +134,7 @@ mkModal
     -> m (Element, Modal)
 mkModal bState elems =
     liftUI $ do
-
         modal <- Modal.modal bState
-
         let closeBtn = Modal._elementCloseBtn modal
         view <- UI.div
                 #+ [ UI.div #. "modal-background"
