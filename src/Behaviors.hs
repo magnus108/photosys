@@ -138,14 +138,6 @@ selectedTime = do
     bLookup    <- lookupTime
     return $ (=<<) <$> bLookup <*> bSelection
 
-selectedCreateLoanItem
-    :: forall m
-     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => m (Behavior (Maybe Item))
-selectedCreateLoanItem = do
-    bSelection <- asks Env.bCreateSelectionItem
-    bLookup    <- lookupItem
-    return $ (=<<) <$> bLookup <*> bSelection
 
 historyHandinLoan
     :: forall m

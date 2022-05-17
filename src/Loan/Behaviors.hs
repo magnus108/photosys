@@ -51,3 +51,20 @@ showItemDelete = do
     bSelection <- asks Env.bDeleteLoanSelectionItem
     bShow    <- showItem
     return $ maybe "" <$> bShow <*> bSelection
+
+selectedCreateLoanItem
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (Maybe Item))
+selectedCreateLoanItem = do
+    bSelection <- asks Env.bCreateSelectionItem
+    bLookup    <- lookupItem
+    return $ (=<<) <$> bLookup <*> bSelection
+
+hasSelectedCreateLoanItem
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior Bool)
+hasSelectedCreateLoanItem = do
+    bSelection <- selectedCreateLoanItem
+    return $ isJust <$> bSelection

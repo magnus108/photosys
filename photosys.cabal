@@ -53,6 +53,7 @@ library
       Loan.Delete
       Loan.DeleteNormal
       Loan.Predicates
+      Loan.Widgets
       Login
       MenuBox
       Modal
