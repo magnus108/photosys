@@ -48,3 +48,10 @@ chooseMaybe = choose (maybeToRight ()) false
 
 pDivideLoan :: Divisible f0 => f0 Int -> f0 Int -> f0 Loan
 pDivideLoan = divide (\l -> (Loan.item l, Loan.user l))
+
+pLoanFilter :: DeleteLoanFilter -> Predicate DatabaseKey
+pLoanFilter env = contramap (lookupLoan env) $
+                                chooseMaybe $
+                                    divide (\l -> (Loan.item l, Loan.user l))
+                                                    (compareMaybe (selectionItem env) <> (contramap (showItem env) (Predicate (filterItem env))))
+                                                    (compareMaybe (selectionUser env) <> (contramap (showUser env) (Predicate (filterUser env))))

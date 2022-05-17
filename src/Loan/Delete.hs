@@ -127,15 +127,13 @@ setup window = mdo
     bDisplayItem <- displayItem
     bShowItemSelected <- showItemDelete
 
-    let itemFilter env = P.compareMaybe (P.selectionItem env) <> (contramap (P.showItem env) (Predicate (P.filterItem env)))
-    let userFilter env = P.compareMaybe (P.selectionUser env) <> (contramap (P.showUser env) (Predicate (P.filterUser env)))
-    let loanFilter env = getPredicate $ contramap (P.lookupLoan env) $
-                                P.chooseMaybe $
-                                    divide (\l -> (Loan.item l, Loan.user l))
-                                                    (itemFilter env)
-                                                    (userFilter env)
+    let loanFilter = getPredicate . P.pLoanFilter
 
     let deleteFilter = P.DeleteLoanFilter <$> bLookupLoan <*> bSelectionUser <*> bSelectionItem <*> bFilterUser <*> bShowUser <*> bShowItem
+
+
+
+
     let bFilter = deleteFilter <*> bFilterItem
 
     let bSearchLoans = (\env -> filter (loanFilter env) . keys) <$> bFilter <*> bDatabaseLoan
