@@ -23,6 +23,8 @@ import           Env                            ( Env )
 import qualified Env
 import Behaviors
 
+import           Control.Bool
+
 
 selectedUserDelete
     :: forall m
@@ -86,3 +88,21 @@ hasSelectedCreateLoanUser
 hasSelectedCreateLoanUser = do
     bSelection <- selectedCreateLoanUser
     return $ isJust <$> bSelection
+
+canCreateLoan
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior Bool)
+canCreateLoan = do
+    hasItemSelected <- hasSelectedCreateLoanItem
+    hasUserSelected <- hasSelectedCreateLoanUser
+    return $ hasUserSelected <&&> hasItemSelected
+
+createLoan
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (Maybe Loan))
+createLoan = do
+    bSelectionItem  <- asks Env.bCreateLoanSelectionItem
+    bSelectionUser    <- asks Env.bCreateLoanSelectionUser
+    return $ liftA2 Loan.Loan <$> bSelectionItem <*> bSelectionUser

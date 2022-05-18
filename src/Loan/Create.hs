@@ -152,14 +152,10 @@ setup window = mdo
 
 
 
-    let bCreateLoan :: Behavior (Maybe Loan)
-        bCreateLoan = liftA2 Loan.Loan <$> bSelectionItem <*> bSelectionUser
+    bCreateLoan <- createLoan
+    bCanCreateLoan <- canCreateLoan
 
-
-    hasItemSelected <- hasSelectedCreateLoanItem
-    hasUserSelected <- hasSelectedCreateLoanUser
-
-    liftUI $ element createBtn # sink UI.enabled (hasUserSelected <&&> hasItemSelected)
+    liftUI $ element createBtn # sink UI.enabled bCanCreateLoan
 
 
     let _userSelectionCE = tidings bSelectionUser $ Unsafe.head <$> unions
