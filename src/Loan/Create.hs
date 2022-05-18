@@ -39,6 +39,7 @@ import           Utils.Utils
 data CreateEntry = CreateEntry
     { _elementCE :: Element
     , _eCreateLoan :: Event Loan
+    , _eModalState :: Event Bool
     , _userFilterCE    :: Tidings String
     , _itemFilterCE :: Tidings String
     , _userSelectionCE :: Tidings (Maybe DatabaseKey)
@@ -83,7 +84,7 @@ setup window = mdo
 
 
     -- Events and behaviors
-    let eModal  = rumors $ Modal._stateModal modal
+    let _eModalState = rumors $ Modal._stateModal modal
     let eCreate = UI.click createBtn
 
     bFilterEntryUser <- asks Env.bCreateLoanFilterUser
@@ -101,11 +102,7 @@ setup window = mdo
     let eSelectionUser = rumors $ UI.userSelection listBoxUser
         eSelectionItem = rumors $ UI.userSelection listBoxItem
 
-
-    bActiveModal <- stepper False $ Unsafe.head <$> unions
-        [True <$ eCreate, eModal]
-
-
+    bActiveModal <- asks Env.bCreateLoanModalState
 
     bDatabaseLoan   <- asks Env.bDatabaseLoan
     bDatabaseUser   <- asks Env.bDatabaseUser
@@ -154,7 +151,6 @@ setup window = mdo
 
     bCreateLoan <- createLoan
     bCanCreateLoan <- canCreateLoan
-
     liftUI $ element createBtn # sink UI.enabled bCanCreateLoan
 
 
@@ -182,16 +178,16 @@ setup window = mdo
                 <*> bShowItem
                 <*> bDatabaseItem
                 <@> eFilterItem
-                , Nothing <$ eModal
+                , Nothing <$ _eModalState 
                 ]
             )
 
         _userFilterCE = tidings bFilterEntryUser $ Unsafe.head <$> unions
-            [rumors $ UI.userText filterUser, "" <$ eModal]
+            [rumors $ UI.userText filterUser, "" <$ _eModalState ]
 
         _itemFilterCE = tidings bFilterEntryItem $ Unsafe.head <$> unions
-            [rumors $ UI.userText filterItem, "" <$ eModal]
+            [rumors $ UI.userText filterItem, "" <$ _eModalState ]
 
-        _eCreateLoan = filterJust $ bCreateLoan <@ eModal
+        _eCreateLoan = filterJust $ bCreateLoan <@ _eModalState
 
     return CreateEntry { .. }

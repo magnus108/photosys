@@ -46,6 +46,7 @@ data Env = Env
     , bCreateLoanSelectionUser :: !(Behavior (Maybe DatabaseKey))
     , bCreateLoanFilterItem :: !(Behavior String)
     , bCreateLoanSelectionItem :: !(Behavior (Maybe DatabaseKey))
+    , bCreateLoanModalState :: !(Behavior Bool)
 
     , bHistoryHandinLoan :: !(Behavior (Maybe DatabaseKey))
     , bHistoryHandinUser :: !(Behavior (Maybe DatabaseKey))
