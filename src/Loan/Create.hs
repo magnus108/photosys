@@ -38,9 +38,10 @@ import           Utils.Utils
 
 data CreateEntry = CreateEntry
     { _elementCE :: Element
-    , _eCreateLoan :: Event ()
     , _eConfirmLoan :: Event Loan
-    , _eModalState :: Event Bool
+
+    -- TIDING
+    , _modalStateCE :: Tidings Bool
     , _userFilterCE    :: Tidings String
     , _itemFilterCE :: Tidings String
     , _userSelectionCE :: Tidings (Maybe DatabaseKey)
@@ -85,8 +86,8 @@ setup window = mdo
 
 
     -- Events and behaviors
-    let _eModalState = rumors $ Modal._stateModal modal
-    let _eCreateLoan = UI.click createBtn
+    let eModalState = rumors $ Modal._stateModal modal
+    let eCreateLoan = UI.click createBtn
 
     bFilterEntryUser <- asks Env.bCreateLoanFilterUser
     bFilterEntryItem <- asks Env.bCreateLoanFilterItem
@@ -179,16 +180,20 @@ setup window = mdo
                 <*> bShowItem
                 <*> bDatabaseItem
                 <@> eFilterItem
-                , Nothing <$ _eModalState
+                , Nothing <$ eModalState
                 ]
             )
 
         _userFilterCE = tidings bFilterEntryUser $ Unsafe.head <$> unions
-            [rumors $ UI.userText filterUser, "" <$ _eModalState]
+            [rumors $ UI.userText filterUser, "" <$ eModalState]
 
         _itemFilterCE = tidings bFilterEntryItem $ Unsafe.head <$> unions
-            [rumors $ UI.userText filterItem, "" <$ _eModalState]
+            [rumors $ UI.userText filterItem, "" <$ eModalState]
 
-        _eConfirmLoan = filterJust $ bCreateLoan <@ _eModalState
+        _eConfirmLoan = filterJust $ bCreateLoan <@ eModalState
+
+        _modalStateCE = tidings bActiveModal $ Unsafe.head <$> unions
+            [True <$ eCreateLoan, eModalState]
+
 
     return CreateEntry { .. }

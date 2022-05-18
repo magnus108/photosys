@@ -313,7 +313,7 @@ setup Config {..} window (anyE, anyH) = mdo
 
 
     bCreateLoanModalState <- stepper False $ Unsafe.head <$> unions
-        [True <$ (LoanCreate._eCreateLoan ce), LoanCreate._eModalState ce]
+        [rumors (LoanCreate._modalStateCE ce)]
 
     bCreateLoanFilterUser <- stepper "" $ Unsafe.head <$> unions
         [rumors (LoanCreate._userFilterCE ce)]
