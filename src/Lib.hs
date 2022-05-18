@@ -153,7 +153,7 @@ setup Config {..} window (anyE, anyH) = mdo
     (tokenCreate, eTokenCreate)            <- TokenCreate.setup window
     (tabs, tTabs, eLogout)                 <- Tab.setup window
     (export, eExport)                      <- Export.setup window
-    (loanCreate, eLoanCreate, tLoanCreate) <- LoanCreate.setup window
+    ce <- LoanCreate.setup window
     de <- LoanDelete.setup window
     (loanCreateNormal, eLoanCreateNormal)  <- LoanCreateNormal.setup window
     (loanDeleteNormal, eLoanDeleteNormal)  <- LoanDeleteNormal.setup window
@@ -221,8 +221,6 @@ setup Config {..} window (anyE, anyH) = mdo
         [filterJust $ Database.update' <$> bTimeSelection <@> eTime]
 
 
-    bCreateSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
-        [rumors tLoanCreate]
 
     bDatabaseRepair <- accumB databaseRepair $ concatenate <$> unions
         [Database.create <$> eRepairCreate, Database.delete <$> eRepair]
@@ -231,7 +229,7 @@ setup Config {..} window (anyE, anyH) = mdo
         [Database.create . Count <$> eCount, Database.delete <$> eCountDelete]
 
     bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
-        [ Database.create <$> eLoanCreate
+        [ Database.create <$> (LoanCreate._eCreateLoan ce)
         , Database.delete <$> (LoanDelete._eDeleteLoan de)
         , Database.create <$> eLoanCreateNormal
         , Database.delete <$> eLoanDeleteNormal
@@ -260,7 +258,7 @@ setup Config {..} window (anyE, anyH) = mdo
                  <$> bSelectedTime
                  <*> bSelectedTokenId
                  )
-                <@> eLoanCreate
+                <@> (LoanCreate._eCreateLoan ce)
                 )
         , Database.create
             <$> (((\x z y -> History y (fromMaybe (Time "") x) (fromMaybe 999 z)
@@ -313,6 +311,18 @@ setup Config {..} window (anyE, anyH) = mdo
         , Database.delete <$> eUserDelete
         ]
 
+
+    bCreateLoanFilterUser <- stepper "" $ Unsafe.head <$> unions
+        [rumors (LoanCreate._userFilterCE ce)]
+
+    bCreateLoanFilterItem <- stepper "" $ Unsafe.head <$> unions
+        [rumors (LoanCreate._itemFilterCE ce)]
+
+    bCreateLoanSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
+        [rumors (LoanCreate._userSelectionCE ce)]
+
+    bCreateLoanSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
+        [rumors (LoanCreate._itemSelectionCE ce)]
 
     bDeleteLoanFilterUser <- stepper "" $ Unsafe.head <$> unions
         [rumors (LoanDelete._userFilterDE de)]
@@ -372,12 +382,17 @@ setup Config {..} window (anyE, anyH) = mdo
                   , bDatabaseCount           = bDatabaseCount
                   , bDatabaseTime            = bDatabaseTime
                   , bDatabaseRepair            = bDatabaseRepair
-                  , bCreateSelectionItem     = bCreateSelectionItem
                   , bSelectionTime           = bTimeSelection
                   , bHistoryHandinLoan       = bHistoryHandinLoan
                   , bHistoryHandinUser       = bHistoryHandinUser
                   , bHistoryHandinFilterUser = bHistoryHandinFilterUser
                   , bHistoryHandinItem       = bHistoryHandinItem
+
+                  , bCreateLoanFilterUser = bCreateLoanFilterUser
+                  , bCreateLoanFilterItem = bCreateLoanFilterItem
+                  , bCreateLoanSelectionUser = bCreateLoanSelectionUser
+                  , bCreateLoanSelectionItem = bCreateLoanSelectionItem
+
                   , bDeleteLoanFilterUser = bDeleteLoanFilterUser
                   , bDeleteLoanFilterItem = bDeleteLoanFilterItem
                   , bDeleteLoanSelectionUser = bDeleteLoanSelectionUser
@@ -423,7 +438,7 @@ setup Config {..} window (anyE, anyH) = mdo
 -------------------------------------------------------------------------------
     let display y isAdmin x = if y
             then case (x, isAdmin) of
-                (0 , True ) -> [tabs, loanCreate]
+                (0 , True ) -> [tabs, getElement ce]
                 (1 , True ) -> [tabs, getElement de]
                 (2 , True ) -> [tabs, itemCreate]
                 (3 , True ) -> [tabs, itemDelete]

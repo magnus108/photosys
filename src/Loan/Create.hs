@@ -1,7 +1,7 @@
 {-# LANGUAGE RecursiveDo #-}
 module Loan.Create where
 
-import qualified Loan.Widgets as W
+import qualified Loan.Widgets                  as W
 
 import           Data.Time
 import qualified Modal
@@ -36,31 +36,44 @@ import           Loan.Behaviors
 import           Layout
 import           Utils.Utils
 
+data CreateEntry = CreateEntry
+    { _elementCE :: Element
+    , _eCreateLoan :: Event Loan
+    , _userFilterCE    :: Tidings String
+    , _itemFilterCE :: Tidings String
+    , _userSelectionCE :: Tidings (Maybe DatabaseKey)
+    , _itemSelectionCE :: Tidings (Maybe DatabaseKey)
+    }
+
+instance Widget CreateEntry where
+    getElement = _elementCE
+
+
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
-    -> m (Element, Event Loan, Tidings (Maybe DatabaseKey))
+    -> m CreateEntry
 setup window = mdo
 
-    (userView, filterUser, listBoxUser) <- mkSearchEntry
-                                                                                        bListBoxUsers
-                                                                                        bSelectionUser
-                                                                                        bDisplayUserName
-                                                                                        bFilterEntryUser
+    (userView, filterUser, listBoxUser) <- mkSearchEntry bListBoxUsers
+                                                         bSelectionUser
+                                                         bDisplayUser
+                                                         bFilterEntryUser
 
-    (itemView, filterItem, listBoxItem) <- mkSearchEntry
-                                                                                        bListBoxItems
-                                                                                        bSelectionItem
-                                                                                        bDisplayItem
-                                                                                        bFilterEntryItem
+    (itemView, filterItem, listBoxItem) <- mkSearchEntry bListBoxItems
+                                                         bSelectionItem
+                                                         bDisplayItem
+                                                         bFilterEntryItem
 
     (createBtn, createBtnView) <- mkButton "Lån"
 
-    (modalView, modal) <- mkModal bActiveModal [UI.span # sink text ((maybe "" Item.name) <$> bSelectedItem)]
+    (modalView, modal        ) <- mkModal
+        bActiveModal
+        [UI.span # sink text ((maybe "" Item.name) <$> bSelectedItem)]
 
     infoElem <- W.info
 
-    elem <- mkContainer
+    _elementCE     <- mkContainer
         [ element userView
         , element itemView
         , element createBtnView
@@ -70,10 +83,12 @@ setup window = mdo
 
 
     -- Events and behaviors
-    let eModal = rumors $ Modal._stateModal modal
-    let eCreate        = UI.click createBtn
-    bFilterEntryUser <- stepper "" $ Unsafe.head <$> unions [rumors $ UI.userText filterUser, "" <$ eModal]
-    bFilterEntryItem <- stepper "" $ Unsafe.head <$> unions [rumors $ UI.userText filterItem, "" <$ eModal]
+    let eModal  = rumors $ Modal._stateModal modal
+    let eCreate = UI.click createBtn
+    bFilterEntryUser <- stepper "" $ Unsafe.head <$> unions
+        [rumors $ UI.userText filterUser, "" <$ eModal]
+    bFilterEntryItem <- stepper "" $ Unsafe.head <$> unions
+        [rumors $ UI.userText filterItem, "" <$ eModal]
 
 
     let tFilterUser = isInfixOf <$> UI.userText filterUser
@@ -88,20 +103,9 @@ setup window = mdo
         eSelectionItem = rumors $ UI.userSelection listBoxItem
 
 
-    bActiveModal <- stepper False $ Unsafe.head <$> unions [True <$ eCreate, eModal]
+    bActiveModal <- stepper False $ Unsafe.head <$> unions
+        [True <$ eCreate, eModal]
 
-
-    bSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
-        [ eSelectionUser
-        , (\b s users p -> case filter (p . s) (keys users) of
-                                (x:[]) -> Just x
-                                (xs) -> b >>= \a -> if p (s a) then Just a else Nothing
-          )
-        <$> bSelectionUser
-        <*> bShowUser
-        <*> bDatabaseUser
-        <@> eFilterUser
-        ]
 
 
     bDatabaseLoan   <- asks Env.bDatabaseLoan
@@ -109,33 +113,23 @@ setup window = mdo
     bDatabaseItem   <- asks Env.bDatabaseItem
     bDatabaseToken  <- asks Env.bDatabaseToken
     bSelectionToken <- asks Env.bSelectionToken
-    bSelectionItem  <- asks Env.bCreateSelectionItem
+    bSelectionItem  <- asks Env.bCreateLoanSelectionItem
+    bSelectionUser    <- asks Env.bCreateLoanSelectionUser
 
-    bDisplayItem <- displayItem
+    bDisplayItem    <- displayItem
     bLookupUser     <- lookupUser
     bLookupItem     <- lookupItem
     bLookupLoan     <- lookupLoan
     bSelectedItem   <- selectedCreateLoanItem
+    bShowUser       <- showUser
+    bShowItem       <- showItem
 
-    let bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
-        bLoanItem = (fmap Loan.item .) <$> bLookupLoan
+    bDisplayUser    <- displayUser
 
-        bSelectedUser :: Behavior (Maybe User)
-        bSelectedUser = (=<<) <$> bLookupUser <*> bSelectionUser
+    bLoanItemId     <- loanItemId
+    bLoanUserId     <- loanUserId
 
-        bShowUser :: Behavior (DatabaseKey -> String)
-        bShowUser = (maybe "" User.name .) <$> bLookupUser
-
-        bShowItem :: Behavior (DatabaseKey -> String)
-        bShowItem = (maybe "" Item.showItem .) <$> bLookupItem
-
-        bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
-        bDisplayUserName = (UI.string .) <$> bShowUser
-
-        bDisplayItemName :: Behavior (DatabaseKey -> UI Element)
-        bDisplayItemName = (UI.string .) <$> bShowItem
-
-        bListBoxUsers :: Behavior [DatabaseKey]
+    let bListBoxUsers :: Behavior [DatabaseKey]
         bListBoxUsers =
             (\p show -> filter (p . show) . keys)
                 <$> bFilterUser
@@ -145,7 +139,7 @@ setup window = mdo
 
         bItemsWithLoan :: Behavior [DatabaseKey]
         bItemsWithLoan =
-            (\f -> catMaybes . fmap f . keys) <$> bLoanItem <*> bDatabaseLoan
+            (\f -> catMaybes . fmap f . keys) <$> bLoanItemId <*> bDatabaseLoan
 
         bListBoxItems :: Behavior [DatabaseKey]
         bListBoxItems =
@@ -156,15 +150,6 @@ setup window = mdo
                 <*> bItemsWithLoan
                 <*> bShowItem
                 <*> bDatabaseItem
-
-        bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
-        bLookupToken = flip lookup <$> bDatabaseToken
-
-        bSelectedToken :: Behavior (Maybe Token)
-        bSelectedToken = (=<<) <$> bLookupToken <*> bSelectionToken
-
-        bSelectedTokenId :: Behavior (Maybe Int)
-        bSelectedTokenId = chainedTo Token.tokenId <$> bSelectedToken
 
 
 
@@ -180,18 +165,26 @@ setup window = mdo
                                       (hasUserSelected <&&> hasItemSelected)
 
 
+    let _userSelectionCE = tidings bSelectionUser $ Unsafe.head <$> unions
+                                    [ eSelectionUser
+                                    , (\b s users p -> case filter (p . s) (keys users) of
+                                        (x : []) -> Just x
+                                        (xs    ) -> b >>= \a -> if p (s a) then Just a else Nothing
+                                    )
+                                    <$> bSelectionUser
+                                    <*> bShowUser
+                                    <*> bDatabaseUser
+                                    <@> eFilterUser
+                                    ]
 
-    return
-        ( elem
-        , filterJust $ bCreateLoan <@ eModal
-        , tidings
+        _itemSelectionCE = tidings
             bSelectionItem
             (Unsafe.head <$> unions
                 [ eSelectionItem
                 , (\b s items p -> case filter (p . s) (keys items) of
-                                (x:[]) -> Just x
-                                (xs) -> b >>= \a -> if p (s a) then Just a else Nothing
-                )
+                      (x : []) -> Just x
+                      (xs) -> b >>= \a -> if p (s a) then Just a else Nothing
+                  )
                 <$> bSelectionItem
                 <*> bShowItem
                 <*> bDatabaseItem
@@ -199,4 +192,13 @@ setup window = mdo
                 , Nothing <$ eModal
                 ]
             )
-        )
+
+        _userFilterCE = tidings bFilterEntryUser $ Unsafe.head <$> unions
+            [rumors $ UI.userText filterUser, "" <$ eModal]
+
+        _itemFilterCE = tidings bFilterEntryItem $ Unsafe.head <$> unions
+            [rumors $ UI.userText filterItem, "" <$ eModal]
+
+        _eCreateLoan = filterJust $ bCreateLoan <@ eModal
+
+    return CreateEntry { .. }

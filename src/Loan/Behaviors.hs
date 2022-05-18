@@ -57,7 +57,7 @@ selectedCreateLoanItem
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => m (Behavior (Maybe Item))
 selectedCreateLoanItem = do
-    bSelection <- asks Env.bCreateSelectionItem
+    bSelection <- asks Env.bCreateLoanSelectionItem
     bLookup    <- lookupItem
     return $ (=<<) <$> bLookup <*> bSelection
 

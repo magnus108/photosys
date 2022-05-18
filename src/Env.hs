@@ -42,7 +42,11 @@ data Env = Env
     , bSelectionTab :: !(Behavior (Maybe DatabaseKey))
     , bSelectionTime :: !(Behavior (Maybe DatabaseKey))
 
-    , bCreateSelectionItem :: !(Behavior (Maybe DatabaseKey))
+    , bCreateLoanFilterUser :: !(Behavior String)
+    , bCreateLoanSelectionUser :: !(Behavior (Maybe DatabaseKey))
+    , bCreateLoanFilterItem :: !(Behavior String)
+    , bCreateLoanSelectionItem :: !(Behavior (Maybe DatabaseKey))
+
     , bHistoryHandinLoan :: !(Behavior (Maybe DatabaseKey))
     , bHistoryHandinUser :: !(Behavior (Maybe DatabaseKey))
     , bHistoryHandinFilterUser :: !(Behavior String)
