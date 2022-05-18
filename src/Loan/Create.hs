@@ -85,10 +85,9 @@ setup window = mdo
     -- Events and behaviors
     let eModal  = rumors $ Modal._stateModal modal
     let eCreate = UI.click createBtn
-    bFilterEntryUser <- stepper "" $ Unsafe.head <$> unions
-        [rumors $ UI.userText filterUser, "" <$ eModal]
-    bFilterEntryItem <- stepper "" $ Unsafe.head <$> unions
-        [rumors $ UI.userText filterItem, "" <$ eModal]
+
+    bFilterEntryUser <- asks Env.bCreateLoanFilterUser
+    bFilterEntryItem <- asks Env.bCreateLoanFilterItem
 
 
     let tFilterUser = isInfixOf <$> UI.userText filterUser
@@ -156,13 +155,11 @@ setup window = mdo
     let bCreateLoan :: Behavior (Maybe Loan)
         bCreateLoan = liftA2 Loan.Loan <$> bSelectionItem <*> bSelectionUser
 
-        hasUserSelected :: Behavior Bool
-        hasUserSelected = isJust <$> bSelectionUser
 
     hasItemSelected <- hasSelectedCreateLoanItem
+    hasUserSelected <- hasSelectedCreateLoanUser
 
-    liftUI $ element createBtn # sink UI.enabled
-                                      (hasUserSelected <&&> hasItemSelected)
+    liftUI $ element createBtn # sink UI.enabled (hasUserSelected <&&> hasItemSelected)
 
 
     let _userSelectionCE = tidings bSelectionUser $ Unsafe.head <$> unions
