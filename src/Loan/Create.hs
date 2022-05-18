@@ -38,7 +38,8 @@ import           Utils.Utils
 
 data CreateEntry = CreateEntry
     { _elementCE :: Element
-    , _eCreateLoan :: Event Loan
+    , _eCreateLoan :: Event ()
+    , _eConfirmLoan :: Event Loan
     , _eModalState :: Event Bool
     , _userFilterCE    :: Tidings String
     , _itemFilterCE :: Tidings String
@@ -72,9 +73,9 @@ setup window = mdo
         bActiveModal
         [UI.span # sink text ((maybe "" Item.name) <$> bSelectedItem)]
 
-    infoElem <- W.info
+    infoElem   <- W.info
 
-    _elementCE     <- mkContainer
+    _elementCE <- mkContainer
         [ element userView
         , element itemView
         , element createBtnView
@@ -85,7 +86,7 @@ setup window = mdo
 
     -- Events and behaviors
     let _eModalState = rumors $ Modal._stateModal modal
-    let eCreate = UI.click createBtn
+    let _eCreateLoan = UI.click createBtn
 
     bFilterEntryUser <- asks Env.bCreateLoanFilterUser
     bFilterEntryItem <- asks Env.bCreateLoanFilterItem
@@ -102,7 +103,7 @@ setup window = mdo
     let eSelectionUser = rumors $ UI.userSelection listBoxUser
         eSelectionItem = rumors $ UI.userSelection listBoxItem
 
-    bActiveModal <- asks Env.bCreateLoanModalState
+    bActiveModal    <- asks Env.bCreateLoanModalState
 
     bDatabaseLoan   <- asks Env.bDatabaseLoan
     bDatabaseUser   <- asks Env.bDatabaseUser
@@ -110,7 +111,7 @@ setup window = mdo
     bDatabaseToken  <- asks Env.bDatabaseToken
     bSelectionToken <- asks Env.bSelectionToken
     bSelectionItem  <- asks Env.bCreateLoanSelectionItem
-    bSelectionUser    <- asks Env.bCreateLoanSelectionUser
+    bSelectionUser  <- asks Env.bCreateLoanSelectionUser
 
     bDisplayItem    <- displayItem
     bLookupUser     <- lookupUser
@@ -149,22 +150,22 @@ setup window = mdo
 
 
 
-    bCreateLoan <- createLoan
+    bCreateLoan    <- createLoan
     bCanCreateLoan <- canCreateLoan
     liftUI $ element createBtn # sink UI.enabled bCanCreateLoan
 
 
     let _userSelectionCE = tidings bSelectionUser $ Unsafe.head <$> unions
-                                    [ eSelectionUser
-                                    , (\b s users p -> case filter (p . s) (keys users) of
-                                        (x : []) -> Just x
-                                        (xs    ) -> b >>= \a -> if p (s a) then Just a else Nothing
-                                    )
-                                    <$> bSelectionUser
-                                    <*> bShowUser
-                                    <*> bDatabaseUser
-                                    <@> eFilterUser
-                                    ]
+            [ eSelectionUser
+            , (\b s users p -> case filter (p . s) (keys users) of
+                  (x : []) -> Just x
+                  (xs    ) -> b >>= \a -> if p (s a) then Just a else Nothing
+              )
+            <$> bSelectionUser
+            <*> bShowUser
+            <*> bDatabaseUser
+            <@> eFilterUser
+            ]
 
         _itemSelectionCE = tidings
             bSelectionItem
@@ -178,16 +179,16 @@ setup window = mdo
                 <*> bShowItem
                 <*> bDatabaseItem
                 <@> eFilterItem
-                , Nothing <$ _eModalState 
+                , Nothing <$ _eModalState
                 ]
             )
 
         _userFilterCE = tidings bFilterEntryUser $ Unsafe.head <$> unions
-            [rumors $ UI.userText filterUser, "" <$ _eModalState ]
+            [rumors $ UI.userText filterUser, "" <$ _eModalState]
 
         _itemFilterCE = tidings bFilterEntryItem $ Unsafe.head <$> unions
-            [rumors $ UI.userText filterItem, "" <$ _eModalState ]
+            [rumors $ UI.userText filterItem, "" <$ _eModalState]
 
-        _eCreateLoan = filterJust $ bCreateLoan <@ _eModalState
+        _eConfirmLoan = filterJust $ bCreateLoan <@ _eModalState
 
     return CreateEntry { .. }

@@ -229,7 +229,7 @@ setup Config {..} window (anyE, anyH) = mdo
         [Database.create . Count <$> eCount, Database.delete <$> eCountDelete]
 
     bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
-        [ Database.create <$> (LoanCreate._eCreateLoan ce)
+        [ Database.create <$> (LoanCreate._eConfirmLoan ce)
         , Database.delete <$> (LoanDelete._eDeleteLoan de)
         , Database.create <$> eLoanCreateNormal
         , Database.delete <$> eLoanDeleteNormal
@@ -258,7 +258,7 @@ setup Config {..} window (anyE, anyH) = mdo
                  <$> bSelectedTime
                  <*> bSelectedTokenId
                  )
-                <@> (LoanCreate._eCreateLoan ce)
+                <@> (LoanCreate._eConfirmLoan ce)
                 )
         , Database.create
             <$> (((\x z y -> History y (fromMaybe (Time "") x) (fromMaybe 999 z)

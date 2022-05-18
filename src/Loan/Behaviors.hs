@@ -66,10 +66,10 @@ selectedCreateLoanItem = do
 selectedCreateLoanUser
     :: forall m
      . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
-    => m (Behavior (Maybe Item))
+    => m (Behavior (Maybe User))
 selectedCreateLoanUser = do
     bSelection <- asks Env.bCreateLoanSelectionUser
-    bLookup    <- lookupItem
+    bLookup    <- lookupUser
     return $ (=<<) <$> bLookup <*> bSelection
 
 hasSelectedCreateLoanItem
