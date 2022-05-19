@@ -70,9 +70,7 @@ setup window = mdo
 
     (createBtn, createBtnView) <- mkButton "Lån"
 
-    (modalView, modal        ) <- mkModal
-        bActiveModal
-        [UI.span # sink text ((maybe "" Item.name) <$> bSelectedItem)]
+    (modalView, modal        ) <- W.mkCreateLoanModal
 
     infoElem   <- W.info
 

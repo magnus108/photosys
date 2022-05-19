@@ -1,6 +1,7 @@
 module Loan.Widgets where
 
 import           Data.Time
+import           Modal                          ( Modal )
 import qualified Modal
 
 import qualified Graphics.UI.Threepenny        as UI
@@ -135,3 +136,14 @@ info = do
             )
         <$> hasItemSelected
         )
+
+
+mkCreateLoanModal
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Element, Modal)
+mkCreateLoanModal = do
+    bActiveModal  <- asks Env.bCreateLoanModalState
+    bSelectedItem <- selectedCreateLoanItem
+    mkModal bActiveModal
+            [UI.span # sink text ((maybe "" Item.name) <$> bSelectedItem)]
