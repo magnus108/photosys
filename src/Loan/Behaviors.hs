@@ -106,3 +106,16 @@ createLoan = do
     bSelectionItem  <- asks Env.bCreateLoanSelectionItem
     bSelectionUser    <- asks Env.bCreateLoanSelectionUser
     return $ liftA2 Loan.Loan <$> bSelectionItem <*> bSelectionUser
+
+createListBoxUsers
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior [Int])
+createListBoxUsers = do
+    bDatabase  <- asks Env.bDatabaseUser
+    bFilter <- fmap isInfixOf <$> asks Env.bCreateLoanFilterUser
+    bShow <- showUser
+    return $ (\p show -> filter (p . show) . keys)
+                    <$> bFilter
+                    <*> bShow
+                    <*> bDatabase

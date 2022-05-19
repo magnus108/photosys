@@ -69,9 +69,7 @@ setup window = mdo
                                                          bFilterEntryItem
 
     (createBtn, createBtnView) <- mkButton "Lån"
-
     (modalView, modal        ) <- W.mkCreateLoanModal
-
     infoElem   <- W.info
 
     _elementCE <- mkContainer
@@ -92,7 +90,6 @@ setup window = mdo
 
 
     let tFilterUser = isInfixOf <$> UI.userText filterUser
-        bFilterUser = facts tFilterUser
         eFilterUser = rumors tFilterUser
 
     let tFilterItem = isInfixOf <$> UI.userText filterItem
@@ -124,16 +121,11 @@ setup window = mdo
 
     bLoanItemId     <- loanItemId
     bLoanUserId     <- loanUserId
-
-    let bListBoxUsers :: Behavior [DatabaseKey]
-        bListBoxUsers =
-            (\p show -> filter (p . show) . keys)
-                <$> bFilterUser
-                <*> bShowUser
-                <*> bDatabaseUser
+    
+    bListBoxUsers <- createListBoxUsers
 
 
-        bItemsWithLoan :: Behavior [DatabaseKey]
+    let bItemsWithLoan :: Behavior [DatabaseKey]
         bItemsWithLoan =
             (\f -> catMaybes . fmap f . keys) <$> bLoanItemId <*> bDatabaseLoan
 
