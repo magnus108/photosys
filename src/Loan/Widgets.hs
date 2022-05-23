@@ -147,3 +147,58 @@ mkCreateLoanModal = do
     bSelectedItem <- selectedCreateLoanItem
     mkModal bActiveModal
             [UI.span # sink text ((maybe "" Item.name) <$> bSelectedItem)]
+
+
+mkLoanBtn
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m ([Element], Tidings Bool)
+mkLoanBtn = do
+    (createBtn, createBtnView) <- mkButton "Lån"
+    (modalView, modal        ) <- mkCreateLoanModal
+
+    let eModalState = rumors $ Modal._stateModal modal
+    let eCreateLoan = UI.click createBtn
+
+    bActiveModal <- asks Env.bCreateLoanModalState
+
+    let modalState = tidings bActiveModal $ Unsafe.head <$> unions
+            [True <$ eCreateLoan, eModalState]
+
+    bCanCreateLoan <- canCreateLoan
+    liftUI $ element createBtn # sink UI.enabled bCanCreateLoan
+
+    return ([createBtnView, modalView], modalState)
+
+mkUserBox
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Element, UI.TextEntry, UI.ListBox DatabaseKey)
+mkUserBox = do
+    bSelection   <- asks Env.bCreateLoanSelectionUser
+    bFilterEntry <- asks Env.bCreateLoanFilterUser
+    bDisplay     <- displayUser
+    bListBox     <- createListBoxUsers
+    mkSearchEntry bListBox bSelection bDisplay bFilterEntry
+
+
+mkItemBox
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Element, UI.TextEntry, UI.ListBox DatabaseKey)
+mkItemBox = do
+    bSelection   <- asks Env.bCreateLoanSelectionItem
+    bFilterEntry <- asks Env.bCreateLoanFilterItem
+    bDisplay     <- displayItem
+    bListBox     <- createListBoxItems
+
+    bDatabaseLoan   <- asks Env.bDatabaseLoan
+    bLoanItemId     <- loanItemId
+
+    let bItemsWithLoan :: Behavior [DatabaseKey]
+        bItemsWithLoan =
+            (\f -> catMaybes . fmap f . keys) <$> bLoanItemId <*> bDatabaseLoan
+
+        bFilterItems  = (\p q -> filter (flip List.notElem q) p) <$> bListBox <*> bItemsWithLoan
+
+    mkSearchEntry bFilterItems bSelection bDisplay bFilterEntry

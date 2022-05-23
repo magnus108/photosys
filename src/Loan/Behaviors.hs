@@ -119,3 +119,17 @@ createListBoxUsers = do
                     <$> bFilter
                     <*> bShow
                     <*> bDatabase
+
+createListBoxItems
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior [Int])
+createListBoxItems = do
+    bDatabase  <- asks Env.bDatabaseItem
+    bFilter <- fmap isInfixOf <$> asks Env.bCreateLoanFilterItem
+    bShow <- showItem
+    return $ (\p show -> filter (p . show) . keys)
+                    <$> bFilter
+                    <*> bShow
+                    <*> bDatabase
+
