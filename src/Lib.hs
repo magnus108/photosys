@@ -170,7 +170,7 @@ setup Config {..} window (anyE, anyH) = mdo
     searchNormal                  <- SearchNormal.setup window
     (userCreate, eUserCreate)     <- UserCreate.setup window
     (userDelete, eUserDelete, ePassUpdate)     <- UserDelete.setup window
-    (itemCreate, eItemCreate)     <- ItemCreate.setup window
+    (itemCreate, eItemCreate, eItemChange)     <- ItemCreate.setup window
     (itemDelete, eItemDelete)     <- ItemDelete.setup window
 
     (repairCreate , eRepairCreate )     <- RepairCreate.setup window
@@ -238,7 +238,7 @@ setup Config {..} window (anyE, anyH) = mdo
         ]
 
     bDatabaseItem <- accumB databaseItem $ concatenate <$> unions
-        [Database.create <$> eItemCreate, Database.delete <$> eItemDelete]
+        [Database.create <$> eItemCreate, eItemChange, Database.delete <$> eItemDelete]
 
 
     bTabSelection <- stepper tabSelectionFile $ Unsafe.head <$> unions

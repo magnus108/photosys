@@ -29,7 +29,7 @@ import           Behaviors
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
-    -> m (Element, Event Item)
+    -> m (Element, Event Item,  Event (Database Item -> Database Item))
 setup window = mdo
 
     (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
@@ -39,6 +39,7 @@ setup window = mdo
     counter                    <- mkCounter bListBoxItems
 
     -- GUI elements
+    (changeBtn, changeBtnView) <- mkButton "Ændre"
     (createBtn, createBtnView) <- mkButton "Opret"
     ((elemName, elemCode, elemSerie, elemPrice, elemVendor, elemInvoiceNumber, elemDateOfPurchase, elemNote), tItem) <-
         liftUI $ dataItem bItem
@@ -92,6 +93,7 @@ setup window = mdo
         , element dataDateOfPurchase
         , element dataNote
         , element createBtnView
+        , element changeBtnView
         , element searchItem
         , element dropdownItem
         , element counter
@@ -101,15 +103,17 @@ setup window = mdo
 
     -- Events and behaviors
     let eCreate = UI.click createBtn
+        eChange = UI.click changeBtn
         eClose  = UI.click closeBtn
         eItemIn = rumors tItem
+    let eSelectionItem = rumors $ UI.userSelection listBoxItem
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
-        [True <$ eCreate, False <$ eClose]
+        [True <$ eCreate, False <$ eClose, True <$ eChange]
 
 
     bItem <- stepper Nothing $ Unsafe.head <$> unions
-        [Just <$> eItemIn, Just emptyItem <$ eCreate]
+        [Just <$> eItemIn, Just emptyItem <$ eCreate , bLookupItem <@> (filterJust $ eSelectionItem )]
 
     bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
 
@@ -121,7 +125,6 @@ setup window = mdo
         bFilterItem = facts tFilterItem
         eFilterItem = rumors tFilterItem
 
-    let eSelectionItem = rumors $ UI.userSelection listBoxItem
 
     bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionItem
@@ -170,12 +173,14 @@ setup window = mdo
         isError = (\x xs -> List.notElem x (fmap Just xs)) <$> bCode <*> bItems
 
 
-    liftUI $ element elemCode # sink UI.class_ ((\b -> if b then "input" else "input is-danger") <$> isError)
+    liftUI $ element elemCode # sink UI.class_ ((\b x -> if b || (isJust x) then "input" else "input is-danger") <$> isError <*> bSelectionItem)
     liftUI $ element createBtn # sink UI.enabled (bNotEmpty <&&> isError)
+    liftUI $ element changeBtn # sink UI.enabled (bNotEmpty <&&> (isJust <$> bSelectionItem))
+    liftUI $ element elemCode # sink UI.enabled (isNothing <$> bSelectionItem)
 
     liftUI $ element modal # sink (modalSink closeBtn) bActiveModal
 
-    return (elem, filterJust $ bItem <@ eCreate)
+    return (elem, filterJust $ bItem <@ eCreate,filterJust $ update' <$> bSelectionItem <@> (filterJust $ bItem <@ eChange))
 
 
 emptyItem :: Item
