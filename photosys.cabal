@@ -61,6 +61,7 @@ library
       Repair
       Repair.Repair
       Repair.RepairCreate
+      Repair.RepairCreateNormal
       Search.Search
       Search.SearchNormal
       Tab
