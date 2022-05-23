@@ -60,6 +60,7 @@ setup window = mdo
 
     (deleteBtn, deleteBtnView) <- mkButton "Tilbagelever"
 
+    comment     <- liftUI $ UI.div
     -- GUI layout
     closeBtn                   <- liftUI $ UI.button #. "modal-close is-large"
     modal                      <-
@@ -87,6 +88,7 @@ setup window = mdo
         , element deleteBtnView
         , element counterRepair
         , element modal
+        , element comment
         ]
 
 
@@ -236,6 +238,14 @@ setup window = mdo
         hasSelectedRepair :: Behavior Bool
         hasSelectedRepair = isJust <$> bSelectedRepair
 
+        bShowComment :: Behavior (Maybe String)
+        bShowComment =
+            (fmap Repair.note) <$> bSelectedRepair
+
+
+
+    liftUI $ element comment # sink items
+                                    ((\x -> catMaybes [fmap UI.string x]) <$> bShowComment)
 
     liftUI $ element deleteBtn # sink UI.enabled hasSelectedRepair
     liftUI $ element modal # sink

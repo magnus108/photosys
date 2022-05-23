@@ -32,6 +32,12 @@ setup
     -> m (Element, Event Item)
 setup window = mdo
 
+    (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
+    (listBoxItem, dropdownItem) <- mkListBox bListBoxItems
+                                             bSelectionItem
+                                             bDisplayItemName
+    counter                    <- mkCounter bListBoxItems
+
     -- GUI elements
     (createBtn, createBtnView) <- mkButton "Opret"
     ((elemName, elemCode, elemSerie, elemPrice, elemVendor, elemInvoiceNumber, elemDateOfPurchase, elemNote), tItem) <-
@@ -86,6 +92,9 @@ setup window = mdo
         , element dataDateOfPurchase
         , element dataNote
         , element createBtnView
+        , element searchItem
+        , element dropdownItem
+        , element counter
         , element modal
         ]
 
@@ -102,6 +111,27 @@ setup window = mdo
     bItem <- stepper Nothing $ Unsafe.head <$> unions
         [Just <$> eItemIn, Just emptyItem <$ eCreate]
 
+    bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
+
+
+    let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
+        isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
+
+    let tFilterItem = isInfixOf <$> UI.userText filterItem
+        bFilterItem = facts tFilterItem
+        eFilterItem = rumors tFilterItem
+
+    let eSelectionItem = rumors $ UI.userSelection listBoxItem
+
+    bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
+        [ eSelectionItem
+        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
+        <$> bSelectionItem
+        <*> bShowDataItem
+        <@> eFilterItem
+        ]
+
+
 
     bDatabaseLoan    <- asks Env.bDatabaseLoan
     bDatabaseUser    <- asks Env.bDatabaseUser
@@ -115,8 +145,24 @@ setup window = mdo
     let bNotEmpty = isJust <$> bItem
     let bShowItemCode :: Behavior (DatabaseKey -> String)
         bShowItemCode = (maybe "" Item.code .) <$> bLookupItem
+        bShowDataItem :: Behavior (DatabaseKey -> String)
+        bShowDataItem = (maybe "" Item.showItem .) <$> bLookupItem
+
+        bDisplayItemName :: Behavior (DatabaseKey -> UI Element)
+        bDisplayItemName = (UI.string .) <$> bShowDataItem
+
 
         bCode = fmap Item.code <$> bItem
+
+        bListBoxItems :: Behavior [DatabaseKey]
+        bListBoxItems =
+            (\p show ->
+                    filter (p . show) . keys
+                )
+                <$> bFilterItem
+                <*> bShowDataItem
+                <*> bDatabaseItem
+
 
         bItems :: Behavior [String]
         bItems =  (\db lookup -> fmap Item.code $ catMaybes $ fmap lookup $ keys db)
