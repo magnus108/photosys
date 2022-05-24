@@ -324,10 +324,10 @@ setup Config {..} window (anyE, anyH) = mdo
         [rumors (LoanCreate._itemFilterCE ce)]
 
     bCreateLoanSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
-        [rumors (LoanCreate._userSelectionCE ce)]
+        [rumors (LoanCreate._userSelectionCE ce), Nothing <$ eTabs]
 
     bCreateLoanSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
-        [rumors (LoanCreate._itemSelectionCE ce)]
+        [rumors (LoanCreate._itemSelectionCE ce), Nothing <$ eTabs]
 
     bDeleteLoanFilterUser <- stepper "" $ Unsafe.head <$> unions
         [rumors (LoanDelete._userFilterDE de)]
@@ -336,10 +336,10 @@ setup Config {..} window (anyE, anyH) = mdo
         [rumors (LoanDelete._itemFilterDE de)]
 
     bDeleteLoanSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
-        [rumors (LoanDelete._userSelectionDE de)]
+        [rumors (LoanDelete._userSelectionDE de), Nothing <$ eTabs]
 
     bDeleteLoanSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
-        [rumors (LoanDelete._itemSelectionDE de)]
+        [rumors (LoanDelete._itemSelectionDE de), Nothing <$ eTabs]
 
 
 -------------------------------------------------------------------------------
