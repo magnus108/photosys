@@ -180,7 +180,7 @@ setup window = mdo
         bShowUser = (maybe "" User.name .) <$> bLookupUser
 
         bShowRepair :: Behavior (DatabaseKey -> String)
-        bShowRepair = (maybe "" (show . Repair.loan) .) <$> bLookupRepair
+        bShowRepair = (maybe "" (Repair.note) .) <$> bLookupRepair
 
         bDisplayRepair :: Behavior (DatabaseKey -> UI Element)
         bDisplayRepair = (UI.string .) <$> bShowRepair
@@ -238,14 +238,6 @@ setup window = mdo
         hasSelectedRepair :: Behavior Bool
         hasSelectedRepair = isJust <$> bSelectedRepair
 
-        bShowComment :: Behavior (Maybe String)
-        bShowComment =
-            (fmap Repair.note) <$> bSelectedRepair
-
-
-
-    liftUI $ element comment # sink items
-                                    ((\x -> catMaybes [fmap UI.string x]) <$> bShowComment)
 
     liftUI $ element deleteBtn # sink UI.enabled hasSelectedRepair
     liftUI $ element modal # sink

@@ -172,7 +172,7 @@ historyHandinShowItem
     => m (Behavior (DatabaseKey -> String))
 historyHandinShowItem = do
     bLookup <- lookupItem
-    return $ (maybe "" Item.name .) <$> bLookup
+    return $ (maybe "" Item.showItem .) <$> bLookup
 
 historyHandinShowUser
     :: forall m
