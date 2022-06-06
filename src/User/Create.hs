@@ -25,6 +25,8 @@ import           Env                            ( Env )
 import qualified Env
 import           Layout
 
+import           Behaviors
+
 import qualified Modal
 
 setup
@@ -64,8 +66,18 @@ setup window = mdo
     bUser <- stepper Nothing $ Unsafe.head <$> unions
         [(\x -> if x == emptyUser then Nothing else Just x) <$> eUserIn, Nothing <$ eCreate]
 
+
+    bDatabaseUser   <- asks Env.bDatabaseUser
+    bLookupUser <- lookupUser
+
+    let bUsers :: Behavior [String]
+        bUsers =  (\db lookup -> fmap User.name $ catMaybes $ fmap lookup $ keys db)
+                <$> bDatabaseUser <*> bLookupUser
+
+    let isError = (\x xs -> List.notElem x (fmap Just xs)) <$> (fmap User.name <$> bUser) <*> bUsers
     let bNotEmpty = isJust <$> bUser
-    liftUI $ element createBtn # sink UI.enabled bNotEmpty
+    liftUI $ element createBtn # sink UI.enabled (bNotEmpty <&&> isError)
+    liftUI $ element elemName # sink UI.class_ ((\b x -> if b && x then "input" else "input is-danger") <$> isError <*> bNotEmpty )
 
     return (elem, filterJust $ bUser <@ eCreate)
 
