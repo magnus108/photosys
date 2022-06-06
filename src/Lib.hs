@@ -159,7 +159,7 @@ setup Config {..} window (anyE, anyH) = mdo
     cen <- LoanCreateNormal.setup window
     ce <- LoanCreate.setup window
     de <- LoanDelete.setup window
-    (loanDeleteNormal, eLoanDeleteNormal)  <- LoanDeleteNormal.setup window
+    den <- LoanDeleteNormal.setup window
     history                                <- History.setup window
     historyNormal                          <- HistoryNormal.setup window
 
@@ -236,7 +236,7 @@ setup Config {..} window (anyE, anyH) = mdo
         [ Database.create <$> (LoanCreate._eConfirmLoan ce)
         , Database.delete <$> (LoanDelete._eDeleteLoan de)
         , Database.create <$> (LoanCreateNormal._eConfirmLoan cen)
-        , Database.delete <$> eLoanDeleteNormal
+        , Database.delete <$> (LoanDeleteNormal._eDeleteLoan den)
         ]
 
     bDatabaseItem <- accumB databaseItem $ concatenate <$> unions
@@ -294,7 +294,7 @@ setup Config {..} window (anyE, anyH) = mdo
                         <$> bSelectedTime
                         <*> bSelectedTokenId
                         )
-                    <@> (filterJust $ bLookupLoan <@> eLoanDeleteNormal)
+                    <@> (filterJust $ bLookupLoan <@> (LoanDeleteNormal._eDeleteLoan den))
                     )
             ]
 
@@ -346,11 +346,17 @@ setup Config {..} window (anyE, anyH) = mdo
     bDeleteLoanFilterItem <- stepper "" $ Unsafe.head <$> unions
         [rumors (LoanDelete._itemFilterDE de)]
 
+    bDeleteLoanNormalFilterItem <- stepper "" $ Unsafe.head <$> unions
+        [rumors (LoanDeleteNormal._itemFilterDE den)]
+
     bDeleteLoanSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
         [rumors (LoanDelete._userSelectionDE de), Nothing <$ eTabs]
 
     bDeleteLoanSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
         [rumors (LoanDelete._itemSelectionDE de), Nothing <$ eTabs]
+        
+    bDeleteLoanNormalSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
+        [rumors (LoanDeleteNormal._itemSelectionDE den), Nothing <$ eTabs]
 
 
 -------------------------------------------------------------------------------
@@ -418,6 +424,9 @@ setup Config {..} window (anyE, anyH) = mdo
                   , bDeleteLoanFilterItem = bDeleteLoanFilterItem
                   , bDeleteLoanSelectionUser = bDeleteLoanSelectionUser
                   , bDeleteLoanSelectionItem = bDeleteLoanSelectionItem
+
+                  , bDeleteLoanNormalFilterItem = bDeleteLoanNormalFilterItem
+                  , bDeleteLoanNormalSelectionItem = bDeleteLoanNormalSelectionItem
                   }
 
 -------------------------------------------------------------------------------
@@ -466,7 +475,7 @@ setup Config {..} window (anyE, anyH) = mdo
                 (4 , True ) -> [tabs, userCreate]
                 (5 , True ) -> [tabs, userDelete]
                 (6 , False) -> [tabs, getElement cen]
-                (7 , False) -> [tabs, loanDeleteNormal]
+                (7 , False) -> [tabs, getElement den]
                 (8 , True ) -> [tabs, search]
                 (9 , False) -> [tabs, searchNormal]
                 (10, True ) -> [tabs, export]
@@ -478,7 +487,7 @@ setup Config {..} window (anyE, anyH) = mdo
                 (16, True ) -> [tabs, repairCreate]
                 (17, True ) -> [tabs, repair]
                 (18, False) -> [tabs, repairCreateNormal ]
-                (0 , False) -> [tabs, loanDeleteNormal]--- Hack
+                (0 , False) -> [tabs, getElement den]--- Hack
             else [tokenCreate]
 
 --------------------------------------------------------------------------------

@@ -35,6 +35,16 @@ selectedUserDelete = do
     bLookup    <- lookupUser
     return $ (=<<) <$> bLookup <*> bSelection
 
+selectedUserDeleteNormal
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (Maybe User))
+selectedUserDeleteNormal = do
+    bSelectedToken <- selectedToken
+    let bSelectedTokenId = chainedTo Token.tokenId <$> bSelectedToken
+    bLookup    <- lookupUser
+    return $ (=<<) <$> bLookup <*> bSelectedTokenId
+
 
 selectedItemDelete
     :: forall m
@@ -42,6 +52,15 @@ selectedItemDelete
     => m (Behavior (Maybe Item))
 selectedItemDelete = do
     bSelection <- asks Env.bDeleteLoanSelectionItem
+    bLookup    <- lookupItem
+    return $ (=<<) <$> bLookup <*> bSelection
+
+selectedItemDeleteNormal
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior (Maybe Item))
+selectedItemDeleteNormal = do
+    bSelection <- asks Env.bDeleteLoanNormalSelectionItem
     bLookup    <- lookupItem
     return $ (=<<) <$> bLookup <*> bSelection
 
@@ -53,6 +72,16 @@ showItemDelete = do
     bSelection <- asks Env.bDeleteLoanSelectionItem
     bShow    <- showItem
     return $ maybe "" <$> bShow <*> bSelection
+
+showItemDeleteNormal
+    :: forall m
+     . (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
+    => m (Behavior String)
+showItemDeleteNormal = do
+    bSelectedToken <- selectedToken
+    let bSelectedTokenId = chainedTo Token.tokenId <$> bSelectedToken
+    bShow    <- showItem
+    return $ maybe "" <$> bShow <*> bSelectedTokenId
 
 selectedCreateLoanItem
     :: forall m

@@ -1,14 +1,18 @@
 {-# LANGUAGE RecursiveDo #-}
 module Loan.DeleteNormal where
 
+import qualified Loan.Predicates               as P
+import           Token
+import           Utils.Utils
 import           Data.Aeson
 
+import           Data.Functor.Contravariant.Divisible
 import qualified Graphics.UI.Threepenny        as UI
 import           Graphics.UI.Threepenny.Core
                                          hiding ( delete )
 
-import           Token                          ( Token )
-import qualified Token
+import qualified Modal
+import qualified Counter
 import           Loan                           ( Loan )
 import qualified Loan
 import           User                           ( User )
@@ -25,188 +29,172 @@ import           Control.Bool
 import           Monad
 import           Env                            ( Env )
 import qualified Env
-import qualified Counter
 import           Layout
 import           Behaviors
+import           Loan.Behaviors
 
+
+
+data DeleteNormalEntry = DeleteNormalEntry
+    { _elementDE :: Element
+    , _eDeleteLoan :: Event DatabaseKey
+    , _itemFilterDE :: Tidings String
+    , _itemSelectionDE :: Tidings (Maybe DatabaseKey)
+    }
+
+instance Widget DeleteNormalEntry where
+    getElement = _elementDE
 
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
-    -> m (Element, Event DatabaseKey)
+    -> m DeleteNormalEntry
 setup window = mdo
+
     -- GUI elements
-    (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
-    (listBoxItem, dropdownItem) <- mkListBox bListBoxItems
-                                             bSelectionItem
-                                             bDisplayItemName
+    (itemView, filterItem, listBoxItem) <- mkSearchEntry bListBoxItems
+                                                         bSelectionItem
+                                                         bDisplayItem
+                                                         bFilterEntryItem
+
+
+    (modalView, modal) <- mkModal bActiveModal
+                                  [UI.span # sink text bShowItemSelected]
+
 
     (deleteBtn, deleteBtnView) <- mkButton "Aflever"
-    counter <- mkCounter bListBoxItems
-    loanInfo <- liftUI $ UI.span
-
-    -- GUI layout
-    closeBtn <- liftUI $ UI.button #. "modal-close is-large"
-    modal    <- liftUI $ 
-        UI.div
-            #+ [ UI.div #. "modal-background"
-               , UI.div
-               #. "modal-content"
-               #+ [UI.div #. "box" #+ [string "Aflevering godkendt: ", element loanInfo]]
-               , element closeBtn
-               ]
-
-    elem <- mkContainer [ element searchItem
-                , element dropdownItem
-                , element deleteBtnView
-                , element counter
-                , element modal
-           ]
 
 
-    -- Events and behaviors
-    bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
+    _elementDE                 <- mkContainer
+        [ element itemView
+        , element deleteBtnView
+        , element modalView
+        ]
 
 
-    let isInfixOf :: (Eq a) => [a] -> [a] -> Bool
-        isInfixOf needle haystack = any (isPrefixOf needle) (tails haystack)
+    let eDelete = UI.click deleteBtn
+
+    bFilterEntryItem <- asks Env.bDeleteLoanNormalFilterItem
 
     let tFilterItem = isInfixOf <$> UI.userText filterItem
         bFilterItem = facts tFilterItem
         eFilterItem = rumors tFilterItem
 
     let eSelectionItem = rumors $ UI.userSelection listBoxItem
-        eDelete        = UI.click deleteBtn
-        eClose         = UI.click closeBtn
 
+    let eModal = rumors $ Modal._stateModal modal
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
-        [True <$ eDelete, False <$ eClose]
-
-    bLastLoanItem <- stepper Nothing $ Unsafe.head <$> unions
-        [bSelectionItem <@ eDelete]
+        [True <$ eDelete, eModal]
 
 
-    bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
-        [ eSelectionItem
-        , (\b s p -> b >>= \a -> if p (s a) then Just a else Nothing)
-        <$> bSelectionItem
-        <*> bShowItem
-        <@> eFilterItem
-        , Nothing <$ eDelete
-        ]
-
-    bDatabaseLoan   <- asks Env.bDatabaseLoan
-    bDatabaseUser   <- asks Env.bDatabaseUser
-    bDatabaseItem   <- asks Env.bDatabaseItem
-    bDatabaseToken  <- asks Env.bDatabaseToken
-    bSelectionToken <- asks Env.bSelectionToken
+    bSelectionItem    <- asks Env.bDeleteLoanNormalSelectionItem
+    bDatabaseLoan     <- asks Env.bDatabaseLoan
+    bDatabaseUser     <- asks Env.bDatabaseUser
+    bDatabaseItem     <- asks Env.bDatabaseItem
+    bDatabaseToken    <- asks Env.bDatabaseToken
+    bSelectionToken   <- asks Env.bSelectionToken
 
 
-    let bSelectionUser = bSelectedTokenId
+    bLookupUser       <- lookupUser
+    bLookupItem       <- lookupItem
+    bLookupLoan       <- lookupLoan
 
-    bLookupUser <- lookupUser
-    bLookupLoan <- lookupLoan
+    bLoanItemId       <- loanItemId
+    bLoanUserId       <- loanUserId
 
-    let bLoanItem :: Behavior (DatabaseKey -> Maybe Int)
-        bLoanItem = (fmap Loan.item .) <$> bLookupLoan
+    bShowUser         <- showUser
 
-        bLoanUser :: Behavior (DatabaseKey -> Maybe Int)
-        bLoanUser = (fmap Loan.user .) <$> bLookupLoan
+    bSelectedUser     <- selectedUserDeleteNormal
+    bSelectedItem     <- selectedItemDeleteNormal
 
-        bLookupItem :: Behavior (DatabaseKey -> Maybe Item)
-        bLookupItem = flip lookup <$> bDatabaseItem
+    bDisplayUserName  <- displayUser
+    bShowItem         <- showItem
+    bDisplayItem      <- displayItem
+    bShowItemSelected <- showItemDeleteNormal
 
-        bSelectedUser :: Behavior (Maybe User)
-        bSelectedUser = (=<<) <$> bLookupUser <*> bSelectionUser
+    bSelectedToken <- selectedToken
+    let bSelectionUser = chainedTo Token.tokenId <$> bSelectedToken
 
-        bSelectedItem :: Behavior (Maybe Item)
-        bSelectedItem = (=<<) <$> bLookupItem <*> bSelectionItem
+    let loanFilter = getPredicate . P.pLoanFilter
 
-        bShowUser :: Behavior (DatabaseKey -> String)
-        bShowUser = (maybe "" User.name .) <$> bLookupUser
+    let deleteFilter =
+            P.DeleteLoanFilter
+                <$> bLookupLoan
+                <*> bSelectionUser
+                <*> bSelectionItem
+                <*> (pure (const True))
+                <*> bShowUser
+                <*> bShowItem
 
-        bShowItem :: Behavior (DatabaseKey -> String)
-        bShowItem = (maybe "" Item.showItem .) <$> bLookupItem
 
-        bShowItem2 :: Behavior (DatabaseKey -> String)
-        bShowItem2 = (maybe "" Item.code .) <$> bLookupItem
 
-        bDisplayUserName :: Behavior (DatabaseKey -> UI Element)
-        bDisplayUserName = (UI.string .) <$> bShowUser
 
-        bDisplayItemName :: Behavior (DatabaseKey -> UI Element)
-        bDisplayItemName = (UI.string .) <$> bShowItem
+    let bFilter = deleteFilter <*> bFilterItem
 
-        bListBoxItems :: Behavior [DatabaseKey]
-        bListBoxItems =
-            (\p q r show ->
-                    filter (flip List.elem r)
-                        . filter (flip List.elem q)
-                        . filter (p . show)
-                        . keys
-                )
-                <$> bFilterItem
-                <*> bItemsWithLoan
-                <*> bSelectionItems
-                <*> bShowItem2
+    let bSearchLoans =
+            (\env -> filter (loanFilter env) . keys)
+                <$> bFilter
+                <*> bDatabaseLoan
+
+    let bListBoxItems' =
+            (\f xs -> fmap Loan.item $ catMaybes $ fmap f xs)
+                <$> bLookupLoan
+                <*> bSearchLoans
+    let bListBoxItems =
+            (\xs -> filter (\x -> List.elem x xs) . keys)
+                <$> bListBoxItems'
                 <*> bDatabaseItem
 
 
-        bItemsWithLoan :: Behavior [DatabaseKey]
-        bItemsWithLoan =
-            (\f -> catMaybes . fmap f . keys) <$> bLoanItem <*> bDatabaseLoan
-
-        bSelectionItems :: Behavior [DatabaseKey]
-        bSelectionItems =
-            (\i lookupUser lookupItem ->
-                    catMaybes
-                        . fmap lookupItem
-                        . filter ((\x -> i == Nothing || i == x) . lookupUser)
-                        . keys
-                )
-                <$> bSelectionUser
-                <*> bLoanUser
-                <*> bLoanItem
-                <*> bDatabaseLoan
-
-    let bSelectedLoan :: Behavior (Maybe DatabaseKey)
-        bSelectedLoan =
-            (\item user lookup ->
-                    find
-                            ( (\x ->
-                                  ((Loan.item <$> x) == item)
-                                      && ((Loan.user <$> x) == user)
-                              )
-                            . lookup
-                            )
-                        . keys
-                )
-                <$> bSelectionItem
-                <*> bSelectionUser
-                <*> bLookupLoan
-                <*> bDatabaseLoan
-
-        bLookupToken :: Behavior (DatabaseKey -> Maybe Token)
-        bLookupToken = flip lookup <$> bDatabaseToken
-
-        bSelectedToken :: Behavior (Maybe Token)
-        bSelectedToken = (=<<) <$> bLookupToken <*> bSelectionToken
-
-        bSelectedTokenId :: Behavior (Maybe Int)
-        bSelectedTokenId = chainedTo Token.tokenId <$> bSelectedToken
-
-        hasSelectedLoan :: Behavior Bool
+    let bSelectedLoan   = listToFirst <$> bSearchLoans
         hasSelectedLoan = isJust <$> bSelectedLoan
-        bLastLoanItemItem :: Behavior (Maybe Item)
-        bLastLoanItemItem = (=<<) <$> bLookupItem <*> bLastLoanItem
-
-    liftUI $ element loanInfo # sink text ((maybe "" Item.name) <$> bLastLoanItemItem)
 
     liftUI $ element deleteBtn # sink UI.enabled hasSelectedLoan
-    liftUI $ element modal # sink
-        (attr "class")
-        ((\b -> if b then "modal is-active" else "modal") <$> bActiveModal)
+    liftUI $ element deleteBtn # sink sinkFocus hasSelectedLoan
 
-    return (elem, filterJust $ bSelectedLoan <@ eDelete)
 
+    let _itemSelectionDE = tidings bSelectionItem $ Unsafe.head <$> unions
+            [ eSelectionItem
+            , (\items a b c d e f p ->
+                  case
+                          filter
+                              (loanFilter (P.DeleteLoanFilter a b c d e f p))
+                              (keys items)
+                      of
+                          (x : []) -> fmap Loan.item (a x)
+                          (xs    ) -> b >>= \z ->
+                              if (loanFilter (P.DeleteLoanFilter a b c d e f p))
+                                  z
+                              then
+                                  fmap Loan.item (a z)
+                              else
+                                  Nothing
+              )
+            <$> bDatabaseLoan
+            <*> bLookupLoan
+            <*> bSelectionUser
+            <*> bSelectionItem
+            <*> (pure (const True))
+            <*> bShowUser
+            <*> bShowItem
+            <@> eFilterItem
+            , Nothing <$ eModal
+            ]
+
+        _itemFilterDE = tidings bFilterEntryItem $ Unsafe.head <$> unions
+            [rumors $ UI.userText filterItem, "" <$ eModal]
+
+        _eDeleteLoan = filterJust $ bSelectedLoan <@ eModal
+
+    return DeleteNormalEntry { .. }
+
+
+
+listToFirst :: [a] -> Maybe a
+listToFirst (x : []) = Just x
+listToFirst _        = Nothing
+
+
+sinkFocus = mkWriteAttr $ \b x -> void $ do
+    if b then UI.setFocus x else return ()

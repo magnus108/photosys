@@ -61,4 +61,7 @@ data Env = Env
     , bDeleteLoanSelectionUser :: !(Behavior (Maybe DatabaseKey))
     , bDeleteLoanFilterItem :: !(Behavior String)
     , bDeleteLoanSelectionItem :: !(Behavior (Maybe DatabaseKey))
+
+    , bDeleteLoanNormalFilterItem :: !(Behavior String)
+    , bDeleteLoanNormalSelectionItem :: !(Behavior (Maybe DatabaseKey))
     }
