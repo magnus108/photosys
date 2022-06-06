@@ -100,7 +100,6 @@ someFunc port = do
     startGUI defaultConfig { jsPort       = Just port
                            , jsStatic     = Just "static"
                            , jsCustomHTML = Just "index.html"
-                           , jsCallBufferMode = NoBuffering
                            }
         $ setup2 config
 
@@ -157,9 +156,9 @@ setup Config {..} window (anyE, anyH) = mdo
     (tokenCreate, eTokenCreate)            <- TokenCreate.setup window
     (tabs, tTabs, eLogout)                 <- Tab.setup window
     (export, eExport)                      <- Export.setup window
+    cen <- LoanCreateNormal.setup window
     ce <- LoanCreate.setup window
     de <- LoanDelete.setup window
-    (loanCreateNormal, eLoanCreateNormal)  <- LoanCreateNormal.setup window
     (loanDeleteNormal, eLoanDeleteNormal)  <- LoanDeleteNormal.setup window
     history                                <- History.setup window
     historyNormal                          <- HistoryNormal.setup window
@@ -236,7 +235,7 @@ setup Config {..} window (anyE, anyH) = mdo
     bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
         [ Database.create <$> (LoanCreate._eConfirmLoan ce)
         , Database.delete <$> (LoanDelete._eDeleteLoan de)
-        , Database.create <$> eLoanCreateNormal
+        , Database.create <$> (LoanCreateNormal._eConfirmLoan cen)
         , Database.delete <$> eLoanDeleteNormal
         ]
 
@@ -271,7 +270,7 @@ setup Config {..} window (anyE, anyH) = mdo
                  <$> bSelectedTime
                  <*> bSelectedTokenId
                  )
-                <@> eLoanCreateNormal
+                <@> (LoanCreateNormal._eConfirmLoan cen)
                 )
         ]
 
@@ -320,17 +319,26 @@ setup Config {..} window (anyE, anyH) = mdo
     bCreateLoanModalState <- stepper False $ Unsafe.head <$> unions
         [rumors (LoanCreate._modalStateCE ce)]
 
+    bCreateLoanNormalModalState <- stepper False $ Unsafe.head <$> unions
+        [rumors (LoanCreateNormal._modalStateCE cen)]
+
     bCreateLoanFilterUser <- stepper "" $ Unsafe.head <$> unions
         [rumors (LoanCreate._userFilterCE ce)]
 
     bCreateLoanFilterItem <- stepper "" $ Unsafe.head <$> unions
         [rumors (LoanCreate._itemFilterCE ce)]
+        
+    bCreateLoanNormalFilterItem <- stepper "" $ Unsafe.head <$> unions
+        [rumors (LoanCreateNormal._itemFilterCE cen)]
 
     bCreateLoanSelectionUser <- stepper Nothing $ Unsafe.head <$> unions
         [rumors (LoanCreate._userSelectionCE ce), Nothing <$ eTabs]
 
     bCreateLoanSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
         [rumors (LoanCreate._itemSelectionCE ce), Nothing <$ eTabs]
+
+    bCreateLoanNormalSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
+        [rumors (LoanCreateNormal._itemSelectionCE cen), Nothing <$ eTabs]
 
     bDeleteLoanFilterUser <- stepper "" $ Unsafe.head <$> unions
         [rumors (LoanDelete._userFilterDE de)]
@@ -402,6 +410,10 @@ setup Config {..} window (anyE, anyH) = mdo
                   , bCreateLoanSelectionItem = bCreateLoanSelectionItem
                   , bCreateLoanModalState = bCreateLoanModalState
 
+                  , bCreateLoanNormalFilterItem = bCreateLoanNormalFilterItem
+                  , bCreateLoanNormalSelectionItem = bCreateLoanNormalSelectionItem
+                  , bCreateLoanNormalModalState = bCreateLoanNormalModalState
+
                   , bDeleteLoanFilterUser = bDeleteLoanFilterUser
                   , bDeleteLoanFilterItem = bDeleteLoanFilterItem
                   , bDeleteLoanSelectionUser = bDeleteLoanSelectionUser
@@ -453,7 +465,7 @@ setup Config {..} window (anyE, anyH) = mdo
                 (3 , True ) -> [tabs, itemDelete]
                 (4 , True ) -> [tabs, userCreate]
                 (5 , True ) -> [tabs, userDelete]
-                (6 , False) -> [tabs, loanCreateNormal]
+                (6 , False) -> [tabs, getElement cen]
                 (7 , False) -> [tabs, loanDeleteNormal]
                 (8 , True ) -> [tabs, search]
                 (9 , False) -> [tabs, searchNormal]
