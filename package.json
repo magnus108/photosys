@@ -1,5 +1,5 @@
 {
-  "name": "App",
+  "name": "Lager FF",
   "main": "electron.js",
   "dependencies": {
     "freeport": "^1.0.5",

@@ -31,5 +31,5 @@ state = _stateModal
 modal :: Behavior Bool -> UI Modal
 modal bState = do
     _elementCloseBtn <- UI.input
-    let _stateModal = tidings bState $ Unsafe.head <$> unions [False <$ UI.click _elementCloseBtn, False <$ UI.keyup _elementCloseBtn]
+    let _stateModal = tidings bState $ Unsafe.head <$> unions [False <$ UI.click _elementCloseBtn, False <$ UI.keydown _elementCloseBtn]
     return Modal {..}

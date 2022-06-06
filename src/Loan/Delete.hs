@@ -171,6 +171,7 @@ setup window = mdo
         hasSelectedLoan = isJust <$> bSelectedLoan
 
     liftUI $ element deleteBtn # sink UI.enabled hasSelectedLoan
+    liftUI $ element deleteBtn # sink sinkFocus hasSelectedLoan
 
     let _userSelectionDE = tidings bSelectionUser $ Unsafe.head <$> unions
             [ eSelectionUser
@@ -245,3 +246,5 @@ listToFirst (x : []) = Just x
 listToFirst _        = Nothing
 
 
+sinkFocus = mkWriteAttr $ \b x -> void $ do
+    if b then UI.setFocus x else return ()

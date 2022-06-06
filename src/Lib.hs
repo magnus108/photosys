@@ -114,6 +114,8 @@ setup2 config@Config {..} window = void $ mdo
 
     env          <- runApp env $ setup config window (anyE, anyH)
 
+    return window # set title "Lager FF"
+
     runApp env $ do
         changesHistory datastoreHistory anyH
         changesHistoryHandin datastoreHistoryHandIn anyH

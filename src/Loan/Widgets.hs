@@ -167,8 +167,12 @@ mkLoanBtn = do
 
     bCanCreateLoan <- canCreateLoan
     liftUI $ element createBtn # sink UI.enabled bCanCreateLoan
+    liftUI $ element createBtn # sink sinkFocus bCanCreateLoan
 
     return ([createBtnView, modalView], modalState)
+
+sinkFocus = mkWriteAttr $ \b x -> void $ do
+    if b then UI.setFocus x else return ()
 
 mkUserBox
     :: forall m
