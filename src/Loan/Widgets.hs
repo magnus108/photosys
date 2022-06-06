@@ -158,6 +158,7 @@ mkLoanBtn = do
     (modalView, modal        ) <- mkCreateLoanModal
 
     let eModalState = rumors $ Modal._stateModal modal
+    let bModalState = facts $ Modal._stateModal modal
     let eCreateLoan = UI.click createBtn
 
     bActiveModal <- asks Env.bCreateLoanModalState
@@ -167,7 +168,7 @@ mkLoanBtn = do
 
     bCanCreateLoan <- canCreateLoan
     liftUI $ element createBtn # sink UI.enabled bCanCreateLoan
-    liftUI $ element createBtn # sink sinkFocus bCanCreateLoan
+    liftUI $ element createBtn # sink sinkFocus ((\x y -> x && not y) <$>bCanCreateLoan <*>bModalState)
 
     return ([createBtnView, modalView], modalState)
 
