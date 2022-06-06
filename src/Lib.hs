@@ -167,7 +167,7 @@ setup Config {..} window (anyE, anyH) = mdo
         HistoryHandin.setup window
     historyHandinNormal           <- HistoryHandinNormal.setup window
 
-    (count, eCount, eCountDelete) <- Count.setup window
+    (count, eCount, eCountDelete, eCountReset) <- Count.setup window
     search                        <- Search.setup window
     searchNormal                  <- SearchNormal.setup window
     (userCreate, eUserCreate)     <- UserCreate.setup window
@@ -230,7 +230,7 @@ setup Config {..} window (anyE, anyH) = mdo
         [Database.create <$> eRepairCreate, Database.create <$> eRepairCreateNormal, Database.delete <$> eRepair]
 
     bDatabaseCount <- accumB databaseCount $ concatenate <$> unions
-        [Database.create . Count <$> eCount, Database.delete <$> eCountDelete]
+        [Database.create . Count <$> eCount, Database.delete <$> eCountDelete, const Database.emptydb <$ eCountReset]
 
     bDatabaseLoan <- accumB databaseLoan $ concatenate <$> unions
         [ Database.create <$> (LoanCreate._eConfirmLoan ce)

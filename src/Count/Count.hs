@@ -39,7 +39,7 @@ import qualified Modal
 setup
     :: (MonadReader Env m, MonadUI m, MonadIO m, MonadFix m)
     => Window
-    -> m (Element, Event DatabaseKey, Event DatabaseKey)
+    -> m (Element, Event DatabaseKey, Event DatabaseKey, Event ())
 setup window = mdo
     -- GUI elements
     (filterItem , searchItem  ) <- mkSearch bFilterEntryItem
@@ -56,10 +56,13 @@ setup window = mdo
 
     (createBtn, createBtnView) <- mkButton "Optæl"
     (deleteBtn, deleteBtnView) <- mkButton "Fjern"
+    (resetBtn, resetBtnView) <- mkButton "Nulstil"
+    (realResetBtn, realResetBtnView) <- mkButton "Sikker på nulstil?"
 
     -- GUI layout
     (modalView, modal) <- mkModal bActiveModal [UI.string "Optælling godkendt"]
     (modalView2, modal2) <- mkModal bActiveModal2 [UI.string "Fjern godkendt"]
+    (modalView3, modal3) <- mkModal bActiveModal3 [element realResetBtnView]
 
     elem <- mkContainer
         [ element searchItem
@@ -69,9 +72,11 @@ setup window = mdo
         , element searchCount
         , element dropdownCount
         , element deleteBtnView
+        , element resetBtnView
         , element counterCount
         , element modalView
         , element modalView2
+        , element modalView3
         ]
 
     -- Events and behaviors
@@ -92,15 +97,21 @@ setup window = mdo
 
         eCreate         = UI.click createBtn
         eDelete         = UI.click deleteBtn
+        eReset = UI.click resetBtn
+        eRealReset = UI.click realResetBtn
 
         eModal          = rumors $ Modal.state modal
         eModal2         = rumors $ Modal.state modal2
+        eModal3         = rumors $ Modal.state modal3
 
     bActiveModal <- stepper False $ Unsafe.head <$> unions
         [True <$ eCreate, eModal]
 
     bActiveModal2 <- stepper False $ Unsafe.head <$> unions
         [True <$ eDelete, eModal2]
+
+    bActiveModal3 <- stepper False $ Unsafe.head <$> unions
+        [True <$ eReset, eModal3, False <$ eRealReset]
 
     bSelectionItem <- stepper Nothing $ Unsafe.head <$> unions
         [ eSelectionItem
@@ -184,4 +195,5 @@ setup window = mdo
         ( elem
         , filterJust $ bSelectionItem <@ eCreate
         , filterJust $ bSelectionCount <@ eDelete
+        , eRealReset
         )

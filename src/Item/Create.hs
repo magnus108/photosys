@@ -113,7 +113,7 @@ setup window = mdo
 
 
     bItem <- stepper Nothing $ Unsafe.head <$> unions
-        [Just <$> eItemIn, Just emptyItem <$ eCreate , bLookupItem <@> (filterJust $ eSelectionItem )]
+        [Just <$> eItemIn, Just emptyItem <$ eCreate , Just emptyItem <$eChange, bLookupItem <@> (filterJust $ eSelectionItem )]
 
     bFilterEntryItem <- stepper "" . rumors $ UI.userText filterItem
 
@@ -132,6 +132,7 @@ setup window = mdo
         <$> bSelectionItem
         <*> bShowDataItem
         <@> eFilterItem
+        , Nothing <$ eChange
         ]
 
 
