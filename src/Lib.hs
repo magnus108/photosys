@@ -100,6 +100,7 @@ someFunc port = do
     startGUI defaultConfig { jsPort       = Just port
                            , jsStatic     = Just "static"
                            , jsCustomHTML = Just "index.html"
+                           , jsCallBufferMode = NoBuffering
                            }
         $ setup2 config
 
