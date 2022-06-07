@@ -172,6 +172,7 @@ setup window = mdo
 
     liftUI $ element deleteBtn # sink UI.enabled hasSelectedLoan
     liftUI $ element deleteBtn # sink sinkFocus hasSelectedLoan
+    liftUI $ element filterItem # sink sinkFocus (not <$>bActiveModal)
 
     let _userSelectionDE = tidings bSelectionUser $ Unsafe.head <$> unions
             [ eSelectionUser

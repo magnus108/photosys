@@ -234,13 +234,18 @@ mkItemBox = do
     bDatabaseLoan   <- asks Env.bDatabaseLoan
     bLoanItemId     <- loanItemId
 
+    bActiveModal  <- asks Env.bCreateLoanModalState
+
     let bItemsWithLoan :: Behavior [DatabaseKey]
         bItemsWithLoan =
             (\f -> catMaybes . fmap f . keys) <$> bLoanItemId <*> bDatabaseLoan
 
         bFilterItems  = (\p q -> filter (flip List.notElem q) p) <$> bListBox <*> bItemsWithLoan
 
-    mkSearchEntry bFilterItems bSelection bDisplay bFilterEntry
+
+    (a,b,c) <- mkSearchEntry bFilterItems bSelection bDisplay bFilterEntry
+    liftUI $ element b # sink sinkFocus (not <$>bActiveModal)
+    return (a,b,c)
 
 mkItemNormalBox
     :: forall m
@@ -255,10 +260,14 @@ mkItemNormalBox = do
     bDatabaseLoan   <- asks Env.bDatabaseLoan
     bLoanItemId     <- loanItemId
 
+    bActiveModal  <- asks Env.bCreateLoanModalState
+
     let bItemsWithLoan :: Behavior [DatabaseKey]
         bItemsWithLoan =
             (\f -> catMaybes . fmap f . keys) <$> bLoanItemId <*> bDatabaseLoan
 
         bFilterItems  = (\p q -> filter (flip List.notElem q) p) <$> bListBox <*> bItemsWithLoan
 
-    mkSearchEntry bFilterItems bSelection bDisplay bFilterEntry
+    (a,b,c) <- mkSearchEntry bFilterItems bSelection bDisplay bFilterEntry
+    liftUI $ element b # sink sinkFocus (not <$>bActiveModal)
+    return (a,b,c)
